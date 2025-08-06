@@ -1,0 +1,19 @@
+networks:
+    constrsw:
+
+volumes:
+    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
+    constrsw-keycloak-data:
+        external: true
+        
+services:
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.1
+    ports:
+      - 8001:8080
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - constrsw-keycloak-data:/opt/keycloak/data
