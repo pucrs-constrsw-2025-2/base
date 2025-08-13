@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: OAuth API Gateway
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      responses:
+        '200': { description: OK }
+  /login:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                password: { type: string }
+              required: [username, password]
+      responses:
+        '201':
+          description: Created
+  /users:
+    get:
+      parameters:
+        - in: query
+          name: enabled
+          schema: { type: boolean }
+      responses:
+        '200': { description: OK }
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                first_name: { type: string }
+                last_name: { type: string }
+                password: { type: string }e
+              required: [username, password]
+      responses:
+        '201': { description: Created }
