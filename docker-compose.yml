@@ -1,3 +1,5 @@
+version: '3.7'
+
 networks:
     constrsw:
 
@@ -35,3 +37,19 @@ services:
       timeout: 10s
       retries: 50
  
+  fastapi:
+    container_name: fastapi
+    build:
+      context: backend/oauth
+    image: fastapi-api
+    environment:
+      - KEYCLOAK_URL=${KEYCLOAK_URL}
+      - REALM_NAME=${REALM_NAME}
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+    networks:
+      - constrsw
+    ports:
+      - "8000:8000"
+    depends_on:
+      - keycloak
