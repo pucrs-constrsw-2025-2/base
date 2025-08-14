@@ -1,13 +1,11 @@
-from fastapi import FastAPI, HTTPException, Header, Response
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-import requests
 import re
 import os
+import requests
+from typing import Annotated
 from dotenv import load_dotenv
-from typing import Annotated, Optional
-
-
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Header, Response
+from models import User, UserUpdate, LoginRequest, TokenResponse
 
 # Carregar as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -21,32 +19,6 @@ KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")  # Exemplo: http://localhost:8080
 REALM_NAME = os.getenv("REALM_NAME")  # Exemplo: constrsw
 CLIENT_ID = os.getenv("CLIENT_ID")  # Exemplo: oauth
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-
-# Modelo Pydantic para os dados do usuário
-class User(BaseModel):
-    username: str
-    password: str
-    first_name: str
-    last_name: str
-
-# Modelo para atualização de usuário (password opcional)
-class UserUpdate(BaseModel):
-    username: str
-    first_name: str
-    last_name: str
-    password: Optional[str] = None  # Password opcional para update
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-# Modelo para a resposta do token
-class TokenResponse(BaseModel):
-    token_type: str
-    access_token: str
-    expires_in: int
-    refresh_token: str
-    refresh_expires_in: int
 
 # Função para obter o token de acesso do Keycloak
 def get_keycloak_token(username: str, password: str):
