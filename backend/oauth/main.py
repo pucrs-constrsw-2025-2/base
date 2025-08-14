@@ -337,85 +337,67 @@ async def delete_user(user_id: str, authorization: Annotated[str | None, Header(
     # 204 No Content com corpo vazio
     return Response(status_code=204)
 
-
 @app.put("/users/{user_id}")
-async def update_user(user_id: str, user: UserUpdate, authorization: Annotated[str | None, Header()] = None):
-    print("Iniciando a função update_user...")
-    
-    # Verifica o token de autenticação
+async def update_user(
+    user_id: str,
+    user_update: UserUpdate,
+    authorization: Annotated[str | None, Header()] = None
+):
+    # Verifica se o token é válido
     if not authorization or not authorization.startswith("Bearer "):
-        print("Token inválido ou ausente. Lançando exceção 401...")
         raise HTTPException(status_code=401, detail="Access token inválido")
 
+    # Monta a URL para o Keycloak
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
-    print(f"URL do Keycloak: {url}")
-    
+
+    # Headers para a requisição
     headers = {
         "Authorization": authorization,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
     }
-    print(f"Headers para a requisição: {headers}")
-    
-    # Corrigir os nomes dos campos
+
+    # Corpo da requisição com os dados atualizados
     data = {
-        "username": user.username,
-        "firstName": user.first_name,  # Corrigir para 'firstName'
-        "lastName": user.last_name   # Corrigir para 'lastName'
-    
+        "username": user_update.username,
+        "firstName": user_update.first_name,
+        "lastName": user_update.last_name
     }
-    print(f"Dados a serem enviados: {data}")
-    
-    # Se password for fornecido, incluir no campo "credentials"
-    if user.password:
-        data["credentials"] = [{"type": "password", "value": user.password}]
-        print(f"Senha incluída no campo credentials: {data['credentials']}")
 
-    # Faz a requisição PUT no Keycloak para atualizar o usuário
-    print(f"Realizando a requisição PUT para o Keycloak...")
-    response = requests.put(url, json=data, headers=headers)
-    
-    # Verifica a resposta do Keycloak
-    print(f"Resposta do Keycloak: {response.status_code} - {response.text}")
-
-    if response.status_code == 200:
-        print("Usuário atualizado com sucesso!")
-        return Response(status_code=200)
+    # Faz a chamada PUT para atualizar os dados principais
+    response = requests.put(url, headers=headers, json=data)
 
     if response.status_code == 204:
-        # Se a resposta for 204, significa sucesso, mas sem corpo.
-        print("Atualização realizada com sucesso (sem corpo na resposta).")
-        return Response(status_code=204)
+         #Se a senha também foi enviada, atualiza em outra chamada
+#        if user_update.password:
+#            pw_url = f"{url}/reset-password"
+#            pw_data = {
+#                "type": "password",
+#                "temporary": False,
+#                "value": user_update.password
+#            }
+#
+#            pw_response = requests.put(pw_url, headers=headers, json=pw_data)
+#            if pw_response.status_code != 204:
+#                raise HTTPException(
+#                     status_code=400,
+#                    detail="Usuário atualizado, mas falha ao definir a nova senha"
+#                )
 
-    # Verifica os diferentes erros retornados pelo Keycloak
-    if response.status_code == 400:
-        print("Erro 400 - Bad Request: Verifique a estrutura da chamada (headers, request body etc.)")
-        print("Detalhes da resposta:", response.status_code, response.text)
-        raise HTTPException(status_code=400, detail="Erro na estrutura da chamada (headers, request body etc.)")
+        return Response(status_code=200)  # Sucesso total
 
     if response.status_code == 401:
-        print("Erro 401 - Unauthorized: Access token inválido.")
-        print("Detalhes da resposta:", response.status_code, response.text)
         raise HTTPException(status_code=401, detail="Access token inválido")
 
     if response.status_code == 403:
-        print("Erro 403 - Forbidden: Permissão insuficiente.")
-        print("Detalhes da resposta:", response.status_code, response.text)
-        raise HTTPException(status_code=403, detail="Access token não concede permissão para acessar esse endpoint ou objeto")
+        raise HTTPException(
+            status_code=403,
+            detail="Access token não concede permissão para acessar esse endpoint ou objeto"
+        )
 
     if response.status_code == 404:
-        print("Erro 404 - Not Found: Objeto não encontrado.")
-        print("Detalhes da resposta:", response.status_code, response.text)
         raise HTTPException(status_code=404, detail="Objeto não localizado")
 
-    # Para todos os outros erros
-    print("Erro inesperado:", response.status_code, response.text)
-    raise HTTPException(status_code=400, detail="Erro na estrutura da chamada (headers, request body etc.)")
-
-
-# Rota /test para retornar "Hello World"
-@app.get("/test")
-async def test_route():
-    """
-    Rota de teste simples para verificar se a API está funcionando.
-    """
-    return {"message": "Hello World"}
+    raise HTTPException(
+        status_code=400,
+        detail="Erro na estrutura da chamada (headers, request body etc.)"
+    )
