@@ -18,8 +18,8 @@ async fn main() -> std::io::Result<()> {
         println!("{}:{}", key, value);
     }
 
-    let port = env::var("OAUTH_EXTERNAL_API_PORT").expect("not found");
-    let host = env::var("OAUTH_INTERNAL_HOST").expect("not found");
+    let port = env::var("OAUTH_EXTERNAL_API_PORT").expect("Missing OAUTH_EXTERNAL_API_PORT");
+    let host = env::var("OAUTH_INTERNAL_HOST").expect("Missing OAUTH_INTERNAL_HOST");
 
     let addr = format!("{}:{}", host, port);
 
