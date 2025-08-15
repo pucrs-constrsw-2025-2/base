@@ -91,3 +91,11 @@ nos comentarios
         condition: service_healthy # Espera o healthcheck do Keycloak passar
     restart: always
 ```
+
+guys como sofri pra fazer esse repo funcionar, fica de aviso ai quando forem criar
+um mono repo tu pode usar 
+```
+nest new . --skip-git
+```
+
+E ele nao vai fazer com que teu git fique lelé da cuca
