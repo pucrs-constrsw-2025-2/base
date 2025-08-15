@@ -1,8 +1,8 @@
 import requests
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from backend.oauth.models import User
-from backend.oauth.globals import CLIENT_ID, CLIENT_SECRET, KEYCLOAK_URL, REALM_NAME
+from models import User, UserCreate
+from globals import CLIENT_ID, CLIENT_SECRET, KEYCLOAK_URL, REALM_NAME
 
 
 # Função para obter o token de acesso do Keycloak
@@ -35,7 +35,7 @@ def get_keycloak_token(username: str, password: str):
 
 
 # Função para criar um novo usuário no Keycloak
-def create_keycloak_user(access_token: str, user: User):
+def create_keycloak_user(access_token: str, userCreate: UserCreate):
     """
     Função para criar um novo usuário no Keycloak utilizando o token de acesso.
     """
@@ -45,19 +45,19 @@ def create_keycloak_user(access_token: str, user: User):
         "Content-Type": "application/json",
     }
     data = {
-        "username": user.username,
-        "firstName": user.first_name,
-        "lastName": user.last_name,
+        "username": userCreate.username,
+        "firstName": userCreate.first_name,
+        "lastName": userCreate.last_name,
+        "email": userCreate.email,
         "enabled": True,
-        "email": user.username,
+        "credentials": [cred.dict() for cred in userCreate.credentials],
     }
+
     response = requests.post(url, json=data, headers=headers)
 
-    # Mapeamento explícito de respostas do Keycloak
     if response.status_code == 201:
         location_header = response.headers.get("Location")
         if not location_header:
-            # 201 sem Location é erro de infraestrutura
             raise HTTPException(
                 status_code=500, detail="User created but ID not returned by Keycloak"
             )
@@ -68,30 +68,26 @@ def create_keycloak_user(access_token: str, user: User):
                 "message": "User created successfully",
                 "user": {
                     "id": user_id,
-                    "username": user.username,
-                    "first-name": user.first_name,
-                    "last-name": user.last_name,
+                    "username": userCreate.username,
+                    "firstName": userCreate.first_name,
+                    "lastName": userCreate.last_name,
                     "enabled": True,
                 },
             },
         )
 
+    # Tratamento de outros códigos de erro
     if response.status_code == 401:
-        # 401 - Unauthorized
         raise HTTPException(status_code=401, detail="Access token inválido")
-
     if response.status_code == 403:
-        # 403 - Forbidden
         raise HTTPException(
             status_code=403,
-            detail="access token não concede permissão para acessar esse endpoint",
+            detail="Access token não concede permissão para acessar esse endpoint",
         )
-
     if response.status_code == 409:
-        # 409 - Conflict
         raise HTTPException(status_code=409, detail="Username já existente")
 
-    # 400 ou quaisquer outros erros de requisição -> Bad Request
+    # Erro genérico para outras falhas
     raise HTTPException(
         status_code=400,
         detail="Erro na estrutura da chamada (headers, request body etc.)",

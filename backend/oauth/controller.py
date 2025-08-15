@@ -4,13 +4,13 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, HTTPException, Header, Response
-from models import User, UserUpdate, LoginRequest, TokenResponse
+from models import User, UserCreate, UserUpdate, LoginRequest, TokenResponse
 from keycloak_controller import (
     disable_keycloak_user,
     get_keycloak_token,
     create_keycloak_user,
 )
-from backend.oauth.globals import KEYCLOAK_URL, REALM_NAME
+from globals import KEYCLOAK_URL, REALM_NAME
 
 load_dotenv()  # Carregar as variáveis de ambiente do arquivo .env
 
@@ -50,14 +50,14 @@ EMAIL_RFC_TEXT = (
 # Endpoint para criar um novo usuário no Keycloak
 @app.post("/users")
 async def create_user(
-    user: User, authorization: Annotated[str | None, Header()] = None
+    user: UserCreate, authorization: Annotated[str | None, Header()] = None
 ):
     # Validação do header Authorization como "Bearer ..."
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Access token inválido")
 
     # ===== ALTERAÇÃO 3: usar a regex simples para validar e-mail =====
-    if not EMAIL_VALIDATION_RE.fullmatch(user.username or ""):
+    if not EMAIL_VALIDATION_RE.fullmatch(user.email or ""):
         raise HTTPException(
             status_code=400,
             detail=(
@@ -200,13 +200,18 @@ async def update_user(
 
     data = {
         "username": user_update.username,
-        "firstName": user_update.first_name,
-        "lastName": user_update.last_name,
+        "firstName": user_update.first_name,  # Certifique-se de que o campo está em camelCase
+        "lastName": user_update.last_name,  # Certifique-se de que o campo está em camelCase
+        "email": user_update.email,
+        "enabled": True,
+        "credentials": [
+            {"type": "password", "value": user_update.password, "temporary": False}
+        ],
     }
 
     # Faz a chamada PUT para atualizar os dados principais
     response = requests.put(url, headers=headers, json=data)
-
+    print(response)
     if response.status_code == 204:
         # Se a senha também foi enviada, atualiza em outra chamada
         #        if user_update.password:
