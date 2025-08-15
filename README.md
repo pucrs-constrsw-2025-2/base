@@ -99,3 +99,5 @@ nest new . --skip-git
 ```
 
 E ele nao vai fazer com que teu git fique lelé da cuca
+
+Puta merda que bagulho pesado

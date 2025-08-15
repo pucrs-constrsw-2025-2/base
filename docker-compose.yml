@@ -24,7 +24,7 @@ services:
       - constrsw
     ports:
       - ${KEYCLOAK_EXTERNAL_CONSOLE_PORT}:${KEYCLOAK_INTERNAL_CONSOLE_PORT}
-    command: start-dev --import-realm
+    command: start-dev --import-realm #Problema pode ser aqui
     restart: always
     healthcheck:
       test:
@@ -32,7 +32,7 @@ services:
           "CMD-SHELL",
           "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}/health",
         ]
-      start_period: 300s
+      start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 50
