@@ -1,7 +1,7 @@
 import requests
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from models import User, UserCreate
+from models.user import UserCreate
 from globals import CLIENT_ID, CLIENT_SECRET, KEYCLOAK_URL, REALM_NAME
 
 
