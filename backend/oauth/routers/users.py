@@ -1,39 +1,22 @@
 import re
+
 import requests
+from config import KEYCLOAK_URL, REALM_NAME
+from fastapi import APIRouter, HTTPException, Header, Response
 from typing import Annotated
-from dotenv import load_dotenv
+from models.user import UserCreate, UserUpdate, TokenResponse, LoginRequest
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, HTTPException, Header, Response
-from models.user import (
-    UserCreate,
-    UserUpdate,
-    LoginRequest,
-    TokenResponse,
-)
-from models.role import RoleCreate, RoleUpdate, UserRoleAssign
-from keycloak_controller import (
-    disable_keycloak_user,
+from services.keycloak_service import (
     get_keycloak_token,
     create_keycloak_user,
-)
-from globals import KEYCLOAK_URL, REALM_NAME
-from services.role_service import (
-    create_role,
-    list_roles,
-    get_role,
-    update_role,
-    delete_role,
-    assign_role_to_user,
-    unassign_role_from_user,
+    disable_keycloak_user,
 )
 
-load_dotenv()  # Carregar as variáveis de ambiente do arquivo .env
-
-app = FastAPI()
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 # Endpoint de login para autenticação de usuários via OAuth
-@app.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse)
 async def login(login_request: LoginRequest):
     """
     Endpoint para autenticar o usuário via OAuth e obter o access token
@@ -63,7 +46,7 @@ EMAIL_RFC_TEXT = (
 
 
 # Endpoint para criar um novo usuário no Keycloak
-@app.post("/users")
+@router.post("/", response_model=dict)
 async def create_user(
     user: UserCreate, authorization: Annotated[str | None, Header()] = None
 ):
@@ -92,7 +75,7 @@ async def create_user(
     return JSONResponse(status_code=201, content=result)
 
 
-@app.get("/users")
+@router.get("/", response_model=list)
 async def list_users(
     authorization: Annotated[str | None, Header()] = None,
     enabled: bool | None = None,  # parâmetro opcional de query
@@ -142,7 +125,7 @@ async def list_users(
     )
 
 
-@app.get("/users/{user_id}")
+@router.get("/{user_id}", response_model=dict)
 async def get_user(user_id: str, authorization: Annotated[str | None, Header()] = None):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Access token inválido")
@@ -185,7 +168,7 @@ async def get_user(user_id: str, authorization: Annotated[str | None, Header()] 
 
 
 # ---- endpoint DELETE /users/{id} ----
-@app.delete("/users/{user_id}")
+@router.delete("/{user_id}")
 async def delete_user(
     user_id: str, authorization: Annotated[str | None, Header()] = None
 ):
@@ -199,7 +182,7 @@ async def delete_user(
     return Response(status_code=204)
 
 
-@app.put("/users/{user_id}")
+@router.put("/{user_id}", response_model=dict)
 async def update_user(
     user_id: str,
     user_update: UserUpdate,
@@ -262,82 +245,3 @@ async def update_user(
         status_code=400,
         detail="Erro na estrutura da chamada (headers, request body etc.)",
     )
-
-
-@app.post("/roles")
-async def create_role_endpoint(
-    role: RoleCreate, authorization: Annotated[str | None, Header()] = None
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return create_role(authorization, role)
-
-
-@app.get("/roles")
-async def get_roles_endpoint(authorization: Annotated[str | None, Header()] = None):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return list_roles(authorization)
-
-
-@app.get("/roles/{role_name}")
-async def get_role_endpoint(
-    role_name: str, authorization: Annotated[str | None, Header()] = None
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return get_role(authorization, role_name)
-
-
-@app.put("/roles/{role_name}")
-async def update_role_endpoint(
-    role_name: str,
-    role_update: RoleUpdate,
-    authorization: Annotated[str | None, Header()] = None,
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return update_role(authorization, role_name, role_update)
-
-
-@app.patch("/roles/{role_name}")
-async def patch_role_endpoint(
-    role_name: str,
-    role_update: RoleUpdate,
-    authorization: Annotated[str | None, Header()] = None,
-):
-    # PATCH e PUT são idênticos para Keycloak, ambos usam PUT e ignoram campos não enviados
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return update_role(authorization, role_name, role_update)
-
-
-@app.delete("/roles/{role_name}")
-async def delete_role_endpoint(
-    role_name: str, authorization: Annotated[str | None, Header()] = None
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return delete_role(authorization, role_name)
-
-
-@app.post("/roles/{role_name}/assign")
-async def assign_role_endpoint(
-    role_name: str,
-    assign: UserRoleAssign,
-    authorization: Annotated[str | None, Header()] = None,
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return assign_role_to_user(authorization, role_name, assign)
-
-
-@app.post("/roles/{role_name}/unassign")
-async def unassign_role_endpoint(
-    role_name: str,
-    assign: UserRoleAssign,
-    authorization: Annotated[str | None, Header()] = None,
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    return unassign_role_from_user(authorization, role_name, assign)

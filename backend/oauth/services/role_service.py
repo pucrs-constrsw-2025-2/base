@@ -1,7 +1,7 @@
 import requests
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from globals import KEYCLOAK_URL, REALM_NAME
+from config import KEYCLOAK_URL, REALM_NAME
 from models.role import RoleCreate, RoleUpdate, UserRoleAssign
 
 
