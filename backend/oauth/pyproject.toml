@@ -23,7 +23,9 @@ ruff = "^0.4.2"
 black = "^24.4.2"
 mypy = "^1.9.0"
 pre-commit = "^3.7.0"
-respx = "^0.20.2" # <-- Linha corrigida
+respx = "^0.20.2"
+taskipy = "^1.14.1"
+
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,6 +33,10 @@ build-backend = "poetry.core.main.api"
 
 [tool.ruff]
 line-length = 88
+extend-exclude = ['migrations']
+
+[tool.ruff.lint]
+preview = true
 select = ["E", "W", "F", "I", "C", "B", "UP", "N", "S", "A", "T20"]
 ignore = ["S101"] # Ignora 'assert' usado em testes
 
@@ -40,3 +46,9 @@ line-length = 88
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+
+[tool.taskipy.tasks]
+run = 'uvicorn oauth_api.main:app --reload'
+lint = 'ruff check .'
+format = 'ruff check . --fix ; ruff format .'
+test = 'pytest'

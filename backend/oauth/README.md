@@ -46,6 +46,10 @@ A arquitetura do projeto é baseada no padrão **Ports & Adapters**:
     ```bash
     poetry install
     ```
+4.  Ative o ambiente poetry:
+    ```bash
+    poetry shell
+    ```
 
 ### 2. Executando com Docker Compose
 
