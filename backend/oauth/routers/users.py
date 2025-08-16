@@ -211,21 +211,6 @@ async def update_user(
     response = requests.put(url, headers=headers, json=data)
     print(response)
     if response.status_code == 204:
-        # Se a senha também foi enviada, atualiza em outra chamada
-        #        if user_update.password:
-        #            pw_url = f"{url}/reset-password"
-        #            pw_data = {
-        #                "type": "password",
-        #                "temporary": False,
-        #                "value": user_update.password
-        #            }
-        #
-        #            pw_response = requests.put(pw_url, headers=headers, json=pw_data)
-        #            if pw_response.status_code != 204:
-        #                raise HTTPException(
-        #                     status_code=400,
-        #                    detail="Usuário atualizado, mas falha ao definir a nova senha"
-        #                )
 
         return Response(status_code=200)
 
@@ -245,3 +230,37 @@ async def update_user(
         status_code=400,
         detail="Erro na estrutura da chamada (headers, request body etc.)",
     )
+
+@router.patch("/{user_id}")
+async def update_password(user_id: str, body: dict, authorization: Annotated[str | None, Header()] = None):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token inválido")
+
+    password = body.get("password")
+    if not password:
+        raise HTTPException(status_code=400, detail="Campo 'password' é obrigatório")
+
+    url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}/reset-password"
+    headers = {
+        "Authorization": authorization,
+        "Content-Type": "application/json"
+    }
+    data = {
+        "type": "password",
+        "value": password,
+        "temporary": False
+    }
+
+    response = requests.put(url, json=data, headers=headers)
+
+    if response.status_code == 204:
+        return Response(status_code=200)
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Access token inválido")
+    if response.status_code == 403:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    if response.status_code == 404:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    raise HTTPException(status_code=400, detail="Erro ao atualizar a senha")
