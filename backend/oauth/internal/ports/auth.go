@@ -1,8 +1,10 @@
 package ports
 
+import "context"
+
 // AuthPort define operações de autenticação expostas ao handler.
 type AuthPort interface {
-	PasswordLogin(username, password string) (TokenResponse, error)
+	PasswordLogin(ctx context.Context, username, password string) (TokenResponse, error)
 }
 
 type TokenResponse struct {

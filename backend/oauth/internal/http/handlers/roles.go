@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +18,7 @@ func (h *RolesHandler) List(c *gin.Context) {
 		return
 	}
 
-	roles, err := h.svc.GetRoles(context.Background(), bearer)
+	roles, err := h.svc.GetRoles(c.Request.Context(), bearer)
 	if err != nil {
 		c.JSON(http.StatusForbidden, Err("403", "forbidden", "Keycloak", err))
 		return
@@ -40,7 +39,7 @@ func (h *RolesHandler) Get(c *gin.Context) {
 		return
 	}
 
-	role, err := h.svc.GetRoleByName(context.Background(), bearer, name)
+	role, err := h.svc.GetRoleByName(c.Request.Context(), bearer, name)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -69,7 +68,7 @@ func (h *RolesHandler) Create(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.CreateRole(context.Background(), bearer, in)
+	err := h.svc.CreateRole(c.Request.Context(), bearer, in)
 	if err != nil {
 		if isConflict(err) {
 			c.JSON(http.StatusConflict, Err("409", "role already exists", "Keycloak", err))
@@ -100,7 +99,7 @@ func (h *RolesHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.UpdateRole(context.Background(), bearer, name, in)
+	err := h.svc.UpdateRole(c.Request.Context(), bearer, name, in)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -125,7 +124,7 @@ func (h *RolesHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.DeleteRole(context.Background(), bearer, name)
+	err := h.svc.DeleteRole(c.Request.Context(), bearer, name)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -151,7 +150,7 @@ func (h *RolesHandler) AssignToUser(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.AssignRoleToUser(context.Background(), bearer, userID, roleName)
+	err := h.svc.AssignRoleToUser(c.Request.Context(), bearer, userID, roleName)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user or role not found", "Keycloak", err))
@@ -177,7 +176,7 @@ func (h *RolesHandler) RemoveFromUser(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.RemoveRoleFromUser(context.Background(), bearer, userID, roleName)
+	err := h.svc.RemoveRoleFromUser(c.Request.Context(), bearer, userID, roleName)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user or role not found", "Keycloak", err))
@@ -202,7 +201,7 @@ func (h *RolesHandler) GetUserRoles(c *gin.Context) {
 		return
 	}
 
-	roles, err := h.svc.GetUserRoles(context.Background(), bearer, userID)
+	roles, err := h.svc.GetUserRoles(c.Request.Context(), bearer, userID)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))

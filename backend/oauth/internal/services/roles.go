@@ -11,8 +11,8 @@ type rolesService struct{ kc *keycloak.Client }
 
 func NewRolesService(kc *keycloak.Client) ports.RolesPort { return &rolesService{kc: kc} }
 
-func (s *rolesService) GetRoles(bearer string) ([]ports.Role, error) {
-	roles, err := s.kc.GetRoles(context.Background(), bearer)
+func (s *rolesService) GetRoles(ctx context.Context, bearer string) ([]ports.Role, error) {
+	roles, err := s.kc.GetRoles(ctx, bearer)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func (s *rolesService) GetRoles(bearer string) ([]ports.Role, error) {
 	return out, nil
 }
 
-func (s *rolesService) GetRoleByName(bearer, name string) (ports.Role, error) {
-	role, err := s.kc.GetRoleByName(context.Background(), bearer, name)
+func (s *rolesService) GetRoleByName(ctx context.Context, bearer, name string) (ports.Role, error) {
+	role, err := s.kc.GetRoleByName(ctx, bearer, name)
 	if err != nil {
 		return ports.Role{}, err
 	}
@@ -43,38 +43,38 @@ func (s *rolesService) GetRoleByName(bearer, name string) (ports.Role, error) {
 	}, nil
 }
 
-func (s *rolesService) CreateRole(bearer string, role ports.Role) error {
+func (s *rolesService) CreateRole(ctx context.Context, bearer string, role ports.Role) error {
 	kcRole := keycloak.KcRole{
 		Name:        role.Name,
 		Description: role.Description,
 		Composite:   role.Composite,
 	}
-	return s.kc.CreateRole(context.Background(), bearer, kcRole)
+	return s.kc.CreateRole(ctx, bearer, kcRole)
 }
 
-func (s *rolesService) UpdateRole(bearer, name string, role ports.Role) error {
+func (s *rolesService) UpdateRole(ctx context.Context, bearer, name string, role ports.Role) error {
 	kcRole := keycloak.KcRole{
 		Name:        role.Name,
 		Description: role.Description,
 		Composite:   role.Composite,
 	}
-	return s.kc.UpdateRole(context.Background(), bearer, name, kcRole)
+	return s.kc.UpdateRole(ctx, bearer, name, kcRole)
 }
 
-func (s *rolesService) DeleteRole(bearer, name string) error {
-	return s.kc.DeleteRole(context.Background(), bearer, name)
+func (s *rolesService) DeleteRole(ctx context.Context, bearer, name string) error {
+	return s.kc.DeleteRole(ctx, bearer, name)
 }
 
-func (s *rolesService) AssignRoleToUser(bearer, userID, roleName string) error {
-	return s.kc.AssignRoleToUser(context.Background(), bearer, userID, roleName)
+func (s *rolesService) AssignRoleToUser(ctx context.Context, bearer, userID, roleName string) error {
+	return s.kc.AssignRoleToUser(ctx, bearer, userID, roleName)
 }
 
-func (s *rolesService) RemoveRoleFromUser(bearer, userID, roleName string) error {
-	return s.kc.RemoveRoleFromUser(context.Background(), bearer, userID, roleName)
+func (s *rolesService) RemoveRoleFromUser(ctx context.Context, bearer, userID, roleName string) error {
+	return s.kc.RemoveRoleFromUser(ctx, bearer, userID, roleName)
 }
 
-func (s *rolesService) GetUserRoles(bearer, userID string) ([]ports.Role, error) {
-	roles, err := s.kc.GetUserRoles(context.Background(), bearer, userID)
+func (s *rolesService) GetUserRoles(ctx context.Context, bearer, userID string) ([]ports.Role, error) {
+	roles, err := s.kc.GetUserRoles(ctx, bearer, userID)
 	if err != nil {
 		return nil, err
 	}
