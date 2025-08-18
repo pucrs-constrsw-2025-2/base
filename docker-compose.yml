@@ -157,6 +157,27 @@ services:
       - constrsw
     ports:
       - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+  oauth:
+    container_name: oauth
+    build:
+      context: backend/oauth
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    environment:
+      - KEYCLOAK_INTERNAL_PROTOCOL=${KEYCLOAK_INTERNAL_PROTOCOL}
+      - KEYCLOAK_INTERNAL_HOST=${KEYCLOAK_INTERNAL_HOST}
+      - KEYCLOAK_INTERNAL_API_PORT=${KEYCLOAK_INTERNAL_API_PORT}
+      - KEYCLOAK_EXTERNAL_PROTOCOL=${KEYCLOAK_EXTERNAL_PROTOCOL}
+      - KEYCLOAK_EXTERNAL_HOST=${KEYCLOAK_EXTERNAL_HOST}
+      - KEYCLOAK_EXTERNAL_API_PORT=${KEYCLOAK_EXTERNAL_API_PORT}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+    networks:
+      - constrsw
+    ports:
+      - "8082:8082"
     depends_on:
       keycloak:
         condition: service_healthy

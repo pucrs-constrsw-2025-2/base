@@ -1,0 +1,65 @@
+package com.grupo6.constrsw.exception;
+
+import java.util.ArrayList;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+// import org.springframework.web.bind.annotation.ControllerAdvice;
+// import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import com.grupo6.constrsw.dto.ApiError;
+
+// @ControllerAdvice(basePackages = "com.grupo6.constrsw.controller")
+public class GlobalExceptionHandler {
+
+    // Temporariamente desabilitado para teste
+    
+    /*
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ResponseEntity<ApiError> handleHttpClientError(HttpClientErrorException e) {
+        ApiError error = new ApiError(
+            "OA-" + e.getStatusCode().value(),
+            "Erro na comunicação com Keycloak: " + e.getMessage(),
+            "OAuthAPI",
+            new ArrayList<>()
+        );
+        return ResponseEntity.status(e.getStatusCode()).body(error);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException e) {
+        ApiError error = new ApiError(
+            "OA-400",
+            "Erro de validação: " + e.getMessage(),
+            "OAuthAPI",
+            new ArrayList<>()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        ApiError error = new ApiError(
+            "OA-400",
+            "Tipo de parâmetro inválido: " + e.getMessage(),
+            "OAuthAPI",
+            new ArrayList<>()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiError> handleRuntimeException(RuntimeException e) {
+        ApiError error = new ApiError(
+            "OA-500",
+            "Erro interno do servidor: " + e.getMessage(),
+            "OAuthAPI",
+            new ArrayList<>()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+    */
+}
