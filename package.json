@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "keycloak-connect": "^26.1.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/express-session": "^1.18.2",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}
