@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde::Deserialize;
 
 #[derive(Debug, Serialize)]
 pub struct LoginRes{
@@ -16,7 +17,7 @@ pub struct LoginResKeycloak{
     pub refresh_expires_in: u16,
     pub refresh_token: String,
     pub token_type: String,
-    pub not-before-policy: u16,
+    pub not_before_policy: u16,
     pub session_state: String,
     pub scope: String
 }
