@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Debug, Deserialize)]
 pub struct LoginReq{
