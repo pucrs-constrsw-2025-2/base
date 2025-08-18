@@ -21,6 +21,8 @@ func New(cfg *config.Config, kc *keycloak.Client) *gin.Engine {
 
 	r.POST("/login", authH.Login)
 
+	r.POST("/refresh-token", authH.RefreshToken)
+
 	r.POST("/users", usrH.Create)
 	r.GET("/users", usrH.List)
 	r.GET("/users/:id", usrH.Get)

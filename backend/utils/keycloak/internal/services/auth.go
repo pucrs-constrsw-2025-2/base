@@ -21,3 +21,25 @@ func (s *authService) PasswordLogin(username, password string) (ports.TokenRespo
 		RefreshExpiresIn: tr.RefreshExpiresIn,
 	}, nil
 }
+
+
+
+func (s *authService) RefreshToken(ctx context.Context, clientID, clientSecret, refreshToken, grantType string) (ports.TokenResponse, error) {
+	req := keycloak.RefreshTokenRequest{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RefreshToken: refreshToken,
+		GrantType:    grantType,
+	}
+	tr, err := s.kc.RefreshToken(ctx, req)
+	if err != nil {
+		return ports.TokenResponse{}, err
+	}
+	return ports.TokenResponse{
+		TokenType:        tr.TokenType,
+		AccessToken:      tr.AccessToken,
+		ExpiresIn:        tr.ExpiresIn,
+		RefreshToken:     tr.RefreshToken,
+		RefreshExpiresIn: tr.RefreshExpiresIn,
+	}, nil
+}

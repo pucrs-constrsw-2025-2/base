@@ -1,3 +1,51 @@
+import (
+	"context"
+	"net/http"
+	"net/url"
+	"strings"
+	"encoding/json"
+	"io"
+	"fmt"
+)
+type RefreshTokenRequest struct {
+	ClientID     string
+	ClientSecret string
+	RefreshToken string
+	GrantType    string
+}
+func (c *Client) RefreshToken(ctx context.Context, req RefreshTokenRequest) (tokenResp, error) {
+	endpoint := c.tokenEndpoint // ajuste conforme sua implementação
+	data := url.Values{}
+	data.Set("client_id", req.ClientID)
+	if req.ClientSecret != "" {
+		data.Set("client_secret", req.ClientSecret)
+	}
+	data.Set("refresh_token", req.RefreshToken)
+	data.Set("grant_type", req.GrantType)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return tokenResp{}, err
+	}
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.hc.Do(httpReq)
+	if err != nil {
+		return tokenResp{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return tokenResp{}, fmt.Errorf("keycloak refresh token error: %d %s", resp.StatusCode, string(b))
+	}
+
+	var tr tokenResp
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		return tokenResp{}, err
+	}
+	return tr, nil
+}
 package keycloak
 
 import (
