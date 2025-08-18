@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +32,7 @@ func (h *UsersHandler) Create(c *gin.Context) {
 		return
 	}
 
-	u, err := h.svc.CreateUser(context.Background(), bearer, in)
+	u, err := h.svc.CreateUser(c.Request.Context(), bearer, in)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if isConflict(err) {
@@ -61,7 +60,7 @@ func (h *UsersHandler) List(c *gin.Context) {
 			enabledPtr = &f
 		}
 	}
-	us, err := h.svc.GetUsers(context.Background(), bearer, enabledPtr)
+	us, err := h.svc.GetUsers(c.Request.Context(), bearer, enabledPtr)
 	if err != nil {
 		c.JSON(http.StatusForbidden, Err("403", "forbidden", "Keycloak", err))
 		return
@@ -82,7 +81,7 @@ func (h *UsersHandler) Get(c *gin.Context) {
 		return
 	}
 
-	u, err := h.svc.GetUserByID(context.Background(), bearer, id)
+	u, err := h.svc.GetUserByID(c.Request.Context(), bearer, id)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))
@@ -118,7 +117,7 @@ func (h *UsersHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.UpdateUser(context.Background(), bearer, id, in)
+	err := h.svc.UpdateUser(c.Request.Context(), bearer, id, in)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))
@@ -151,7 +150,7 @@ func (h *UsersHandler) PatchPwd(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.UpdatePassword(context.Background(), bearer, id, req.Password)
+	err := h.svc.UpdatePassword(c.Request.Context(), bearer, id, req.Password)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))
@@ -176,7 +175,7 @@ func (h *UsersHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.DisableUser(context.Background(), bearer, id)
+	err := h.svc.DisableUser(c.Request.Context(), bearer, id)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))

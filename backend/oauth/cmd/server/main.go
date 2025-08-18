@@ -2,9 +2,12 @@ package main
 
 import (
 	"log"
+
+	"github.com/your-org/oauth/internal/adapters/keycloak"
 	"github.com/your-org/oauth/internal/config"
 	"github.com/your-org/oauth/internal/http/router"
-	"github.com/your-org/oauth/internal/adapters/keycloak"
+
+	_ "github.com/your-org/oauth/docs" // import docs
 )
 
 func main() {
@@ -14,7 +17,7 @@ func main() {
 	}
 
 	kc := keycloak.NewClient(keycloak.Options{
-		BaseURL:       cfg.KCBaseURL,
+		BaseURL:       cfg.KeycloakBaseURL(),
 		Realm:         cfg.KCRealm,
 		ClientID:      cfg.KCClientID,
 		ClientSecret:  cfg.KCClientSecret,

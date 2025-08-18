@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"context"
 	"github.com/your-org/oauth/internal/ports"
 )
 
@@ -22,7 +22,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, Err("400", "invalid request body", "OAuthAPI", err))
 		return
 	}
-	tr, err := h.svc.PasswordLogin(context.Background(), in.Username, in.Password)
+	tr, err := h.svc.PasswordLogin(c.Request.Context(), in.Username, in.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, Err("401", "invalid credentials", "Keycloak", err))
 		return

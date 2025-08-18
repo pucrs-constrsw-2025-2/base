@@ -11,8 +11,8 @@ type usersService struct{ kc *keycloak.Client }
 
 func NewUsersService(kc *keycloak.Client) ports.UsersPort { return &usersService{kc: kc} }
 
-func (s *usersService) CreateUser(bearer string, u ports.User) (ports.User, error) {
-	id, err := s.kc.CreateUser(context.Background(), bearer, keycloakUserFrom(u), u.Password)
+func (s *usersService) CreateUser(ctx context.Context, bearer string, u ports.User) (ports.User, error) {
+	id, err := s.kc.CreateUser(ctx, bearer, keycloakUserFrom(u), u.Password)
 	if err != nil {
 		return ports.User{}, err
 	}
@@ -21,8 +21,8 @@ func (s *usersService) CreateUser(bearer string, u ports.User) (ports.User, erro
 	return u, nil
 }
 
-func (s *usersService) GetUsers(bearer string, enabled *bool) ([]ports.User, error) {
-	us, err := s.kc.GetUsers(context.Background(), bearer, enabled)
+func (s *usersService) GetUsers(ctx context.Context, bearer string, enabled *bool) ([]ports.User, error) {
+	us, err := s.kc.GetUsers(ctx, bearer, enabled)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,8 @@ func (s *usersService) GetUsers(bearer string, enabled *bool) ([]ports.User, err
 	return out, nil
 }
 
-func (s *usersService) GetUserByID(bearer, id string) (ports.User, error) {
-	ku, err := s.kc.GetUserByID(context.Background(), bearer, id)
+func (s *usersService) GetUserByID(ctx context.Context, bearer, id string) (ports.User, error) {
+	ku, err := s.kc.GetUserByID(ctx, bearer, id)
 	if err != nil {
 		return ports.User{}, err
 	}
@@ -47,19 +47,19 @@ func (s *usersService) GetUserByID(bearer, id string) (ports.User, error) {
 	}, nil
 }
 
-func (s *usersService) UpdateUser(bearer, id string, u ports.User) error {
+func (s *usersService) UpdateUser(ctx context.Context, bearer, id string, u ports.User) error {
 	kcUser := keycloakUserFrom(u)
 	kcUser.ID = id // garantir que o ID seja mantido
-	return s.kc.UpdateUser(context.Background(), bearer, id, kcUser)
+	return s.kc.UpdateUser(ctx, bearer, id, kcUser)
 }
 
-func (s *usersService) UpdatePassword(bearer, id, newPassword string) error {
-	return s.kc.UpdatePassword(context.Background(), bearer, id, newPassword)
+func (s *usersService) UpdatePassword(ctx context.Context, bearer, id, newPassword string) error {
+	return s.kc.UpdatePassword(ctx, bearer, id, newPassword)
 }
 
-func (s *usersService) DisableUser(bearer, id string) error {
+func (s *usersService) DisableUser(ctx context.Context, bearer, id string) error {
 	// Para desabilitar um usuário, precisamos primeiro buscar os dados atuais
-	ku, err := s.kc.GetUserByID(context.Background(), bearer, id)
+	ku, err := s.kc.GetUserByID(ctx, bearer, id)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (s *usersService) DisableUser(bearer, id string) error {
 	ku.Enabled = false
 
 	// Atualizar o usuário
-	return s.kc.UpdateUser(context.Background(), bearer, id, ku)
+	return s.kc.UpdateUser(ctx, bearer, id, ku)
 }
 
 // --- mapeadores ---
