@@ -1,33 +1,20 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
 
-class UserCreateRequest(BaseModel):
-    username: EmailStr = Field(..., example="joao.silva@email.com")
-    password: str = Field(..., min_length=8, example="strongPassword123")
-    first_name: str = Field(..., example="João")
-    last_name: str = Field(..., example="Silva")
+class UserUpdate(BaseModel):
+    username: str | None = None
+    email: EmailStr | None = None
+    firstName: str | None = None
+    lastName: str | None = None
 
-
-class UserUpdateRequest(BaseModel):
-    first_name: str = Field(..., example="João")
-    last_name: str = Field(..., example="Silva")
-
-
-class PasswordUpdateRequest(BaseModel):
-    password: str = Field(..., min_length=8, example="newStrongPassword123")
-
-
-class UserResponse(BaseModel):
+class UserPublic(BaseModel):
     id: str
-    username: EmailStr
-    first_name: str
-    last_name: str
-    enabled: bool
+    username: str
+    email: EmailStr
 
-
-class TokenResponse(BaseModel):
-    access_token: str
-    expires_in: int
-    refresh_expires_in: int
-    refresh_token: str
-    token_type: str
+    class Config:
+        from_attributes = True # Permite que o Pydantic leia os dados de um objeto (orm_mode)
