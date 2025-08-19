@@ -1,8 +1,9 @@
+version: '3.8'
+
 networks:
     constrsw:
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
     constrsw-keycloak-data:
         external: true
         
@@ -34,6 +35,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 50
+    env_file:
+      - ./.env
   
   oauth:
     container_name: oauth
@@ -53,4 +56,5 @@ services:
       - constrsw
     ports:
       - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
-    
+    env_file:
+      - ./.env
