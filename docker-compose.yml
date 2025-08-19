@@ -167,3 +167,26 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  oauth:
+    container_name: constrsw-oauth
+    build:
+      context: ./backend/oauth
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    environment:
+      - PORT=3000
+      - KEYCLOAK_INTERNAL_PROTOCOL=${KEYCLOAK_INTERNAL_PROTOCOL}
+      - KEYCLOAK_INTERNAL_HOST=${KEYCLOAK_INTERNAL_HOST}
+      - KEYCLOAK_INTERNAL_API_PORT=${KEYCLOAK_INTERNAL_API_PORT}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+    depends_on:
+      - keycloak
+    networks:
+      - constrsw
+    ports:
+      - "3000:3000"
+    restart: always
