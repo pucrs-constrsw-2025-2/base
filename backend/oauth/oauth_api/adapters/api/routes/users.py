@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from oauth_api.adapters.api.dependencies import get_user_service, oauth2_scheme
-from oauth_api.adapters.api.schemas.user_schemas import UserCreate, UserPublic, UserUpdate
+from oauth_api.adapters.api.schemas.user_schemas import UserCreate, UserPublic, UserUpdate, PasswordReset
 from oauth_api.core.services.user_service import UserService
 
 # A dependência de segurança foi removida do router para ser aplicada por endpoint
@@ -73,12 +73,11 @@ def update_user(
 )
 def reset_password(
     user_id: str,
+    password_data: PasswordReset,
     user_service: UserService = Depends(get_user_service),
-    # Adicionar o schema para o corpo da requisição
 ):
     """Define uma nova senha para o usuário."""
-    # A lógica para obter a nova senha do corpo da requisição precisa ser adicionada
-    # user_service.reset_password(user_id, new_password)
+    user_service.reset_password(user_id, password_data.password)
     return {"message": "Password has been reset."}
 
 @router.delete(
