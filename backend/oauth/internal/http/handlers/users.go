@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ func (h *UsersHandler) Create(c *gin.Context) {
 
 	u, err := h.svc.CreateUser(c.Request.Context(), bearer, in)
 	if err != nil {
+		log.Printf("CreateUser error: %+v", err)
 		status := http.StatusInternalServerError
 		if isConflict(err) {
 			status = http.StatusConflict
@@ -62,6 +64,7 @@ func (h *UsersHandler) List(c *gin.Context) {
 	}
 	us, err := h.svc.GetUsers(c.Request.Context(), bearer, enabledPtr)
 	if err != nil {
+		log.Printf("GetUsers error: %+v", err)
 		c.JSON(http.StatusForbidden, Err("403", "forbidden", "Keycloak", err))
 		return
 	}
@@ -184,5 +187,5 @@ func (h *UsersHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Err("500", "delete failed", "Keycloak", err))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "user disabled successfully"})
+	c.Status(http.StatusNoContent)
 }

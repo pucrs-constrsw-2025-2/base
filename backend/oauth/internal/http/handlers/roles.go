@@ -33,13 +33,13 @@ func (h *RolesHandler) Get(c *gin.Context) {
 		return
 	}
 
-	name := c.Param("name")
-	if name == "" {
-		c.JSON(http.StatusBadRequest, Err("400", "missing role name", "OAuthAPI", nil))
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing role id", "OAuthAPI", nil))
 		return
 	}
 
-	role, err := h.svc.GetRoleByName(c.Request.Context(), bearer, name)
+	role, err := h.svc.GetRoleByID(c.Request.Context(), bearer, id)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -87,9 +87,9 @@ func (h *RolesHandler) Update(c *gin.Context) {
 		return
 	}
 
-	name := c.Param("name")
-	if name == "" {
-		c.JSON(http.StatusBadRequest, Err("400", "missing role name", "OAuthAPI", nil))
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing role id", "OAuthAPI", nil))
 		return
 	}
 
@@ -99,7 +99,38 @@ func (h *RolesHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.UpdateRole(c.Request.Context(), bearer, name, in)
+	err := h.svc.UpdateRole(c.Request.Context(), bearer, id, in)
+	if err != nil {
+		if err.Error() == "404: not found" {
+			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Err("500", "update failed", "Keycloak", err))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "role updated successfully"})
+}
+
+func (h *RolesHandler) Patch(c *gin.Context) {
+	bearer := extractBearer(c)
+	if bearer == "" {
+		c.JSON(http.StatusUnauthorized, Err("401", "missing token", "OAuthAPI", nil))
+		return
+	}
+
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing role id", "OAuthAPI", nil))
+		return
+	}
+
+	var in ports.Role
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, Err("400", "invalid body", "OAuthAPI", err))
+		return
+	}
+
+	err := h.svc.PatchRole(c.Request.Context(), bearer, id, in)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -118,13 +149,13 @@ func (h *RolesHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	name := c.Param("name")
-	if name == "" {
-		c.JSON(http.StatusBadRequest, Err("400", "missing role name", "OAuthAPI", nil))
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing role id", "OAuthAPI", nil))
 		return
 	}
 
-	err := h.svc.DeleteRole(c.Request.Context(), bearer, name)
+	err := h.svc.DeleteRole(c.Request.Context(), bearer, id)
 	if err != nil {
 		if err.Error() == "404: not found" {
 			c.JSON(http.StatusNotFound, Err("404", "role not found", "Keycloak", err))
@@ -133,7 +164,7 @@ func (h *RolesHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Err("500", "delete failed", "Keycloak", err))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "role deleted successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 func (h *RolesHandler) AssignToUser(c *gin.Context) {

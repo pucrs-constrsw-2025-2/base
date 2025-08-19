@@ -10,7 +10,7 @@ import (
 type Config struct {
 	// HTTP
 	Host string `env:"OAUTH_HOST" envDefault:"0.0.0.0"`
-	Port int    `env:"OAUTH_PORT" envDefault:"8080"`
+	Port int    `env:"OAUTH_PORT" envDefault:"8181"`
 
 	// Keycloak
 	KCProtocol     string `env:"KEYCLOAK_EXTERNAL_PROTOCOL" envDefault:"http"`

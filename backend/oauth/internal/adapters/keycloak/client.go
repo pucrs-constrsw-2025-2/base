@@ -45,6 +45,10 @@ func (c *Client) adminRolesBase() string {
 	return fmt.Sprintf("%s/admin/realms/%s/roles", c.opt.BaseURL, c.opt.Realm)
 }
 
+func (c *Client) adminRolesByIdBase() string {
+	return fmt.Sprintf("%s/admin/realms/%s/roles-by-id", c.opt.BaseURL, c.opt.Realm)
+}
+
 // --- Auth ---
 
 type tokenResp struct {
@@ -238,7 +242,12 @@ func (c *Client) UpdatePassword(ctx context.Context, bearer, id, pwd string) err
 
 func (c *Client) DisableUser(ctx context.Context, bearer, id string) error {
 	// Em Keycloak, "exclusão lógica" pode ser modelada como update enabled=false
-	return c.UpdateUser(ctx, bearer, id, kcUser{Enabled: false})
+	u, err := c.GetUserByID(ctx, bearer, id)
+	if err != nil {
+		return err
+	}
+	u.Enabled = false
+	return c.UpdateUser(ctx, bearer, id, u)
 }
 
 // --- Roles ---
@@ -267,6 +276,29 @@ func (c *Client) GetRoles(ctx context.Context, bearer string) ([]kcRole, error) 
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *Client) GetRoleByID(ctx context.Context, bearer, id string) (kcRole, error) {
+	endpoint := fmt.Sprintf("%s/%s", c.adminRolesByIdBase(), id)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req.Header.Set("Authorization", bearerHeader(bearer))
+	res, err := c.hc.Do(req)
+	if err != nil {
+		return kcRole{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode == 404 {
+		return kcRole{}, fmt.Errorf("404: not found")
+	}
+	if res.StatusCode >= 400 {
+		b, _ := io.ReadAll(res.Body)
+		return kcRole{}, fmt.Errorf("keycloak get role error: %d %s", res.StatusCode, string(b))
+	}
+	var role kcRole
+	if err := json.NewDecoder(res.Body).Decode(&role); err != nil {
+		return kcRole{}, err
+	}
+	return role, nil
 }
 
 func (c *Client) GetRoleByName(ctx context.Context, bearer, name string) (kcRole, error) {
@@ -312,8 +344,8 @@ func (c *Client) CreateRole(ctx context.Context, bearer string, role kcRole) err
 	return nil
 }
 
-func (c *Client) UpdateRole(ctx context.Context, bearer, name string, role kcRole) error {
-	endpoint := fmt.Sprintf("%s/%s", c.adminRolesBase(), name)
+func (c *Client) UpdateRole(ctx context.Context, bearer, id string, role kcRole) error {
+	endpoint := fmt.Sprintf("%s/%s", c.adminRolesByIdBase(), id)
 	body, _ := json.Marshal(role)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(body))
 	req.Header.Set("Authorization", bearerHeader(bearer))
@@ -333,8 +365,8 @@ func (c *Client) UpdateRole(ctx context.Context, bearer, name string, role kcRol
 	return nil
 }
 
-func (c *Client) DeleteRole(ctx context.Context, bearer, name string) error {
-	endpoint := fmt.Sprintf("%s/%s", c.adminRolesBase(), name)
+func (c *Client) DeleteRole(ctx context.Context, bearer, id string) error {
+	endpoint := fmt.Sprintf("%s/%s", c.adminRolesByIdBase(), id)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 	req.Header.Set("Authorization", bearerHeader(bearer))
 	res, err := c.hc.Do(req)

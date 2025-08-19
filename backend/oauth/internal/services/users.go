@@ -16,9 +16,8 @@ func (s *usersService) CreateUser(ctx context.Context, bearer string, u ports.Us
 	if err != nil {
 		return ports.User{}, err
 	}
-	u.ID = id
-	u.Password = ""
-	return u, nil
+	// Após criar, busca o usuário para retornar o objeto completo e atualizado
+	return s.GetUserByID(ctx, bearer, id)
 }
 
 func (s *usersService) GetUsers(ctx context.Context, bearer string, enabled *bool) ([]ports.User, error) {
@@ -28,7 +27,14 @@ func (s *usersService) GetUsers(ctx context.Context, bearer string, enabled *boo
 	}
 	out := make([]ports.User, 0, len(us))
 	for _, ku := range us {
-		out = append(out, ports.User{ID: ku.ID, Username: ku.Username, FirstName: ku.FirstName, LastName: ku.LastName, Enabled: ku.Enabled})
+		out = append(out, ports.User{
+			ID:        ku.ID,
+			Username:  ku.Username,
+			FirstName: ku.FirstName,
+			LastName:  ku.LastName,
+			Enabled:   ku.Enabled,
+			Email:     ku.Email,
+		})
 	}
 	return out, nil
 }
@@ -44,6 +50,7 @@ func (s *usersService) GetUserByID(ctx context.Context, bearer, id string) (port
 		FirstName: ku.FirstName,
 		LastName:  ku.LastName,
 		Enabled:   ku.Enabled,
+		Email:     ku.Email,
 	}, nil
 }
 
@@ -73,11 +80,15 @@ func (s *usersService) DisableUser(ctx context.Context, bearer, id string) error
 
 // --- mapeadores ---
 func keycloakUserFrom(u ports.User) keycloak.KcUser {
+	email := u.Email
+	if email == "" {
+		email = u.Username
+	}
 	return keycloak.KcUser{ // campos exportados no mesmo pacote via type
 		Username:  u.Username,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Enabled:   u.Enabled,
-		Email:     u.Username,
+		Email:     email,
 	}
 }

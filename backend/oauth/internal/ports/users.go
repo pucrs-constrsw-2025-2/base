@@ -5,10 +5,11 @@ import "context"
 type User struct {
 	ID        string `json:"id,omitempty"`
 	Username  string `json:"username"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Enabled   bool   `json:"enabled"`
+	FirstName string `json:"first-name"`
+	LastName  string `json:"last-name"`
 	Password  string `json:"password,omitempty"`
+	Email     string `json:"email"`
+	Enabled   bool   `json:"enabled"`
 }
 
 type UsersPort interface {
