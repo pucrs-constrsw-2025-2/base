@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
+use serde_json::{json, Value};
 use reqwest::Client;
 use std::env;
 use dotenv::dotenv;
@@ -66,6 +67,56 @@ async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
     }
 }
 
+#[post("/users")]
+async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<Value>) -> Result<impl Responder> {
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Configure routes
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+    
+    let url = format!("{}/admin/realms/{}/users", keycloak_url, realm);
+    
+    // Creates HTTP Client and request
+    let client = Client::new();
+    let response = client
+        .post(&url)
+        .header("Authorization", auth)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    // Parse response
+    if response.status().as_u16() == 201 {
+        // Keycloak returns Location header with created user id; extra safe parse
+        if let Some(loc) = response.headers().get("Location").and_then(|v| v.to_str().ok()) {
+            let id = loc.rsplit('/').next().unwrap_or(loc);
+            let body = json!({ "id": id, "user": payload });
+            Ok(HttpResponse::Created().json(body))
+        } else {
+            Ok(HttpResponse::Created().json(payload))
+        }
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -83,6 +134,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(hello)
             .service(login)
+            .service(create_user)
     })
     .bind(addr)?
     .run()
