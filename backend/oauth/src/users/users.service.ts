@@ -1,4 +1,5 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
+import { CustomHttpException } from '../common/errors/custom-httpexception';
 import axios from 'axios';
 import * as qs from 'querystring';
 
@@ -11,45 +12,100 @@ export class UsersService {
   private grantType = process.env.KEYCLOAK_GRANT_TYPE ?? 'password';
 
   async login(username: string, password: string) {
-    console.debug('[UsersService] login called', { username });
     if (!username || !password) {
-      throw new HttpException({ error_code: '400', error_description: 'username and password required', error_source: 'OAuthAPI' }, HttpStatus.BAD_REQUEST);
+      throw new CustomHttpException(
+        'OA-400',
+        'Username and password are required',
+        'OAuthAPI',
+        HttpStatus.BAD_REQUEST
+      );
     }
 
-    const tokenUrl = `${this.keycloakBase}/auth/realms/${this.realm}/protocol/openid-connect/token`;
-    console.debug('[UsersService] calling tokenUrl', tokenUrl);
-    const body = qs.stringify({ username, password, client_id: this.clientId, client_secret: this.clientSecret, grant_type: this.grantType });
+    const tokenUrl = `${this.keycloakBase}/realms/${this.realm}/protocol/openid-connect/token`;
+    const body = qs.stringify({ 
+      username, 
+      password, 
+      client_id: this.clientId, 
+      client_secret: this.clientSecret, 
+      grant_type: this.grantType 
+    });
 
-    console.debug(body);
     try {
-      const resp = await axios.post(tokenUrl, body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const resp = await axios.post(tokenUrl, body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
       if (resp.status === 200) return resp.data;
-      console.debug('[UsersService] login error response', resp);
-      throw new HttpException({ error_code: String(resp.status), error_description: 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
+      
+      throw new CustomHttpException(
+        `OA-${resp.status}`,
+        resp.data?.error_description || 'Authentication failed',
+        'KeycloakAPI',
+        resp.status,
+        [resp.data]
+      );
     } catch (err: any) {
-        console.debug('[UsersService] login error', err);
       if (err.response) {
-        const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data?.error_description || err.response.data, error_source: 'OAuthAPI' }, status);
+        const status = err.response.status;
+        if (status === 401) {
+          throw new CustomHttpException(
+            'OA-401',
+            err.response.data?.error_description || 'Invalid credentials',
+            'KeycloakAPI',
+            HttpStatus.UNAUTHORIZED,
+            [err.response.data]
+          );
+        }
+
+        throw new CustomHttpException(
+          `OA-${status}`,
+          err.response.data?.error_description || 'Keycloak authentication error',
+          'KeycloakAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+
+      throw new CustomHttpException(
+        'OA-500',
+        'Internal server error during authentication',
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ message: err.message }]
+      );
     }
   }
 
   private authHeaders(accessToken: string) {
-    if (!accessToken) throw new HttpException({ error_code: '401', error_description: 'access token required', error_source: 'OAuthAPI' }, HttpStatus.UNAUTHORIZED);
+    if (!accessToken) {
+      throw new CustomHttpException(
+        'OA-401',
+        'Access token required',
+        'OAuthAPI',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
     return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
   }
 
   async createUser(accessToken: string, user: { username: string; password: string; firstName?: string; lastName?: string }) {
-    console.debug('[UsersService] createUser', { username: user.username });
     if (!user?.username || !user?.password) {
-      throw new HttpException({ error_code: '400', error_description: 'username and password are required', error_source: 'OAuthAPI' }, HttpStatus.BAD_REQUEST);
+      throw new CustomHttpException(
+        'OA-400',
+        'username and password are required',
+        'OAuthAPI',
+        HttpStatus.BAD_REQUEST
+      );
     }
     // basic email validation (lightweight). The full RFC regex is large; can be added later.
     const emailRegex = /.+@.+\..+/;
     if (!emailRegex.test(user.username)) {
-      throw new HttpException({ error_code: '400', error_description: 'invalid email', error_source: 'OAuthAPI' }, HttpStatus.BAD_REQUEST);
+      throw new CustomHttpException(
+        'OA-400',
+        'invalid email',
+        'OAuthAPI',
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const url = `${this.keycloakBase}/admin/realms/${this.realm}/users`;
@@ -83,13 +139,31 @@ export class UsersService {
 
       // forward Keycloak error
       const status = resp.status || 500;
-      throw new HttpException({ error_code: String(status), error_description: resp.data || 'error from keycloak', error_source: 'OAuthAPI' }, status);
+      throw new CustomHttpException(
+        String(status),
+        resp.data || 'error from keycloak',
+        'OAuthAPI',
+        status,
+        [resp.data]
+      );
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data?.errorMessage || err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        throw new CustomHttpException(
+          String(status),
+          err.response.data?.errorMessage || err.response.data || err.message,
+          'OAuthAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomHttpException(
+        '500',
+        err.message,
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }]
+      );
     }
   }
 
@@ -103,26 +177,78 @@ export class UsersService {
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        throw new CustomHttpException(
+          String(status),
+          err.response.data?.errorMessage || err.response.data || err.message,
+          'OAuthAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomHttpException(
+        '500',
+        err.message,
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }]
+      );
     }
   }
 
   async getUserById(accessToken: string, id: string) {
-    console.debug('[UsersService] getUserById', { id });
     try {
       const url = `${this.keycloakBase}/admin/realms/${this.realm}/users/${id}`;
-      const resp = await axios.get(url, { headers: this.authHeaders(accessToken), validateStatus: () => true });
-      if (resp.status === 200) return { id: resp.data.id, username: resp.data.username, firstName: resp.data.firstName, lastName: resp.data.lastName, enabled: resp.data.enabled };
-      if (resp.status === 404) throw new HttpException({ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }, HttpStatus.NOT_FOUND);
-      throw new HttpException({ error_code: String(resp.status), error_description: resp.data || 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
+      const resp = await axios.get(url, { 
+        headers: this.authHeaders(accessToken), 
+        validateStatus: () => true 
+      });
+
+      if (resp.status === 200) {
+        return {
+          id: resp.data.id,
+          username: resp.data.username,
+          firstName: resp.data.firstName,
+          lastName: resp.data.lastName,
+          enabled: resp.data.enabled
+        };
+      }
+
+      if (resp.status === 404) {
+        throw new CustomHttpException(
+          'OA-404',
+          'User not found',
+          'KeycloakAPI',
+          HttpStatus.NOT_FOUND,
+          [resp.data]
+        );
+      }
+
+      throw new CustomHttpException(
+        `OA-${resp.status}`,
+        resp.data?.errorMessage || 'Keycloak error',
+        'KeycloakAPI',
+        resp.status,
+        [resp.data]
+      );
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        const status = err.response.status;
+        throw new CustomHttpException(
+          `OA-${status}`,
+          err.response.data?.errorMessage || 'Error accessing Keycloak',
+          'KeycloakAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+
+      throw new CustomHttpException(
+        'OA-500',
+        'Internal server error',
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ message: err.message }]
+      );
     }
   }
 
@@ -139,14 +265,38 @@ export class UsersService {
       };
       const resp = await axios.put(url, payload, { headers: this.authHeaders(accessToken), validateStatus: () => true });
       if (resp.status === 204) return;
-      if (resp.status === 404) throw new HttpException({ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }, HttpStatus.NOT_FOUND);
-      throw new HttpException({ error_code: String(resp.status), error_description: resp.data || 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
+      if (resp.status === 404) throw new CustomHttpException(
+        'OA-404',
+        'not found',
+        'OAuthAPI',
+        HttpStatus.NOT_FOUND,
+        [{ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }]
+      );
+      throw new CustomHttpException(
+        String(resp.status),
+        resp.data || 'error from keycloak',
+        'OAuthAPI',
+        resp.status,
+        [resp.data]
+      );
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        throw new CustomHttpException(
+          String(status),
+          err.response.data || err.message,
+          'OAuthAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomHttpException(
+        '500',
+        err.message,
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }]
+      );
     }
   }
 
@@ -157,14 +307,38 @@ export class UsersService {
       const body = { type: 'password', value: password, temporary: false };
       const resp = await axios.put(url, body, { headers: this.authHeaders(accessToken), validateStatus: () => true });
       if (resp.status === 204) return;
-      if (resp.status === 404) throw new HttpException({ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }, HttpStatus.NOT_FOUND);
-      throw new HttpException({ error_code: String(resp.status), error_description: resp.data || 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
+      if (resp.status === 404) throw new CustomHttpException(
+        'OA-404',
+        'not found',
+        'OAuthAPI',
+        HttpStatus.NOT_FOUND,
+        [{ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }]
+      );
+      throw new CustomHttpException(
+        String(resp.status),
+        resp.data || 'error from keycloak',
+        'OAuthAPI',
+        resp.status,
+        [resp.data]
+      );
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        throw new CustomHttpException(
+          String(status),
+          err.response.data || err.message,
+          'OAuthAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomHttpException(
+        '500',
+        err.message,
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }]
+      );
     }
   }
 
@@ -175,14 +349,38 @@ export class UsersService {
       const payload = { enabled: false };
       const resp = await axios.put(url, payload, { headers: this.authHeaders(accessToken), validateStatus: () => true });
       if (resp.status === 204) return;
-      if (resp.status === 404) throw new HttpException({ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }, HttpStatus.NOT_FOUND);
-      throw new HttpException({ error_code: String(resp.status), error_description: resp.data || 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
+      if (resp.status === 404) throw new CustomHttpException(
+        'OA-404',
+        'not found',
+        'OAuthAPI',
+        HttpStatus.NOT_FOUND,
+        [{ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }]
+      );
+      throw new CustomHttpException(
+        String(resp.status),
+        resp.data || 'error from keycloak',
+        'OAuthAPI',
+        resp.status,
+        [resp.data]
+      );
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status || 500;
-        throw new HttpException({ error_code: String(status), error_description: err.response.data || err.message, error_source: 'OAuthAPI' }, status);
+        throw new CustomHttpException(
+          String(status),
+          err.response.data || err.message,
+          'OAuthAPI',
+          status,
+          [err.response.data]
+        );
       }
-      throw new HttpException({ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomHttpException(
+        '500',
+        err.message,
+        'OAuthAPI',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        [{ error_code: '500', error_description: err.message, error_source: 'OAuthAPI' }]
+      );
     }
   }
 }

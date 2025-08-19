@@ -1,37 +1,48 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+// all-exceptions.filter.ts
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
-    const request = ctx.getRequest();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
-    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    // Build standardized error body
-    const body: any = {
-      error_code: status === HttpStatus.INTERNAL_SERVER_ERROR ? '500' : String(status),
-      error_description: (exception as any)?.message || (exception as any)?.response || 'Internal server error',
-      error_source: 'OAuthAPI',
-      error_stack: [],
-    };
+    let responseBody: any =
+      exception instanceof HttpException ? exception.getResponse() : null;
 
-    // attach stack if available
-    if (exception instanceof Error) {
-      body.error_stack = exception.stack?.split('\n').map((s) => s.trim()) || [];
-      console.error('Unhandled exception:', exception.stack);
-    } else {
-      console.error('Unhandled exception (non-Error):', exception);
-    }
+    const error_code =
+      responseBody?.['error_code'] ??
+      `OA-${status.toString().padStart(3, '0')}`;
 
-    // log request info
-    try {
-      console.error('Request:', request.method, request.url, 'Headers:', request.headers);
-    } catch (e) {
-      console.error('Request logging failed', e);
-    }
+    const error_description =
+      responseBody?.['error_description'] ??
+      (exception instanceof Error ? exception.message : 'Unexpected error');
 
-    response.status(status).json(body);
+    const error_source =
+      responseBody?.['error_source'] ?? 'OAuthAPI';
+
+    const error_stack =
+      responseBody?.['error_stack'] ??
+      (exception instanceof Error ? exception.stack?.split('\n') : []);
+
+    response.status(status).json({
+      error_code,
+      error_description,
+      error_source,
+      error_stack,
+    });
   }
 }
