@@ -5,7 +5,7 @@ FROM rust:1.82 as builder
 WORKDIR /usr/src/app
 
 # Step 3: Copy dependency definitions
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
 
 # Step 4: Build only the dependencies to leverage Docker cache
 # Create a dummy main.rs to allow dependency build
