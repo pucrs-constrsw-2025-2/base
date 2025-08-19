@@ -18,3 +18,10 @@ class UserPublic(BaseModel):
 
     class Config:
         from_attributes = True # Permite que o Pydantic leia os dados de um objeto (orm_mode)
+        
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    
+class PasswordReset(BaseModel):
+    password: str
