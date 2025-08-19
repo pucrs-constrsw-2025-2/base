@@ -1,8 +1,9 @@
+version: '3.8'
+
 networks:
     constrsw:
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
     constrsw-keycloak-data:
         external: true
     # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
@@ -112,6 +113,8 @@ services:
       timeout: 10s
       retries: 10
     restart: always
+    env_file:
+      - ./.env
   
   oauth:
     container_name: oauth
@@ -131,4 +134,5 @@ services:
       - constrsw
     ports:
       - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
-    
+    env_file:
+      - ./.env
