@@ -30,6 +30,34 @@ class KeycloakUserRepository(IUserRepository):
             if e.status_code == 404:
                 raise UserNotFoundError() from e
             raise
+        
+    async def find_by_email(self, email: str) -> Optional[User]:
+        """
+        Finds a user by their exact email address.
+
+        Args:
+            email: The email address to search for.
+
+        Returns:
+            A User object if found, otherwise None.
+        """
+        try:
+            # Keycloak's API requires query params for searching.
+            # 'exact=true' ensures we don't get partial matches.
+            params = {"email": email, "exact": "true"}
+            kc_users = await self.client.get("/users", params=params)
+
+            # The search endpoint always returns a list.
+            # If the list is empty, no user was found.
+            if not kc_users:
+                return None
+
+            # Since emails should be unique, we return the first result.
+            return self._to_domain(kc_users[0])
+        except KeycloakAPIError:
+            # A failed search usually returns an empty list, not an error.
+            # Re-raise any unexpected API errors to be handled upstream.
+            raise
 
     async def find_all(self, enabled: Optional[bool] = None) -> List[User]:
         params = {} if enabled is None else {"enabled": str(enabled).lower()}

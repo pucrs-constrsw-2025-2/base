@@ -11,42 +11,43 @@ class UserService:
         self.user_repo = user_repo
         self.role_repo = role_repo
         
-    def create_user(self, user_data: dict) -> User:
+    async def create_user(self, user_data: dict) -> User:
         """
         Cria um novo usuário após validar se o e-mail já existe.
         """
-        existing_user = self.user_repository.find_by_email(user_data["email"])
+        # O campo 'username' no Keycloak é usado para o e-mail.
+        existing_user = await self.user_repo.find_by_email(user_data["username"])
         if existing_user:
-            raise UserAlreadyExistsError(f"User with email {user_data['email']} already exists")
-        return self.user_repository.create(user_data)
+            raise UserAlreadyExistsError(f"User with email {user_data['username']} already exists")
+        return await self.user_repo.create(user_data)
 
-    def find_user_by_id(self, user_id: str) -> User:
+    async def find_user_by_id(self, user_id: str) -> User:
         """
         Busca um usuário pelo seu ID, levantando uma exceção se não for encontrado.
         """
-        user = self.user_repository.find_by_id(user_id)
+        user = await self.user_repo.find_by_id(user_id)
         if not user:
             raise UserNotFoundError(f"User with id {user_id} not found")
         return user
     
-    def find_all(self, enabled: bool | None = None) -> list[User]:
+    async def find_all(self, enabled: bool | None = None) -> list[User]:
         """Busca todos os usuários, com um filtro opcional."""
-        return self.user_repository.find_all(enabled=enabled)
+        return await self.user_repo.find_all(enabled=enabled)
 
-    def update_user(self, user_id: str, update_data: dict):
+    async def update_user(self, user_id: str, update_data: dict):
         """Atualiza os dados de um usuário."""
-        self.find_user_by_id(user_id) # Garante que o usuário existe
-        self.user_repository.update(user_id, update_data)
+        await self.find_user_by_id(user_id) # Garante que o usuário existe
+        await self.user_repo.update(user_id, update_data)
 
-    def reset_password(self, user_id: str, new_password: str):
+    async def reset_password(self, user_id: str, new_password: str):
         """Reseta a senha de um usuário."""
-        self.find_user_by_id(user_id) # Garante que o usuário existe
-        self.user_repository.reset_password(user_id, new_password)
+        await self.find_user_by_id(user_id) # Garante que o usuário existe
+        await self.user_repo.reset_password(user_id, new_password)
 
-    def disable_user(self, user_id: str):
+    async def disable_user(self, user_id: str):
         """Desativa um usuário."""
-        self.find_user_by_id(user_id) # Garante que o usuário existe
-        self.user_repository.disable(user_id)
+        await self.find_user_by_id(user_id) # Garante que o usuário existe
+        await self.user_repo.disable(user_id)
 
     # Isso aqui n faz sentido, devia ta no role_service!!
     
