@@ -64,6 +64,51 @@ def update_role(access_token: str, role_id: str, role_update: RoleUpdate):
     raise HTTPException(status_code=400, detail="Erro ao atualizar role")
 
 
+def patch_role(access_token: str, role_id: str, role_update: RoleUpdate):
+    """
+    Executa uma atualização parcial (PATCH) seguindo o padrão Read-Modify-Write.
+    """
+    try:
+        # 1. READ: Busca o estado atual e completo do role
+        existing_role_data = get_role_by_id(access_token, role_id)
+
+        # 2. MODIFY: Mescla os dados existentes com os novos dados da requisição
+        # role_update.dict(exclude_unset=True) cria um dicionário contendo APENAS
+        # os campos que foram enviados pelo cliente na requisição PATCH.
+        update_data = role_update.dict(exclude_unset=True)
+
+        # O método .update() do dicionário aplica as alterações parciais
+        existing_role_data.update(update_data)
+
+        # 3. WRITE: Envia o objeto completo e atualizado para o Keycloak via PUT
+        url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
+        response = requests.put(
+            url,
+            json=existing_role_data,  # Envia o objeto mesclado
+            headers=get_headers(access_token),
+        )
+
+        if response.status_code == 204:
+            return JSONResponse(
+                status_code=200,
+                content={"message": "Role atualizado com sucesso (PATCH)"},
+            )
+
+        # Repassa o erro de forma mais detalhada
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Erro ao atualizar o role no Keycloak: {response.text}",
+        )
+
+    except HTTPException as e:
+        # Garante que o erro 404 de 'get_role_by_id' seja repassado corretamente
+        if e.status_code == 404:
+            raise HTTPException(
+                status_code=404, detail="Role não encontrado para atualização"
+            )
+        raise e
+
+
 # Função para exclusão lógica
 def logical_delete_role(access_token: str, role_id: str):
     """

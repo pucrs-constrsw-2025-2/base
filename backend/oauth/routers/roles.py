@@ -5,6 +5,7 @@ from services.role_service import (
     create_role,
     list_roles,
     get_role_by_id,
+    patch_role,
     update_role,
     logical_delete_role,
     assign_role_to_user,
@@ -57,10 +58,9 @@ async def patch_role_endpoint(
     role_update: RoleUpdate,
     authorization: Annotated[str | None, Header()] = None,
 ):
-    # PATCH e PUT são idênticos para Keycloak, ambos usam PUT.
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Access token inválido")
-    return update_role(authorization, role_id, role_update)
+    return patch_role(authorization, role_id, role_update)
 
 
 @router.delete("/{role_id}", response_model=dict)
