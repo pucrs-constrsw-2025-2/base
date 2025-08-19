@@ -1,4 +1,4 @@
-use actix_web::{get, post, put, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{get, patch, post, put, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
 use serde_json::{json, Value};
 use reqwest::Client;
 use std::env;
@@ -262,6 +262,69 @@ async fn update_user(
     }
 }
 
+#[patch("/users/{id}")]
+async fn patch_user_password(
+    token_req: HttpRequest,
+    path: web::Path<String>,
+    web::Json(payload): web::Json<Value>,
+) -> Result<impl Responder> {
+    let id = path.into_inner();
+
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Build Keycloak base URL
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
+    // Expect payload like { "password": "newpass" }
+    let new_password = payload.get("password")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| actix_web::error::ErrorBadRequest("Missing password field"))?;
+
+    // Keycloak credential representation
+    let cred = json!({
+        "type": "password",
+        "value": new_password,
+        "temporary": false
+    });
+
+    let url = format!("{}/admin/realms/{}/users/{}/reset-password", keycloak_url, realm, id);
+
+    let client = Client::new();
+    let response = client
+        .put(&url) // Keycloak expects PUT for reset-password
+        .header("Authorization", auth)
+        .json(&cred)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    let status = response.status();
+
+    if status.is_success() {
+        Ok(HttpResponse::Ok().finish())
+    } else if status.as_u16() == 404 {
+        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
+        Ok(HttpResponse::NotFound().body(body))
+    } else {
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -283,6 +346,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_users)
             .service(get_user)
             .service(update_user)
+            .service(patch_user_password)
     })
     .bind(addr)?
     .run()
