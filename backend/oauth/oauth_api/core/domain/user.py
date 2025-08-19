@@ -3,7 +3,8 @@ from pydantic import BaseModel, EmailStr
 
 class User(BaseModel):
     id: str
-    username: EmailStr
-    first_name: str
-    last_name: str
-    enabled: bool
+    username: str
+    first_name: str | None = None
+    last_name: str | None = None
+    enabled: bool | True
+    password: str | None = None
