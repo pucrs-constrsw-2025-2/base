@@ -161,10 +161,11 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
     }
 }
 
-/**
-// new handler: GET /users — retorna todos usuários (filtra enabled=true)
-#[get("/users")]
-async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
+#[get("/users/{id}")]
+async fn get_user(token_req: HttpRequest, path: web::Path<String>) -> Result<impl Responder> {
+
+    let id = path.into_inner();
+
     // Require Authorization
     let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
         Some(s) if !s.is_empty() => s.to_string(),
@@ -184,8 +185,7 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
     let realm = env::var("KEYCLOAK_REALM")
         .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
 
-    // Query Keycloak admin users endpoint (only enabled users)
-    let url = format!("{}/admin/realms/{}/users?enabled=true", keycloak_url, realm);
+    let url = format!("{}/admin/realms/{}/users/{}", keycloak_url, realm, id);
 
     let client = Client::new();
     let response = client
@@ -195,19 +195,20 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
         .await
         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
 
-    if response.status().is_success() {
-        // Parse body as JSON and forward it
-        let users = response.json::<Value>().await
+    let status = response.status();
+
+    if status.is_success() {
+        let user = response.json::<Value>().await
             .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-        Ok(HttpResponse::Ok().json(users))
+        Ok(HttpResponse::Ok().json(user))
+    } else if status.as_u16() == 404 {
+        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
+        Ok(HttpResponse::NotFound().body(body))
     } else {
-        let status = response.status();
         let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
         Ok(HttpResponse::build(status).body(body))
     }
 }
-
-*/
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -228,6 +229,7 @@ async fn main() -> std::io::Result<()> {
             .service(login)
             .service(create_user)
             .service(get_users)
+            .service(get_user)
     })
     .bind(addr)?
     .run()
