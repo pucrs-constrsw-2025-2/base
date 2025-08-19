@@ -117,6 +117,98 @@ async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<Value
     }
 }
 
+#[get("/users")]
+async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Build Keycloak base URL
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
+    // Query Keycloak admin users endpoint (only enabled users)
+    let url = format!("{}/admin/realms/{}/users?enabled=true", keycloak_url, realm);
+
+    let client = Client::new();
+    let response = client
+        .get(&url)
+        .header("Authorization", auth)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    if response.status().is_success() {
+        // Parse body as JSON and forward it
+        let users = response.json::<Value>().await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+        Ok(HttpResponse::Ok().json(users))
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
+/**
+// new handler: GET /users — retorna todos usuários (filtra enabled=true)
+#[get("/users")]
+async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Build Keycloak base URL
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
+    // Query Keycloak admin users endpoint (only enabled users)
+    let url = format!("{}/admin/realms/{}/users?enabled=true", keycloak_url, realm);
+
+    let client = Client::new();
+    let response = client
+        .get(&url)
+        .header("Authorization", auth)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    if response.status().is_success() {
+        // Parse body as JSON and forward it
+        let users = response.json::<Value>().await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+        Ok(HttpResponse::Ok().json(users))
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
+*/
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -135,6 +227,7 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(login)
             .service(create_user)
+            .service(get_users)
     })
     .bind(addr)?
     .run()
