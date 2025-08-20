@@ -168,24 +168,26 @@ func (h *UsersHandler) PatchPwd(c *gin.Context) {
 func (h *UsersHandler) Delete(c *gin.Context) {
 	bearer := extractBearer(c)
 	if bearer == "" {
-		c.JSON(http.StatusUnauthorized, Err("401", "missing token", "OAuthAPI", nil))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, Err("401", "missing token", "OAuthAPI", nil))
 		return
 	}
 
 	id := c.Param("id")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, Err("400", "missing user id", "OAuthAPI", nil))
+		c.AbortWithStatusJSON(http.StatusBadRequest, Err("400", "missing user id", "OAuthAPI", nil))
 		return
 	}
 
 	err := h.svc.DisableUser(c.Request.Context(), bearer, id)
 	if err != nil {
 		if err.Error() == "404: not found" {
-			c.JSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))
+			c.AbortWithStatusJSON(http.StatusNotFound, Err("404", "user not found", "Keycloak", err))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, Err("500", "delete failed", "Keycloak", err))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Err("500", "delete failed", "Keycloak", err))
 		return
 	}
-	c.Status(http.StatusNoContent)
+
+	// Usando AbortWithStatus para garantir que nenhum middleware subsequente execute
+	c.AbortWithStatus(http.StatusNoContent)
 }

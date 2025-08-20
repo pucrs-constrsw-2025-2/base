@@ -219,7 +219,7 @@ func TestUsersHandler_Delete(t *testing.T) {
 			bearer: "valid-token",
 			userID: "123",
 			mockFn: func(ctx context.Context, bearer, id string) error {
-				return nil // Simulate successful deletion
+				return nil
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -245,36 +245,36 @@ func TestUsersHandler_Delete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock service
 			mockSvc := &mockUsersService{
 				disableUserFn: tt.mockFn,
 			}
-
-			// Handler
 			handler := handlers.NewUsersHandler(mockSvc)
 
-			// Recorder and context setup for the test
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
-			// Prepare the request
 			c.Request = httptest.NewRequest(http.MethodDelete, "/users/"+tt.userID, nil)
 			if tt.bearer != "" {
 				c.Request.Header.Set("Authorization", "Bearer "+tt.bearer)
 			}
 			c.Params = []gin.Param{{Key: "id", Value: tt.userID}}
 
-			// Execute handler
+			// Adiciona logs para debug
+			t.Logf("Executando caso de teste: %s", tt.name)
+
 			handler.Delete(c)
 
-			// Assert status code
-			if w.Code != tt.wantStatus {
-				t.Errorf("Delete() status = %v, want %v", w.Code, tt.wantStatus)
+			t.Logf("Status recebido: %d, Status esperado: %d", w.Code, tt.wantStatus)
+			t.Logf("Corpo da resposta: %s", w.Body.String())
+
+			if got := w.Code; got != tt.wantStatus {
+				t.Errorf("Delete() status = %v, want %v", got, tt.wantStatus)
 			}
 
-			// Ensure no body is returned for 204 No Content
-			if tt.wantStatus == http.StatusNoContent && w.Body.Len() > 0 {
-				t.Error("Delete() should not return a body for 204 No Content")
+			if tt.wantStatus == http.StatusNoContent {
+				if w.Body.Len() > 0 {
+					t.Error("Delete() não deveria retornar corpo para status 204")
+				}
 			}
 		})
 	}
