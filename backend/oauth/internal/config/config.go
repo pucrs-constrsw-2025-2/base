@@ -13,9 +13,9 @@ type Config struct {
 	Port int    `env:"OAUTH_PORT" envDefault:"8181"`
 
 	// Keycloak
-	KCProtocol     string `env:"KEYCLOAK_EXTERNAL_PROTOCOL" envDefault:"http"`
-	KCHost         string `env:"KEYCLOAK_EXTERNAL_HOST" envDefault:"localhost"`
-	KCPort         string `env:"KEYCLOAK_EXTERNAL_API_PORT" envDefault:"8001"`
+	KCProtocol     string `env:"KEYCLOAK_INTERNAL_PROTOCOL" envDefault:"http"`
+	KCHost string `env:"KEYCLOAK_INTERNAL_HOST" envDefault:"localhost"`
+	KCPort string `env:"KEYCLOAK_INTERNAL_API_PORT" envDefault:"8080"`
 	KCRealm        string `env:"KEYCLOAK_REALM,required"`
 	KCClientID     string `env:"KEYCLOAK_CLIENT_ID,required"`
 	KCClientSecret string `env:"KEYCLOAK_CLIENT_SECRET,required"`

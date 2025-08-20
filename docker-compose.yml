@@ -1,13 +1,11 @@
 networks:
-    constrsw:
+  constrsw:
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
-    constrsw-keycloak-data:
-        external: true
-        
-services:
+  constrsw-keycloak-data:
+    external: true
 
+services:
   keycloak:
     container_name: keycloak
     build:
@@ -21,7 +19,7 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
-      - ./backend/utils/keycloak:/opt/keycloak/data/import     
+      - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
@@ -34,4 +32,24 @@ services:
       interval: 10s
       timeout: 10s
       retries: 50
- 
+
+  go-app:
+    container_name: go-app
+    build:
+      context: backend/oauth
+      dockerfile: Dockerfile
+    image: constrsw/go-app
+    environment:
+      - KEYCLOAK_INTERNAL_HOST=${KEYCLOAK_INTERNAL_HOST}
+      - KEYCLOAK_INTERNAL_API_PORT=${KEYCLOAK_INTERNAL_API_PORT}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+    ports:
+      - "${GO_APP_EXTERNAL_PORT}:${GO_APP_INTERNAL_PORT}"
+    networks:
+      - constrsw
+    depends_on:
+      - keycloak
+    restart: unless-stopped
