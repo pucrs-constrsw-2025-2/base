@@ -40,15 +40,15 @@ export class KeycloakAdapter implements IKeycloakAdapter {
 
   private getUrl(path: string): string {
     const protocol = this.configService.get<string>(
-      'keycloak.internal.protocol',
+      'KEYCLOAK_INTERNAL_PROTOCOL',
     );
-    const host = this.configService.get<string>('keycloak.internal.host');
-    const port = this.configService.get<string>('keycloak.internal.apiPort');
+    const host = this.configService.get<string>('KEYCLOAK_INTERNAL_HOST');
+    const port = this.configService.get<string>('KEYCLOAK_INTERNAL_API_PORT');
 
     // Debug: Log das variáveis de ambiente
-    this.logger.debug(`keycloak.internal.protocol: ${protocol}`);
-    this.logger.debug(`keycloak.internal.host: ${host}`);
-    this.logger.debug(`keycloak.internal.apiPort: ${port}`);
+    this.logger.debug(`KEYCLOAK_INTERNAL_PROTOCOL: ${protocol}`);
+    this.logger.debug(`KEYCLOAK_INTERNAL_HOST: ${host}`);
+    this.logger.debug(`KEYCLOAK_INTERNAL_API_PORT: ${port}`);
 
     if (!protocol || !host || !port) {
       this.logger.error(
@@ -64,7 +64,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
   }
 
   private getRealm(): string {
-    const realm = this.configService.get<string>('keycloak.realm');
+    const realm = this.configService.get<string>('KEYCLOAK_REALM');
     if (!realm) {
       this.logger.error('Keycloak realm is not configured.');
       throw new InternalServerErrorException(
@@ -83,15 +83,15 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     const body = new URLSearchParams();
     body.append(
       'client_id',
-      this.configService.get<string>('keycloak.clientId')!,
+      this.configService.get<string>('KEYCLOAK_CLIENT_ID')!,
     );
     body.append(
       'client_secret',
-      this.configService.get<string>('keycloak.clientSecret')!,
+      this.configService.get<string>('KEYCLOAK_CLIENT_SECRET')!,
     );
     body.append(
       'grant_type',
-      this.configService.get<string>('keycloak.grantType')!,
+      this.configService.get<string>('KEYCLOAK_GRANT_TYPE')!,
     );
     body.append('username', loginDto.username);
     body.append('password', loginDto.password);
@@ -138,6 +138,9 @@ export class KeycloakAdapter implements IKeycloakAdapter {
         },
       ],
     };
+
+    this.logger.debug(`User payload: ${JSON.stringify(userPayload, null, 2)}`);
+    this.logger.debug(`Admin token present: ${!!adminToken}`);
 
     try {
       const { headers } = await firstValueFrom(
