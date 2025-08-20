@@ -13,6 +13,7 @@ use dtos::res::login_res::LoginRes;
 use dtos::req::create_user_req::CreateUserReq;
 use dtos::res::create_user_res::CreateUserRes;
 use dtos::res::get_user_res::GetUserRes;
+use dtos::res::get_all_users_res::GetUsersRes;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -248,10 +249,49 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
 
     if response.status().is_success() {
-        // Parse body as JSON and forward it
-        let users = response.json::<Value>().await
+        // Parse body as JSON array and map each entry to GetUserRes
+        let users_value = response.json::<Vec<Value>>().await
             .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-        Ok(HttpResponse::Ok().json(users))
+
+        let users_vec: Vec<GetUserRes> = users_value.into_iter().map(|user_value| {
+            let id = user_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            let username = user_value
+                .get("username")
+                .and_then(|v| v.as_str())
+                .or_else(|| user_value.get("email").and_then(|v| v.as_str()))
+                .unwrap_or("")
+                .to_string();
+
+            let first_name = user_value
+                .get("firstName")
+                .or_else(|| user_value.get("first-name"))
+                .or_else(|| user_value.get("first_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let last_name = user_value
+                .get("lastName")
+                .or_else(|| user_value.get("last-name"))
+                .or_else(|| user_value.get("last_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let enabled = user_value.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+
+            GetUserRes {
+                id,
+                username,
+                first_name,
+                last_name,
+                enabled,
+            }
+        }).collect();
+
+        let res = GetUsersRes { users: users_vec };
+        Ok(HttpResponse::Ok().json(res))
     } else {
         let status = response.status();
         let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
@@ -259,11 +299,8 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
     }
 }
 
-/* #[get("/users/{id}")]
-async fn get_user(token_req: HttpRequest, path: web::Path<String>) -> Result<impl Responder> {
-
-    let id = path.into_inner();
-
+/* #[get("/users")]
+async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
     // Require Authorization
     let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
         Some(s) if !s.is_empty() => s.to_string(),
@@ -283,7 +320,8 @@ async fn get_user(token_req: HttpRequest, path: web::Path<String>) -> Result<imp
     let realm = env::var("KEYCLOAK_REALM")
         .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
 
-    let url = format!("{}/admin/realms/{}/users/{}", keycloak_url, realm, id);
+    // Query Keycloak admin users endpoint (only enabled users)
+    let url = format!("{}/admin/realms/{}/users?enabled=true", keycloak_url, realm);
 
     let client = Client::new();
     let response = client
@@ -293,16 +331,13 @@ async fn get_user(token_req: HttpRequest, path: web::Path<String>) -> Result<imp
         .await
         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
 
-    let status = response.status();
-
-    if status.is_success() {
-        let user = response.json::<Value>().await
+    if response.status().is_success() {
+        // Parse body as JSON and forward it
+        let users = response.json::<Value>().await
             .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-        Ok(HttpResponse::Ok().json(user))
-    } else if status.as_u16() == 404 {
-        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
-        Ok(HttpResponse::NotFound().body(body))
+        Ok(HttpResponse::Ok().json(users))
     } else {
+        let status = response.status();
         let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
         Ok(HttpResponse::build(status).body(body))
     }
