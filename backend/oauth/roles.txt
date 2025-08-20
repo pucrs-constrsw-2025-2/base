@@ -1,0 +1,17 @@
+Rotas de ROLES
+
+1. POST {{base-api-url}}/roles: criação de um role
+
+2. GET {{base-api-url}}/roles: recuperação dos dados de todos os roles
+
+3. GET {{base-api-url}}/roles/{{id}}: recuperação de um role pelo id
+
+4. PUT {{base-api-url}}/roles/{{id}}: atualização de um role
+
+5. PATCH {{base-api-url}}/roles/{{id}}: atualização parcial de um role
+
+6. DELETE {{base-api-url}}/roles/{{id}}: exclusão lógica de um role
+
+7. Endpoints adicionais:
+   - Atribuir um role a um user
+   - Remover a atribuição de um role de um user
