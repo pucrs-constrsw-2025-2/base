@@ -6,6 +6,7 @@ use std::env;
 use dotenv::dotenv;
 
 mod dtos;
+//USERS
 use dtos::req::login_req::LoginReq;
 use dtos::req::login_req::LoginReqKeycloak;
 use dtos::res::login_res::LoginResKeycloak;
@@ -14,13 +15,16 @@ use dtos::req::create_user_req::CreateUserReq;
 use dtos::res::create_user_res::CreateUserRes;
 use dtos::res::get_user_res::GetUserRes;
 use dtos::res::get_all_users_res::GetUsersRes;
+//ROLES
+use dtos::res::get_role_res::GetRoleRes;
+use dtos::res::get_all_roles_res::GetAllRolesRes;
 
 #[get("/")]
 async fn hello() -> impl Responder {
     
     HttpResponse::Ok().body("Hello, Actix!")
 }
-
+//USERS
 #[post("/login")]
 async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
     println!("Login attempt for user: {}", form.username);
@@ -299,50 +303,6 @@ async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
     }
 }
 
-/* #[get("/users")]
-async fn get_users(token_req: HttpRequest) -> Result<impl Responder> {
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Build Keycloak base URL
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-
-    // Query Keycloak admin users endpoint (only enabled users)
-    let url = format!("{}/admin/realms/{}/users?enabled=true", keycloak_url, realm);
-
-    let client = Client::new();
-    let response = client
-        .get(&url)
-        .header("Authorization", auth)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    if response.status().is_success() {
-        // Parse body as JSON and forward it
-        let users = response.json::<Value>().await
-            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-        Ok(HttpResponse::Ok().json(users))
-    } else {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
-} */
-
 #[get("/users/{id}")]
 async fn get_user(token_req: HttpRequest, path: web::Path<String>) -> Result<impl Responder> {
 
@@ -594,6 +554,116 @@ async fn delete_user(token_req: HttpRequest, path: web::Path<String>) -> Result<
     }
 }
 
+
+//ROLES
+#[get("/roles/{id}")]
+async fn get_role(token_req: HttpRequest, path: web::Path<String>) -> Result<impl Responder> {
+    let id = path.into_inner();
+
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Build Keycloak base URL
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
+    // Keycloak role endpoint
+    let url = format!("{}/admin/realms/{}/roles/{}", keycloak_url, realm, id);
+
+    let client = Client::new();
+    let response = client
+        .get(&url)
+        .header("Authorization", auth)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    let status = response.status();
+
+    if status.is_success() {
+        let value = response.json::<serde_json::Value>().await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+        let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+        let dto = GetRoleRes { id, name, description };
+        Ok(HttpResponse::Ok().json(dto))
+    } else if status.as_u16() == 404 {
+        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
+        Ok(HttpResponse::NotFound().body(body))
+    } else {
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
+#[get("/roles")]
+async fn get_all_roles(token_req: HttpRequest) -> Result<impl Responder> {
+    // Require Authorization
+    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    // Build Keycloak base URL
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
+    // Keycloak endpoint for all roles
+    let url = format!("{}/admin/realms/{}/roles", keycloak_url, realm);
+
+    let client = Client::new();
+    let response = client
+        .get(&url)
+        .header("Authorization", auth)
+        .send()
+        .await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+    if response.status().is_success() {
+        let roles_value = response.json::<Vec<serde_json::Value>>().await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+        let roles_vec: Vec<GetRoleRes> = roles_value.into_iter().map(|role_value| {
+            let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            GetRoleRes { id, name, description }
+        }).collect();
+
+        let res = GetAllRolesRes { roles: roles_vec };
+        Ok(HttpResponse::Ok().json(res))
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        Ok(HttpResponse::build(status).body(body))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -602,9 +672,6 @@ async fn main() -> std::io::Result<()> {
     let host = env::var("OAUTH_INTERNAL_HOST").expect("Missing OAUTH_INTERNAL_HOST");
 
     let addr = format!("{}:{}", host, port);
-
-    let oauth_client_id = env::var("KEYCLOAK_CLIENT_ID").expect("Missing KEYCLOAK_CLIENT_ID");
-    let oauth_secret = env::var("KEYCLOAK_CLIENT_SECRET").expect("Missing KEYCLOAK_CLIENT_SECRET");
 
 
     HttpServer::new(|| {
@@ -617,6 +684,8 @@ async fn main() -> std::io::Result<()> {
             .service(update_user)
             .service(patch_user_password)
             .service(delete_user)
+            .service(get_role)
+            .service(get_all_roles)
     })
     .bind(addr)?
     .run()
