@@ -1,18 +1,40 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class RoleCreateRequest(BaseModel):
-    name: str = Field(json_schema_extra={"example": "admin"})
-    description: str | None = Field(
-        None, json_schema_extra={"example": "Administrator role with full permissions"}
-    )
+class RoleBase(BaseModel):
+    """Schema base para roles, com campos comuns."""
+
+    name: str = Field(..., min_length=3, max_length=50, description="Nome do role.")
+    description: str | None = Field(None, max_length=255, description="Descrição do role.")
 
 
-class RoleResponse(BaseModel):
-    id: str
-    name: str
-    description: str | None
+class RoleCreateRequest(RoleBase):
+    """Schema para a criação de um novo role."""
+
+    pass
 
 
-class UserRoleAssignRequest(BaseModel):
-    role_name: str = Field(json_schema_extra={"example": "admin"})
+class RoleUpdateRequest(RoleBase):
+    """Schema para a atualização completa de um role (PUT)."""
+
+    pass
+
+
+class RolePartialUpdateRequest(BaseModel):
+    """Schema para a atualização parcial de um role (PATCH)."""
+
+    name: str | None = Field(None, min_length=3, max_length=50, description="Novo nome do role.")
+    description: str | None = Field(None, max_length=255, description="Nova descrição do role.")
+
+
+class RoleResponse(RoleBase):
+    """Schema para a resposta da API, incluindo o ID do role."""
+
+    id: str = Field(..., description="ID único do role.")
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserRolesRequest(BaseModel):
+    """Schema para atribuir/remover roles de um usuário."""
+
+    role_ids: list[str] = Field(..., description="Lista de IDs de roles a serem gerenciados.")

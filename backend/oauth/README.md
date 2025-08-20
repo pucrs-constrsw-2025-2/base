@@ -120,7 +120,7 @@ Siga estas etapas para configurar o ambiente de desenvolvimento localmente.
 
     ```bash
     git clone [https://github.com/pucrs-constrsw-2025-2/base.git](https://github.com/pucrs-constrsw-2025-2/base.git)
-    cd base
+    cd base/backend/oauth
     ```
 
 3.  **Instale as Dependências**: O Poetry lerá o arquivo `pyproject.toml` e instalará todas as dependências necessárias, incluindo as de desenvolvimento como `pytest` e `ruff`.

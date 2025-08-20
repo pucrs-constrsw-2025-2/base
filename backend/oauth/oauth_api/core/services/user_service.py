@@ -2,7 +2,7 @@ from typing import List, Optional
 from oauth_api.core.domain.user import User
 from oauth_api.core.ports.user_repository import IUserRepository
 from oauth_api.core.ports.role_repository import IRoleRepository
-from .role_service import RoleNotFoundError
+from .role_service import NotFoundError
 
 class UserService:
     def __init__(self, user_repo: IUserRepository, role_repo: IRoleRepository):
@@ -32,12 +32,12 @@ class UserService:
         await self.find_by_id(user_id)
         role = await self.role_repo.find_by_name(role_name)
         if not role:
-            raise RoleNotFoundError()
+            raise NotFoundError()
         await self.role_repo.add_to_user(user_id, [role])
 
     async def remove_role_from_user(self, user_id: str, role_name: str) -> None:
         await self.find_by_id(user_id)
         role = await self.role_repo.find_by_name(role_name)
         if not role:
-            raise RoleNotFoundError()
+            raise NotFoundError()
         await self.role_repo.remove_from_user(user_id, [role])

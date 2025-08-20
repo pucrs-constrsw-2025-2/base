@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict
 from oauth_api.core.domain.user import User
 from oauth_api.core.ports.user_repository import IUserRepository
-from oauth_api.core.exceptions import UserNotFoundError, UserAlreadyExistsError, KeycloakAPIError
+from oauth_api.core.exceptions import NotFoundError, ConflictAlreadyExistsError, KeycloakAPIError
 from .keycloak_client import KeycloakAdminClient
 
 class KeycloakUserRepository(IUserRepository):
@@ -23,7 +23,7 @@ class KeycloakUserRepository(IUserRepository):
             return self._to_domain(kc_user)
         except KeycloakAPIError as e:
             if e.status_code == 404:
-                raise UserNotFoundError() from e
+                raise NotFoundError() from e
             raise
 
     async def find_by_email(self, email: str) -> Optional[User]:
@@ -69,13 +69,13 @@ class KeycloakUserRepository(IUserRepository):
             return await self.find_by_id(user_id)
         except KeycloakAPIError as e:
             if e.status_code == 409:
-                raise UserAlreadyExistsError() from e
+                raise ConflictAlreadyExistsError() from e
             raise
 
     async def update(self, user_id: str, user_data: dict) -> User:
         existing_user = await self.find_by_id(user_id)
         if not existing_user:
-            raise UserNotFoundError()
+            raise NotFoundError()
         
         kc_payload = {
             "firstName": user_data.get("first_name", existing_user.first_name),

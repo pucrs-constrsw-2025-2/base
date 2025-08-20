@@ -24,16 +24,16 @@ class InvalidCredentialsError(BaseAPIException):
     description = "username e/ou password inválidos"
 
 
-class UserNotFoundError(BaseAPIException):
+class NotFoundError(BaseAPIException):
     status_code = 404
     error_code = "OA-404"
     description = "Objeto não localizado"
 
 
-class UserAlreadyExistsError(BaseAPIException):
+class ConflictAlreadyExistsError(BaseAPIException):
     status_code = 409
     error_code = "OA-409"
-    description = "Username já existente"
+    description = "Recurso já existente"
 
 
 class InvalidTokenError(BaseAPIException):

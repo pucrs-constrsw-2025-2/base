@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from oauth_api.core.services.user_service import UserService
 from oauth_api.core.ports.user_repository import IUserRepository
 from oauth_api.core.domain.user import User
-from oauth_api.core.exceptions import UserNotFoundException, UserAlreadyExistsException
+from oauth_api.core.exceptions import UserNotFoundError, UserAlreadyExistsException
 
 # Fixture do Pytest para criar uma instância limpa do mock do repositório para cada teste
 @pytest.fixture
@@ -89,7 +89,7 @@ def test_find_user_by_id_not_found(user_service: UserService, mock_user_repo: Ma
     mock_user_repo.find_by_id.return_value = None # Simula que o repositório não encontrou o usuário
     
     # Act & Assert
-    with pytest.raises(UserNotFoundException):
+    with pytest.raises(UserNotFoundError):
         user_service.find_user_by_id(user_id)
         
     mock_user_repo.find_by_id.assert_called_once_with(user_id)
@@ -129,7 +129,7 @@ def test_update_user_not_found(user_service: UserService, mock_user_repo: MagicM
     mock_user_repo.find_by_id.return_value = None
     
     # Act & Assert
-    with pytest.raises(UserNotFoundException):
+    with pytest.raises(UserNotFoundError):
         user_service.update_user(user_id, update_data)
         
     mock_user_repo.update.assert_not_called()

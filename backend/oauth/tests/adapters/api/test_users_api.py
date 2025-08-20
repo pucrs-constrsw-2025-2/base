@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 from oauth_api.main import app
 from oauth_api.core.services.user_service import UserService
-from oauth_api.core.exceptions import UserAlreadyExistsError, UserNotFoundError
+from oauth_api.core.exceptions import ConflictAlreadyExistsError, NotFoundError
 from oauth_api.core.domain.user import User
 from oauth_api.adapters.api.dependencies import get_user_service, oauth2_scheme
 
@@ -59,7 +59,7 @@ def test_create_user_api_conflict():
     """
     # Arrange
     user_request_data = {"username": "existing_user", "email": "existing@test.com", "password": "password"}
-    mock_user_service.create_user.side_effect = UserAlreadyExistsError("User already exists")
+    mock_user_service.create_user.side_effect = ConflictAlreadyExistsError("User already exists")
 
     # Act
     response = client.post("/users", json=user_request_data)
@@ -74,7 +74,7 @@ def test_get_user_by_id_api_not_found():
     """Valida a resposta 404 Not Found ao buscar um usuário inexistente."""
     # Arrange
     user_id = "non-existent-id"
-    mock_user_service.find_user_by_id.side_effect = UserNotFoundError(f"User with id {user_id} not found")
+    mock_user_service.find_user_by_id.side_effect = NotFoundError(f"User with id {user_id} not found")
 
     # Act
     response = client.get(f"/users/{user_id}")

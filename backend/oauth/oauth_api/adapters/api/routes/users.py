@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status, Response
-from oauth_api.adapters.api.dependencies import get_user_service, get_current_user
+from oauth_api.core.services.role_service import RoleService
+from oauth_api.adapters.api.dependencies import get_role_service, get_user_service, get_current_user
 from oauth_api.adapters.api.schemas.user_schemas import (
     UserCreateRequest,
     UserResponse,
@@ -7,11 +8,12 @@ from oauth_api.adapters.api.schemas.user_schemas import (
     PasswordUpdateRequest,
 )
 from oauth_api.core.services.user_service import UserService
+from oauth_api.adapters.api.schemas.role_schemas import UserRolesRequest
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post(
-    "/",
+    "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Cria um novo usuário",
@@ -24,7 +26,7 @@ async def create_user(
     return await user_service.create_user(user_data.model_dump())
 
 @router.get(
-    "/",
+    "",
     response_model=list[UserResponse],
     summary="Lista todos os usuários",
 )
@@ -90,4 +92,33 @@ async def delete_user(
 ):
     """Realiza a exclusão lógica (desativação) de um usuário."""
     await user_service.disable_user(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.post(
+    "/{user_id}/roles",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Atribui roles a um usuário",
+)
+async def assign_roles_to_user(
+    user_id: str,
+    request: UserRolesRequest,
+    role_service: RoleService = Depends(get_role_service),
+):
+    """Atribui um ou mais roles a um usuário específico."""
+    await role_service.assign_roles_to_user(user_id, request.role_ids)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/{user_id}/roles",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove roles de um usuário",
+)
+async def remove_roles_from_user(
+    user_id: str,
+    request: UserRolesRequest,
+    role_service: RoleService = Depends(get_role_service),
+):
+    """Remove um ou mais roles de um usuário específico."""
+    await role_service.remove_roles_from_user(user_id, request.role_ids)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

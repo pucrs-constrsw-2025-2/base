@@ -1,75 +1,79 @@
-from typing import List
 from fastapi import APIRouter, Depends, status, Response
-from oauth_api.adapters.api.dependencies import (
-    get_role_repository,
-    get_role_service,
-    get_current_user,
+from oauth_api.adapters.api.schemas.role_schemas import (
+    RoleCreateRequest,
+    RoleResponse,
+    RoleUpdateRequest,
+    RolePartialUpdateRequest,
 )
-from oauth_api.adapters.api.schemas.role_schemas import RoleCreateRequest, RoleResponse
-from oauth_api.core.ports.role_repository import IRoleRepository
 from oauth_api.core.services.role_service import RoleService
+# Supondo que você tenha essas dependências configuradas
+from oauth_api.adapters.api.dependencies import get_role_service, get_current_user
 
-router = APIRouter(prefix="/roles", tags=["Roles"])
-
+router = APIRouter(
+    prefix="/roles",
+    tags=["Roles"],
+    dependencies=[Depends(get_current_user)],
+)
 
 @router.post(
     "",
     response_model=RoleResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Criação de um novo role",
+    summary="Cria um novo role",
 )
 async def create_role(
     role_in: RoleCreateRequest,
-    repo: IRoleRepository = Depends(get_role_repository),
-    _: dict = Depends(get_current_user),
+    role_service: RoleService = Depends(get_role_service),
 ):
-    return await repo.create(role_in)
+    """Cria um novo role no sistema."""
+    created_role = await role_service.create_role(role_in.model_dump())
+    return created_role
 
 
-@router.get(
-    "", response_model=List[RoleResponse], summary="Recuperação de todos os roles"
-)
-async def get_all_roles(
-    repo: IRoleRepository = Depends(get_role_repository),
-    _: dict = Depends(get_current_user),
+@router.get("", response_model=list[RoleResponse], summary="Recupera todos os roles")
+async def get_all_roles(role_service: RoleService = Depends(get_role_service)):
+    """Recupera os dados de todos os roles cadastrados."""
+    return await role_service.get_all_roles()
+
+
+@router.get("/{role_id}", response_model=RoleResponse, summary="Recupera um role pelo ID")
+async def get_role_by_id(
+    role_id: str,
+    role_service: RoleService = Depends(get_role_service),
 ):
-    return await repo.find_all()
+    """Recupera os dados de um role específico pelo seu ID."""
+    return await role_service.get_role_by_id(role_id)
 
 
-@router.get(
-    "/{role_name}",
-    response_model=RoleResponse,
-    summary="Recuperação de um role pelo nome",
-)
-async def get_role_by_name(
-    role_name: str,
-    service: RoleService = Depends(get_role_service),
-    _: dict = Depends(get_current_user),
-):
-    return await service.get_by_name_or_fail(role_name)
-
-
-@router.put(
-    "/{role_name}", response_model=RoleResponse, summary="Atualização de um role"
-)
+@router.put("/{role_id}", response_model=RoleResponse, summary="Atualiza um role")
 async def update_role(
-    role_name: str,
-    role_in: RoleCreateRequest,
-    repo: IRoleRepository = Depends(get_role_repository),
-    _: dict = Depends(get_current_user),
+    role_id: str,
+    role_in: RoleUpdateRequest,
+    role_service: RoleService = Depends(get_role_service),
 ):
-    return await repo.update(role_name, role_in)
+    """Atualiza todos os dados de um role específico."""
+    return await role_service.update_role(role_id, role_in.model_dump())
+
+
+@router.patch("/{role_id}", response_model=RoleResponse, summary="Atualiza um role parcialmente")
+async def partial_update_role(
+    role_id: str,
+    role_in: RolePartialUpdateRequest,
+    role_service: RoleService = Depends(get_role_service),
+):
+    """Atualiza parcialmente os dados de um role específico."""
+    return await role_service.partial_update_role(role_id, role_in.model_dump())
 
 
 @router.delete(
-    "/{role_name}",
+    "/{role_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Exclusão de um role",
+    summary="Exclui um role",
 )
 async def delete_role(
-    role_name: str,
-    service: RoleService = Depends(get_role_service),
-    _: dict = Depends(get_current_user),
+    role_id: str,
+    role_service: RoleService = Depends(get_role_service),
 ):
-    await service.delete_or_fail(role_name)
+    """Exclui um role do sistema. Esta operação não pode ser desfeita."""
+    await role_service.delete_role(role_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
