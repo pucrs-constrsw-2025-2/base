@@ -1,13 +1,16 @@
 import 'dotenv/config';
 import { Controller, Post, Body, HttpCode, HttpStatus, Headers, Get, Query, Param, Put, Patch, Delete, Res, UseInterceptors } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { LoginDto } from './dtos/login.dto';
 import type { Response } from 'express';
-import type { CreateUserDto } from './dtos/create-user.dto';
-import type { UpdateUserDto } from './dtos/update-user.dto';
-import type { PatchPasswordDto } from './dtos/patch-password.dto';
+import { CreateUserDto } from './dtos/create-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
+import { PatchPasswordDto } from './dtos/patch-password.dto';
 
+@ApiTags('users')
+@ApiBearerAuth()
 @Controller('')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -15,6 +18,11 @@ export class UsersController {
   @UseInterceptors(FileFieldsInterceptor([]))
   @Post('login')
   @HttpCode(201)
+  @ApiOperation({ summary: 'Login do usuário' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ status: 201, description: 'Usuário autenticado com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Username e/ou password inválidos.' })
   async login(@Body() body: any) {
     const username = body.username || body['username'];
     const password = body.password || body['password'];
@@ -29,6 +37,13 @@ export class UsersController {
   }
 
   @Post('users')
+  @ApiOperation({ summary: 'Cria um novo usuário' })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({ status: 201, description: 'Usuário criado com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada ou e-mail inválido.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 409, description: 'Username já existente.' })
   async createUser(@Headers('authorization') authorization: string, @Body() body: CreateUserDto, @Res() res: Response) {
     const token = authorization?.split(' ')[1];
     const created = await this.usersService.createUser(token, { username: body.username, password: body.password, firstName: body['first-name'], lastName: body['last-name'] });
@@ -36,18 +51,39 @@ export class UsersController {
   }
 
   @Get('users')
+  @ApiOperation({ summary: 'Lista todos os usuários' })
+  @ApiQuery({ name: 'enabled', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Lista de usuários.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura do request.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   async getUsers(@Headers('authorization') authorization: string, @Query('enabled') enabled?: string) {
     const token = authorization?.split(' ')[1];
     return await this.usersService.getUsers(token, enabled);
   }
 
   @Get('users/:id')
+  @ApiOperation({ summary: 'Busca um usuário pelo ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Usuário encontrado.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   async getUser(@Headers('authorization') authorization: string, @Param('id') id: string) {
     const token = authorization?.split(' ')[1];
     return await this.usersService.getUserById(token, id);
   }
 
   @Put('users/:id')
+  @ApiOperation({ summary: 'Atualiza um usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ status: 200, description: 'Usuário atualizado.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   async updateUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Body() body: UpdateUserDto) {
     const token = authorization?.split(' ')[1];
     await this.usersService.updateUser(token, id, { username: body.username, firstName: body['first-name'], lastName: body['last-name'], enabled: body.enabled });
@@ -55,6 +91,14 @@ export class UsersController {
   }
 
   @Patch('users/:id')
+  @ApiOperation({ summary: 'Atualiza a senha do usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: PatchPasswordDto })
+  @ApiResponse({ status: 200, description: 'Senha atualizada.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   async patchPassword(@Headers('authorization') authorization: string, @Param('id') id: string, @Body() body: PatchPasswordDto) {
     const token = authorization?.split(' ')[1];
     await this.usersService.patchPassword(token, id, body.password);
@@ -62,6 +106,13 @@ export class UsersController {
   }
 
   @Delete('users/:id')
+  @ApiOperation({ summary: 'Desabilita um usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 204, description: 'Usuário desabilitado.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   async disableUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Res() res: Response) {
     const token = authorization?.split(' ')[1];
     await this.usersService.disableUser(token, id);
