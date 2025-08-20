@@ -5,3 +5,5 @@ node_modules/
 # Build do Nest
 dist/
 **/dist/
+
+.env
