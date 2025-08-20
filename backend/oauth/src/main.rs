@@ -23,6 +23,7 @@ async fn hello() -> impl Responder {
 async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
     println!("Login attempt for user: {}", form.username);
 
+    // Build Keycloak base URL from environment
     let keycloak_url = match (
         env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
         env::var("KEYCLOAK_INTERNAL_HOST"),
@@ -34,173 +35,56 @@ async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
 
     let realm = env::var("KEYCLOAK_REALM")
         .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+
     let client_id = env::var("KEYCLOAK_CLIENT_ID")
         .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_ID"))?;
     let client_secret = env::var("KEYCLOAK_CLIENT_SECRET")
         .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_SECRET"))?;
-    let grant_type = env::var("KEYCLOAK_GRANT_TYPE")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_GRANT_TYPE"))?;
 
+    // Token endpoint per Keycloak spec
     let url = format!("{}/realms/{}/protocol/openid-connect/token", keycloak_url, realm);
 
     let keycloak_request = LoginReqKeycloak {
         client_id,
         client_secret,
-        username: form.username,
-        password: form.password,
-        grant_type,
+        username: form.username.clone(),
+        password: form.password.clone(),
+        grant_type: "password".to_string(),
     };
 
     let client = Client::new();
-
-    let response = client.post(&url).form(&keycloak_request).send().await
+    let response = client
+        .post(&url)
+        .form(&keycloak_request)
+        .send()
+        .await
         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to connect to Keycloak"))?;
 
-    if response.status().is_success() {
+    let status = response.status();
+
+    if status.is_success() {
         let keycloak_response = response.json::<LoginResKeycloak>().await
             .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-        // Early Return
-        Ok(HttpResponse::Ok().json(keycloak_response))
-    } else {
-        let status = response.status();
-        let error_body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        
-        println!("Keycloak error response: status={}, body={}", status, error_body);
 
-        Ok(HttpResponse::build(status).body(error_body))
+        let res = LoginRes {
+            token_type: keycloak_response.token_type,
+            access_token: keycloak_response.access_token,
+            expires_in: keycloak_response.expires_in.try_into().unwrap_or(0),
+            refresh_token: keycloak_response.refresh_token,
+            refresh_expires_in: keycloak_response.refresh_expires_in.try_into().unwrap_or(0),
+        };
+
+        // 201 Created per spec
+        Ok(HttpResponse::Created().json(res))
+    } else {
+        let error_body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        match status.as_u16() {
+            400 => Ok(HttpResponse::BadRequest().body(error_body)),
+            401 => Ok(HttpResponse::Unauthorized().body(error_body)),
+            s => Ok(HttpResponse::build(status).body(error_body)),
+        }
     }
 }
-/* 
-#[post("/users")]
-async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<Value>) -> Result<impl Responder> {
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Configure routes
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-    
-    let url = format!("{}/admin/realms/{}/users", keycloak_url, realm);
-    
-    // Creates HTTP Client and request
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .header("Authorization", auth)
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    // Parse response
-    if response.status().as_u16() == 201 {
-        // Keycloak returns Location header with created user id; extra safe parse
-        if let Some(loc) = response.headers().get("Location").and_then(|v| v.to_str().ok()) {
-            let id = loc.rsplit('/').next().unwrap_or(loc);
-            let body = json!({ "id": id, "user": payload });
-            Ok(HttpResponse::Created().json(body))
-        } else {
-            Ok(HttpResponse::Created().json(payload))
-        }
-    } else {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
-} */
-
-/* #[post("/users")]
-async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<CreateUserReq>) -> Result<impl Responder> {
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Configure routes
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-    
-    let url = format!("{}/admin/realms/{}/users", keycloak_url, realm);
-
-    // Serialize DTO to inspect fields (fields in CreateUserReq may be private)
-    let payload_value = serde_json::to_value(&payload)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to serialize payload"))?;
-
-    let username = payload_value.get("username").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let first_name = payload_value.get("first_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let last_name = payload_value.get("last_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let email = payload_value.get("email").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-    // Build Keycloak-compatible body (Keycloak expects firstName/lastName)
-    let user_body = json!({
-        "username": username,
-        "firstName": first_name,
-        "lastName": last_name,
-        "email": email,
-        "enabled": true
-    });
-
-    // Creates HTTP Client and request
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .header("Authorization", auth)
-        .json(&user_body)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    // Parse response and return typed DTO
-    if response.status().as_u16() == 201 {
-        // Keycloak returns Location header with created user id
-        if let Some(loc) = response.headers().get("Location").and_then(|v| v.to_str().ok()) {
-            let id = loc.rsplit('/').next().unwrap_or(loc).to_string();
-            let res = CreateUserRes {
-                id,
-                username: username.clone(),
-                first_name,
-                last_name,
-                email,
-            };
-            Ok(HttpResponse::Created().json(res))
-        } else {
-            let res = CreateUserRes {
-                id: "".into(),
-                username: username.clone(),
-                first_name,
-                last_name,
-                email,
-            };
-            Ok(HttpResponse::Created().json(res))
-        }
-    } else {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
-} */
 
 #[post("/users")]
 async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<CreateUserReq>) -> Result<impl Responder> {
