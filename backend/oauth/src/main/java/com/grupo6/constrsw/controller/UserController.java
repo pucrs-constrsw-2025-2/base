@@ -23,6 +23,7 @@ import com.grupo6.constrsw.dto.PasswordUpdateRequest;
 import com.grupo6.constrsw.dto.UserRequest;
 import com.grupo6.constrsw.dto.UserResponse;
 import com.grupo6.constrsw.service.KeycloakService;
+import com.grupo6.constrsw.service.PermissionService;
 
 @RestController
 @RequestMapping("/api/users")
@@ -31,11 +32,20 @@ public class UserController {
     @Autowired
     private KeycloakService keycloakService;
 
+    @Autowired
+    private PermissionService permissionService;
+
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody UserRequest userRequest, 
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
             
             if (!isValidEmail(userRequest.getUsername())) {
                 ApiError error = new ApiError("OA-400", "E-mail inválido", "OAuthAPI", new ArrayList<>());
@@ -67,6 +77,13 @@ public class UserController {
                                         @RequestParam(required = false) Boolean enabled) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             List<UserResponse> users = keycloakService.getAllUsers(accessToken, enabled);
             return ResponseEntity.ok(users);
             
@@ -89,6 +106,13 @@ public class UserController {
                                         @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             UserResponse user = keycloakService.getUserById(id, accessToken);
             return ResponseEntity.ok(user);
             
@@ -115,6 +139,13 @@ public class UserController {
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             keycloakService.updateUser(id, userRequest, accessToken);
             return ResponseEntity.ok().build();
             
@@ -141,7 +172,46 @@ public class UserController {
                                                @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             keycloakService.updateUserPassword(id, passwordRequest, accessToken);
+            return ResponseEntity.ok().build();
+            
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("401")) {
+                ApiError error = new ApiError("OA-401", "Access token inválido", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            } else if (e.getMessage().contains("403")) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            } else if (e.getMessage().contains("404")) {
+                ApiError error = new ApiError("OA-404", "Objeto não localizado", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                ApiError error = new ApiError("OA-400", "Erro na estrutura da chamada", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+        }
+    }
+
+    @PutMapping("/{id}/enable")
+    public ResponseEntity<?> enableUser(@PathVariable String id,
+                                       @RequestHeader("Authorization") String authorization) {
+        try {
+            String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            keycloakService.enableUser(id, accessToken);
             return ResponseEntity.ok().build();
             
         } catch (RuntimeException e) {
@@ -166,6 +236,13 @@ public class UserController {
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             keycloakService.disableUser(id, accessToken);
             return ResponseEntity.noContent().build();
             

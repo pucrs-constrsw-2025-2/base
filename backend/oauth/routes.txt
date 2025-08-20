@@ -1,0 +1,136 @@
+1. POST {{base-api-url}}/login: autenticação de usuário
+   - Headers:
+     * Vazio
+   - Request body:
+     * form-data incluindo os seguintes dados:
+       - username
+       - password
+   - Response body:
+     * Documento JSON incluindo:
+       - token_type
+       - access_token
+       - expires_in
+       - refresh_token
+       - referesh_expires_in
+   - Lógica:
+     * Consumir a rota POST {{base-keycloak-url}}/auth/realms/{{realm}}/protocol/openid-connect/token da REST API do Keycloak para autenticação de usuário, gerando o access_token a partir do client_id, client_secret, username, password e grant_type: password.
+   - Response codes:
+     * 201 - Created
+     * 400 - Bad Request (Erro na estrutura da chamada)
+     * 401 - Unauthorized (username e/ou password inválidos)
+
+2. POST {{base-api-url}}/users: criação de um usuário
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Documento JSON representando o novo usuário:
+       - username (e-mail)
+       - password (plain text)
+       - first-name
+       - last-name
+   - Response body:
+     * Documento JSON representando o novo usuário, incluindo o id:
+       - id (obtido do header LOCATION da response do Keycloak)
+       - username
+       - first-name
+       - last-name
+       - enabled
+   - Lógica:
+     * Consumir a rota do Keycloak que cria um novo usuário
+   - Response codes:
+     * 201 - Created
+     * 400 - Bad Request (Erro na estrutura da chamada, E-mail inválido - regex RFC 5322)
+     * 401 - Unauthorized (Access token inválido)
+     * 403 - Forbidden (Access token sem permissão)
+     * 409 - Conflict (Username já existente)
+
+3. GET {{base-api-url}}/users: recuperação de todos os usuários
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Vazio
+   - Response body:
+     * Documento JSON representando todos os usuários cadastrados:
+       - id
+       - username (e-mail)
+       - first-name
+       - last-name
+       - enabled
+   - Lógica:
+     * Consumir a rota do Keycloak que recupera todos os usuários
+   - Response codes:
+     * 200 - OK
+     * 400 - Bad Request
+     * 401 - Unauthorized
+     * 403 - Forbidden
+   - Observação:
+     * Deve ser possível filtrar por query string: GET {{base-api-url}}/users?enabled=[true|false]
+
+4. GET {{base-api-url}}/users/{{id}}: recuperação de um usuário
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Vazio
+   - Response body:
+     * Documento JSON representando o usuário:
+       - id
+       - username
+       - first-name
+       - last-name
+       - enabled
+   - Lógica:
+     * Consumir a rota do Keycloak que recupera um usuário pelo id
+   - Response codes:
+     * 200 - OK
+     * 400 - Bad Request
+     * 401 - Unauthorized
+     * 403 - Forbidden
+     * 404 - Not Found
+
+5. PUT {{base-api-url}}/users/{{id}}: atualização de um usuário
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Documento JSON com novos valores dos atributos do usuário
+   - Response body:
+     * Vazio
+   - Lógica:
+     * Consumir a rota do Keycloak que atualiza um usuário (PUT)
+   - Response codes:
+     * 200 - OK
+     * 400 - Bad Request
+     * 401 - Unauthorized
+     * 403 - Forbidden
+     * 404 - Not Found
+
+6. PATCH {{base-api-url}}/users/{{id}}: atualização da senha de um usuário
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Documento JSON com o novo valor de "password"
+   - Response body:
+     * Vazio
+   - Lógica:
+     * Consumir a rota do Keycloak que atualiza a senha de um usuário (PATCH)
+   - Response codes:
+     * 200 - OK
+     * 400 - Bad Request
+     * 401 - Unauthorized
+     * 403 - Forbidden
+     * 404 - Not Found
+
+7. DELETE {{base-api-url}}/users/{{id}}: exclusão lógica de um usuário
+   - Headers:
+     * Authorization: Bearer {{access_token}}
+   - Request body:
+     * Vazio
+   - Response body:
+     * Vazio
+   - Lógica:
+     * Desabilitar um usuário consumindo a rota do Keycloak que executa essa alteração
+   - Response codes:
+     * 204 - No Content
+     * 400 - Bad Request
+     * 401 - Unauthorized
+     * 403 - Forbidden
+     * 404 - Not Found

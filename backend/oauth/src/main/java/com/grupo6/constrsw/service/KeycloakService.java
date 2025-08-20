@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -27,13 +28,13 @@ import com.grupo6.constrsw.dto.UserResponse;
 @Service
 public class KeycloakService {
 
-    @Value("${keycloak.internal.protocol}")
+    @Value("${keycloak.external.protocol}")
     private String protocol;
 
-    @Value("${keycloak.internal.host}")
+    @Value("${keycloak.external.host}")
     private String host;
 
-    @Value("${keycloak.internal.api.port}")
+    @Value("${keycloak.external.api.port}")
     private String port;
 
     @Value("${keycloak.realm}")
@@ -49,6 +50,8 @@ public class KeycloakService {
     private String grantType;
 
     private final RestTemplate restTemplate = new RestTemplate();
+
+
 
     public AuthResponse authenticate(AuthRequest request) {
         String url = String.format("%s://%s:%s/realms/%s/protocol/openid-connect/token",
@@ -84,8 +87,9 @@ public class KeycloakService {
 
         Map<String, Object> user = new HashMap<>();
         user.put("username", userRequest.getUsername());
-        user.put("firstName", userRequest.getFirstName());
-        user.put("lastName", userRequest.getLastName());
+        user.put("email", userRequest.getUsername()); // Keycloak exige o campo email
+        user.put("firstName", userRequest.getFirst_name());
+        user.put("lastName", userRequest.getLast_name());
         user.put("enabled", true);
         user.put("emailVerified", true);
 
@@ -94,6 +98,7 @@ public class KeycloakService {
         credentials.put("value", userRequest.getPassword());
         credentials.put("temporary", false);
         user.put("credentials", List.of(credentials));
+
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(user, headers);
 
@@ -106,7 +111,7 @@ public class KeycloakService {
             String userId = location.substring(location.lastIndexOf('/') + 1);
 
             return new UserResponse(userId, userRequest.getUsername(), 
-                    userRequest.getFirstName(), userRequest.getLastName(), true);
+                    userRequest.getFirst_name(), userRequest.getLast_name(), true);
         } catch (HttpClientErrorException e) {
             throw new RuntimeException("Erro ao criar usuário: " + e.getMessage());
         }
@@ -160,9 +165,10 @@ public class KeycloakService {
 
         Map<String, Object> user = new HashMap<>();
         user.put("username", userRequest.getUsername());
-        user.put("firstName", userRequest.getFirstName());
-        user.put("lastName", userRequest.getLastName());
+        user.put("firstName", userRequest.getFirst_name());
+        user.put("lastName", userRequest.getLast_name());
         user.put("email", userRequest.getUsername());
+        // Não alterar o campo enabled - manter o valor atual
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(user, headers);
 
@@ -212,6 +218,26 @@ public class KeycloakService {
             restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
         } catch (HttpClientErrorException e) {
             throw new RuntimeException("Erro ao desabilitar usuário: " + e.getMessage());
+        }
+    }
+
+    public void enableUser(String userId, String accessToken) {
+        String url = String.format("%s://%s:%s/admin/realms/%s/users/%s",
+                protocol, host, port, realm, userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessToken);
+
+        Map<String, Object> user = new HashMap<>();
+        user.put("enabled", true);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(user, headers);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Erro ao habilitar usuário: " + e.getMessage());
         }
     }
 
@@ -310,6 +336,12 @@ public class KeycloakService {
     }
 
     public void assignRoleToUser(String userId, String roleName, String accessToken) {
+        // Primeiro, buscar o role para obter o ID
+        RoleResponse roleResponse = getRoleByName(roleName, accessToken);
+        if (roleResponse == null || roleResponse.getId() == null) {
+            throw new RuntimeException("Role não encontrado: " + roleName);
+        }
+
         String url = String.format("%s://%s:%s/admin/realms/%s/users/%s/role-mappings/realm",
                 protocol, host, port, realm, userId);
 
@@ -318,6 +350,7 @@ public class KeycloakService {
         headers.setBearerAuth(accessToken);
 
         Map<String, Object> role = new HashMap<>();
+        role.put("id", roleResponse.getId());
         role.put("name", roleName);
 
         HttpEntity<Map<String, Object>[]> entity = new HttpEntity<>(new Map[]{role}, headers);
@@ -330,6 +363,12 @@ public class KeycloakService {
     }
 
     public void removeRoleFromUser(String userId, String roleName, String accessToken) {
+        // Primeiro, buscar o role para obter o ID
+        RoleResponse roleResponse = getRoleByName(roleName, accessToken);
+        if (roleResponse == null || roleResponse.getId() == null) {
+            throw new RuntimeException("Role não encontrado: " + roleName);
+        }
+
         String url = String.format("%s://%s:%s/admin/realms/%s/users/%s/role-mappings/realm",
                 protocol, host, port, realm, userId);
 
@@ -338,6 +377,7 @@ public class KeycloakService {
         headers.setBearerAuth(accessToken);
 
         Map<String, Object> role = new HashMap<>();
+        role.put("id", roleResponse.getId());
         role.put("name", roleName);
 
         HttpEntity<Map<String, Object>[]> entity = new HttpEntity<>(new Map[]{role}, headers);
