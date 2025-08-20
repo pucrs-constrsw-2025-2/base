@@ -78,7 +78,7 @@ async def reset_password(
     user_service: UserService = Depends(get_user_service),
 ):
     """Define uma nova senha para o usuário."""
-    await user_service.reset_password(user_id, password_data.new_password)
+    await user_service.reset_password(user_id, password_data.password)
     return {"message": "Password has been reset."}
 
 @router.delete(

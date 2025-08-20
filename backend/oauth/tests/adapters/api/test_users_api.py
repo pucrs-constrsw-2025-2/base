@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 from oauth_api.main import app
 from oauth_api.core.services.user_service import UserService
@@ -9,7 +9,7 @@ from oauth_api.core.domain.user import User
 from oauth_api.adapters.api.dependencies import get_user_service, oauth2_scheme
 
 # Mock do serviço que será injetado nos testes
-mock_user_service = MagicMock(spec=UserService)
+mock_user_service = AsyncMock(spec=UserService)
 
 # Sobrescreve a dependência de segurança para que os testes não precisem de um token real
 def override_oauth2_scheme():
