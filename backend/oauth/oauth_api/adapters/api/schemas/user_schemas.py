@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 class UserCreate(BaseModel):
     username: str
@@ -16,8 +16,7 @@ class UserPublic(BaseModel):
     username: str
     email: EmailStr
 
-    class Config:
-        from_attributes = True # Permite que o Pydantic leia os dados de um objeto (orm_mode)
+    model_config = ConfigDict(from_attributes=True)
         
 class TokenResponse(BaseModel):
     access_token: str

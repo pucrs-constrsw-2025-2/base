@@ -2,9 +2,9 @@ from pydantic import BaseModel, Field
 
 
 class RoleCreateRequest(BaseModel):
-    name: str = Field(..., example="admin")
+    name: str = Field(json_schema_extra={"example": "admin"})
     description: str | None = Field(
-        None, example="Administrator role with full permissions"
+        None, json_schema_extra={"example": "Administrator role with full permissions"}
     )
 
 
@@ -15,4 +15,4 @@ class RoleResponse(BaseModel):
 
 
 class UserRoleAssignRequest(BaseModel):
-    role_name: str = Field(..., example="admin")
+    role_name: str = Field(json_schema_extra={"example": "admin"})
