@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "api-gateway"
+name = "oauth-api"
 version = "0.1.0"
 description = "Keycloak API Gateway em conformidade com o T1 de ConstrSW."
-authors = ["Seu Nome <seu.email@pucrs.br>"]
+authors = ["AndreiRech <andreirech22@outlook.com>", "eduardo-de-bastiani <eduardocolladebastiani@gmail.com>", "erikvsuris <erikvsuris@gmail.com>", "shimpas-ville <cadu2001moraes@gmail.com>"]
 readme = "README.md"
 packages = [{include = "oauth_api"}]
 
