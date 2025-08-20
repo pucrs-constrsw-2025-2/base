@@ -21,6 +21,7 @@ import com.grupo6.constrsw.dto.ApiError;
 import com.grupo6.constrsw.dto.RoleRequest;
 import com.grupo6.constrsw.dto.RoleResponse;
 import com.grupo6.constrsw.service.KeycloakService;
+import com.grupo6.constrsw.service.PermissionService;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -29,11 +30,21 @@ public class RoleController {
     @Autowired
     private KeycloakService keycloakService;
 
+    @Autowired
+    private PermissionService permissionService;
+
     @PostMapping
     public ResponseEntity<?> createRole(@RequestBody RoleRequest roleRequest,
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             RoleResponse response = keycloakService.createRole(roleRequest, accessToken);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
@@ -55,6 +66,13 @@ public class RoleController {
     public ResponseEntity<?> getAllRoles(@RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             List<RoleResponse> roles = keycloakService.getAllRoles(accessToken);
             return ResponseEntity.ok(roles);
             
@@ -77,6 +95,13 @@ public class RoleController {
                                         @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
+            
+            // Verificar se o usuário tem permissões de admin
+            if (!permissionService.canAccessAdminEndpoints(accessToken)) {
+                ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             RoleResponse role = keycloakService.getRoleByName(id, accessToken);
             return ResponseEntity.ok(role);
             
