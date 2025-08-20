@@ -77,9 +77,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
   async login(loginDto: LoginDto): Promise<KeycloakTokenResponse> {
     this.logger.log(`Attempting to log in user: ${loginDto.username}`);
     const realm = this.getRealm();
-    const url = this.getUrl(
-      `/auth/realms/${realm}/protocol/openid-connect/token`,
-    );
+    const url = this.getUrl(`/realms/${realm}/protocol/openid-connect/token`);
     this.logger.log(`Login URL: ${url}`);
 
     const body = new URLSearchParams();

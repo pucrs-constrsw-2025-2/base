@@ -1,0 +1,71 @@
+[1mdiff --git a/docker-compose.yml b/docker-compose.yml[m
+[1mindex d842717..c1b30e6 100644[m
+[1m--- a/docker-compose.yml[m
+[1m+++ b/docker-compose.yml[m
+[36m@@ -1,13 +1,13 @@[m
+[32m+[m[32mversion: "3.9"[m
+[32m+[m
+ networks:[m
+[31m-    constrsw:[m
+[32m+[m[32m  constrsw:[m
+ [m
+ volumes:[m
+[31m-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data[m
+[31m-    constrsw-keycloak-data:[m
+[31m-        external: true[m
+[31m-        [m
+[31m-services:[m
+[32m+[m[32m  constrsw-keycloak-data:[m
+[32m+[m[32m    external: true[m
+ [m
+[32m+[m[32mservices:[m
+   keycloak:[m
+     container_name: keycloak[m
+     build:[m
+[36m@@ -21,7 +21,7 @@[m [mservices:[m
+       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}[m
+     volumes:[m
+       - constrsw-keycloak-data:/opt/keycloak/data[m
+[31m-      - ./backend/utils/keycloak:/opt/keycloak/data/import     [m
+[32m+[m[32m      - ./backend/utils/keycloak:/opt/keycloak/data/import[m
+     networks:[m
+       - constrsw[m
+     ports:[m
+[36m@@ -29,9 +29,33 @@[m [mservices:[m
+     command: start-dev --import-realm[m
+     restart: always[m
+     healthcheck:[m
+[31m-      test: [ "CMD-SHELL", "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}/health" ][m
+[31m-      start_period: 300s[m
+[32m+[m[32m      test: ["CMD-SHELL", "curl -f http://keycloak:9000/health/ready || exit 1"][m
+[32m+[m[32m      start_period: 10s[m
+       interval: 10s[m
+       timeout: 10s[m
+       retries: 50[m
+[31m- [m
+\ No newline at end of file[m
+[32m+[m
+[32m+[m[32m  oauth:[m
+[32m+[m[32m    container_name: oauth[m
+[32m+[m[32m    build:[m
+[32m+[m[32m      context: backend/oauth[m
+[32m+[m[32m      dockerfile: Dockerfile[m
+[32m+[m[32m    image: constrsw/oauth[m
+[32m+[m[32m    networks:[m
+[32m+[m[32m      - constrsw[m
+[32m+[m[32m    ports:[m
+[32m+[m[32m      - "3000:3000"[m
+[32m+[m[32m    environment:[m
+[32m+[m[32m      - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL}://${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}[m
+[32m+[m[32m      - KEYCLOAK_REALM=${KEYCLOAK_REALM}[m
+[32m+[m[32m      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}[m
+[32m+[m[32m      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}[m
+[32m+[m[32m      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}[m
+[32m+[m[32m    depends_on:[m
+[32m+[m[32m      keycloak:[m
+[32m+[m[32m        condition: service_healthy[m
+[32m+[m[32m    restart: always[m
+[32m+[m[32m    volumes:[m
+[32m+[m[32m      - ./backend/oauth:/usr/src/app[m
+[32m+[m[32m      - /usr/src/app/node_modules[m
+[32m+[m[32m    command: sh -c "npm install && npm run start:dev"[m

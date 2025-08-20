@@ -1,13 +1,13 @@
+version: "3.9"
+
 networks:
-    constrsw:
+  constrsw:
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
-    constrsw-keycloak-data:
-        external: true
-        
-services:
+  constrsw-keycloak-data:
+    external: true
 
+services:
   keycloak:
     container_name: keycloak
     build:
@@ -21,7 +21,7 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
-      - ./backend/utils/keycloak:/opt/keycloak/data/import     
+      - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
@@ -29,9 +29,33 @@ services:
     command: start-dev --import-realm
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}/health" ]
-      start_period: 300s
+      test: ["CMD-SHELL", "curl -f http://keycloak:9000/health/ready || exit 1"]
+      start_period: 10s
       interval: 10s
       timeout: 10s
       retries: 50
- 
+
+  oauth:
+    container_name: oauth
+    build:
+      context: backend/oauth
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    networks:
+      - constrsw
+    ports:
+      - "3000:3000"
+    environment:
+      - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL}://${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - ./backend/oauth:/usr/src/app
+      - /usr/src/app/node_modules
+    command: sh -c "npm install && npm run start:dev"
