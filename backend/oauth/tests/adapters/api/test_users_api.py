@@ -122,7 +122,7 @@ def test_create_user_api_success():
     user_domain_data = {
         "id": "new-user-id",
         "username": "api_user",
-        "email": "api@test.com",  # Correção: Adicionar email
+        "email": "api@test.com",
         "first_name": "Api",
         "last_name": "User",
         "enabled": True
