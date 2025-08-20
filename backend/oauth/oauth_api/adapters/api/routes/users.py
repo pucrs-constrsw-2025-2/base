@@ -21,6 +21,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def create_user(
     user_data: UserCreateRequest,
     user_service: UserService = Depends(get_user_service),
+    _: dict = Depends(get_current_user),
 ):
     """Cria um novo usuário no sistema."""
     return await user_service.create_user(user_data.model_dump())
@@ -103,6 +104,7 @@ async def assign_roles_to_user(
     user_id: str,
     request: UserRolesRequest,
     role_service: RoleService = Depends(get_role_service),
+    _: dict = Depends(get_current_user),
 ):
     """Atribui um ou mais roles a um usuário específico."""
     await role_service.assign_roles_to_user(user_id, request.role_ids)
@@ -118,6 +120,7 @@ async def remove_roles_from_user(
     user_id: str,
     request: UserRolesRequest,
     role_service: RoleService = Depends(get_role_service),
+    _: dict = Depends(get_current_user),
 ):
     """Remove um ou mais roles de um usuário específico."""
     await role_service.remove_roles_from_user(user_id, request.role_ids)
