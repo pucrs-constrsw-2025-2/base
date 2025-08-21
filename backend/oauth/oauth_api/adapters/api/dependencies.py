@@ -66,7 +66,7 @@ def get_role_repository() -> IRoleRepository:
 
 def get_user_service() -> UserService:
     # CORREÇÃO: Os nomes dos argumentos agora correspondem à definição da classe UserService
-    return UserService(user_repository=user_repository, role_repository=role_repository)
+    return UserService(user_repo=user_repository, role_repo=role_repository)
 
 def get_role_service() -> RoleService:
     # CORREÇÃO: O nome do argumento agora corresponde à definição da classe RoleService
