@@ -1,5 +1,6 @@
 networks:
   constrsw:
+    external: true
 
 volumes:
   constrsw-keycloak-data:
@@ -24,6 +25,7 @@ services:
       - constrsw
     ports:
       - ${KEYCLOAK_EXTERNAL_CONSOLE_PORT}:${KEYCLOAK_INTERNAL_CONSOLE_PORT}
+      - ${KEYCLOAK_EXTERNAL_API_PORT}:${KEYCLOAK_INTERNAL_API_PORT}
     command: start-dev --import-realm
     restart: always
     healthcheck:

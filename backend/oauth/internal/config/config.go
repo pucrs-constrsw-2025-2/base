@@ -14,7 +14,7 @@ type Config struct {
 
 	// Keycloak
 	KCProtocol     string `env:"KEYCLOAK_INTERNAL_PROTOCOL" envDefault:"http"`
-	KCHost string `env:"KEYCLOAK_INTERNAL_HOST" envDefault:"localhost"`
+	KCHost string `env:"KEYCLOAK_INTERNAL_HOST" envDefault:"keyclock"`
 	KCPort string `env:"KEYCLOAK_INTERNAL_API_PORT" envDefault:"8080"`
 	KCRealm        string `env:"KEYCLOAK_REALM,required"`
 	KCClientID     string `env:"KEYCLOAK_CLIENT_ID,required"`
