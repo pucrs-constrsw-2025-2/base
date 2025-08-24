@@ -5,3 +5,10 @@ node_modules/
 # Build do Nest
 dist/
 **/dist/
+
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+env.config
