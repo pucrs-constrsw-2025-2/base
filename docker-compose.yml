@@ -2,6 +2,7 @@ networks:
   constrsw:
 
 volumes:
+  # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
   constrsw-keycloak-data:
     external: true
 
