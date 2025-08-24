@@ -1,16 +1,15 @@
 const express = require('express');
 const session = require('express-session');
 const Keycloak = require('keycloak-connect');
+const axios = require('axios');
 
 const app = express();
 const memoryStore = new session.MemoryStore();
 
 /*
-* Adicionado acess token ao projeto 
-* A chave esta no backend\gateway\.env
-*/
-const axios = require('axios');
-
+ * Adicionado access token ao projeto
+ * A chave está no backend\gateway\.env
+ */
 const token = process.env.ACCESS_TOKEN;
 
 axios.get(process.env.KEYCLOAK_BASE_URL, {
@@ -22,8 +21,8 @@ axios.get(process.env.KEYCLOAK_BASE_URL, {
 .catch(error => console.error(error));
 
 /*
-* FIM do acess token
-*/
+ * FIM do access token
+ */
 
 app.use(session({
   secret: 'gateway-secret',
@@ -35,6 +34,11 @@ app.use(session({
 const keycloak = new Keycloak({ store: memoryStore });
 app.use(keycloak.middleware());
 
+// rota de saúde para testes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.get('/public', (req, res) => {
   res.send('Rota pública do gateway');
 });
@@ -43,9 +47,11 @@ app.get('/secure', keycloak.protect(), (req, res) => {
   res.send('Rota protegida pelo Keycloak');
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Gateway rodando na porta ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Gateway rodando na porta ${PORT}`);
+  });
+}
 
-
+module.exports = app; // 🔑 exporta para os testes

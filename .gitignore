@@ -17,3 +17,6 @@ Thumbs.db
 
 # Others
 npm-debug.log*
+
+#SonarQube
+coverage/
