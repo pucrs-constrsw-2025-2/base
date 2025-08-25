@@ -6,6 +6,7 @@ import { UserDto } from 'src/users/dto/user.dto';
 import { CreateRoleDto } from 'src/roles/dto/create-role.dto';
 import { UpdateRoleDto } from 'src/roles/dto/update-role.dto';
 import { RoleDto } from 'src/roles/dto/role.dto';
+import { UpdatePasswordDto } from 'src/users/dto/update-password.dto';
 
 export interface IKeycloakAdapter {
   login(loginDto: LoginDto): Promise<LoginResponseDto>;
@@ -15,6 +16,7 @@ export interface IKeycloakAdapter {
   updateUser(id: string, updateUserDto: UpdateUserDto): Promise<void>;
   deleteUser(id: string): Promise<void>;
   validateToken(token: string): Promise<boolean>;
+  updatePassword(id: string, updatePassowrdDto: UpdatePasswordDto);
 
   // Role management methods
   createRole(createRoleDto: CreateRoleDto): Promise<RoleDto>;

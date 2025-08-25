@@ -18,6 +18,7 @@ import { CreateRoleDto } from 'src/roles/dto/create-role.dto';
 import { UpdateRoleDto } from 'src/roles/dto/update-role.dto';
 import { RoleDto } from 'src/roles/dto/role.dto';
 import { IKeycloakAdapter } from './keycloak.adapter.interface';
+import { UpdatePasswordDto } from 'src/users/dto/update-password.dto';
 
 interface KeycloakTokenResponse {
   access_token: string;
@@ -253,10 +254,22 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     const realm = this.getRealm();
     const url = this.getUrl(`/admin/realms/${realm}/users/${id}`);
 
+    // First, get the current user state
+    const currentUser = await this.findUserById(id);
+
+    // Merge the changes
+    const updatedUser = {
+      ...currentUser,
+      ...updateUserDto,
+    };
+
     try {
       await firstValueFrom(
-        this.httpService.put(url, updateUserDto, {
-          headers: { Authorization: `Bearer ${adminToken}` },
+        this.httpService.put(url, updatedUser, {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
         }),
       );
       this.logger.log(`User updated successfully by ID: ${id}`);
@@ -266,6 +279,11 @@ export class KeycloakAdapter implements IKeycloakAdapter {
         `Keycloak API error on updateUser: ${axiosError.message}`,
         axiosError.stack,
       );
+      if (axiosError.response) {
+        this.logger.error(
+          `Keycloak response data: ${JSON.stringify(axiosError.response.data)}`,
+        );
+      }
       if (axiosError.response?.status === 404) {
         throw new NotFoundException(`User with ID "${id}" not found`);
       }
@@ -300,6 +318,49 @@ export class KeycloakAdapter implements IKeycloakAdapter {
       }
       throw new InternalServerErrorException(
         'Failed to delete user',
+        axiosError.message,
+      );
+    }
+  }
+
+  async updatePassword(
+    id: string,
+    updatePasswordDto: UpdatePasswordDto,
+  ): Promise<void> {
+    this.logger.log(`Attempting to update password for user by ID: ${id}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/users/${id}/reset-password`,
+    );
+
+    const passwordCredential = {
+      type: 'password',
+      value: updatePasswordDto.password,
+      temporary: false,
+    };
+
+    try {
+      await firstValueFrom(
+        this.httpService.put(url, passwordCredential, {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      this.logger.log(`Password updated successfully for user by ID: ${id}`);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on updatePassword: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(`User with ID "${id}" not found`);
+      }
+      throw new InternalServerErrorException(
+        'Failed to update password',
         axiosError.message,
       );
     }

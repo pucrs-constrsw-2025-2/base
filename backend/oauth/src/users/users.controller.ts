@@ -9,8 +9,10 @@ import {
   Param,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
@@ -40,10 +42,20 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    this.logger.log(`Controller: PATCH /users/${id} request`);
+    this.logger.log(`Controller: PUT /users/${id} request`);
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Patch(':id/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updatePassword(
+    @Param('id') id: string,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    this.logger.log(`Controller: PATCH /users/${id}/password request`);
+    await this.usersService.updatePassword(id, updatePasswordDto);
   }
 
   @Delete(':id')
