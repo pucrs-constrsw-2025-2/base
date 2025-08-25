@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const router = Router();
-const keycloakBaseUrl = process.env.KEYCLOAK_BASE_URL || 'http://localhost:8080/auth';
-const realm = process.env.KEYCLOAK_REALM || 'ConstrSW';
+const keycloakBaseUrl = process.env.KEYCLOAK_BASE_URL;
+const realm = process.env.KEYCLOAK_REALM;
 
 // Helper function to get Keycloak token endpoint
 const getTokenEndpoint = () => `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/token`;
