@@ -2,6 +2,8 @@ import request from 'supertest';
 import express from 'express';
 import router from '../src/routes/keycloak';
 import axios from 'axios';
+import { afterEach, expect, it, jest } from '@jest/globals';
+import { describe } from 'node:test';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
