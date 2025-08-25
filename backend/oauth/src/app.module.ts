@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
 import { KeycloakModule } from './keycloak/keycloak.module';
@@ -18,6 +19,7 @@ import keycloakConfig from './keycloak/keycloak.config';
     }),
     AuthModule,
     UsersModule,
+    RolesModule,
     KeycloakModule,
   ],
   controllers: [AppController],

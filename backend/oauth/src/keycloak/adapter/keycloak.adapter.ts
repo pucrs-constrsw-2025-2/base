@@ -14,6 +14,9 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 import { UserDto } from 'src/users/dto/user.dto';
+import { CreateRoleDto } from 'src/roles/dto/create-role.dto';
+import { UpdateRoleDto } from 'src/roles/dto/update-role.dto';
+import { RoleDto } from 'src/roles/dto/role.dto';
 import { IKeycloakAdapter } from './keycloak.adapter.interface';
 
 interface KeycloakTokenResponse {
@@ -74,6 +77,17 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     return realm;
   }
 
+  private getClientId(): string {
+    const clientId = this.configService.get<string>('KEYCLOAK_CLIENT_ID');
+    if (!clientId) {
+      this.logger.error('Keycloak client ID is not configured.');
+      throw new InternalServerErrorException(
+        'Keycloak client ID is not configured.',
+      );
+    }
+    return clientId;
+  }
+
   async login(loginDto: LoginDto): Promise<KeycloakTokenResponse> {
     this.logger.log(`Attempting to log in user: ${loginDto.username}`);
     const realm = this.getRealm();
@@ -125,10 +139,14 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     const adminToken = await this.getAdminToken();
     const realm = this.getRealm();
     const url = this.getUrl(`/admin/realms/${realm}/users`);
+    this.logger.debug(`URL: ${url}`);
 
-    const { password, ...user } = createUserDto;
+    const { password, username, email, firstName, lastName } = createUserDto;
     const userPayload = {
-      ...user,
+      username,
+      email,
+      firstName,
+      lastName,
       enabled: true,
       credentials: [
         {
@@ -340,19 +358,36 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     }
 
     this.logger.log('Fetching new admin token');
-    const realm = this.getRealm();
-    const url = this.getUrl(`/realms/${realm}/protocol/openid-connect/token`);
+    // Use master realm for admin operations
+    const url = this.getUrl(`/realms/master/protocol/openid-connect/token`);
+
+    // For master realm admin operations, use admin-cli client
+    const clientId = 'admin-cli';
+    const clientSecret = this.configService.get<string>(
+      'KEYCLOAK_CLIENT_SECRET',
+    )!;
+    const adminUsername = this.configService.get<string>(
+      'KEYCLOAK_ADMIN_USERNAME',
+    )!;
+    const adminPassword = this.configService.get<string>(
+      'KEYCLOAK_ADMIN_PASSWORD',
+    )!;
+
+    this.logger.debug(`Admin token request - URL: ${url}`);
+    this.logger.debug(`Admin token request - Client ID: ${clientId}`);
+    this.logger.debug(`Admin token request - Username: ${adminUsername}`);
+    this.logger.debug(
+      `Admin token request - Client Secret present: ${!!clientSecret}`,
+    );
+    this.logger.debug(
+      `Admin token request - Password present: ${!!adminPassword}`,
+    );
 
     const body = new URLSearchParams();
-    body.append(
-      'client_id',
-      this.configService.get<string>('KEYCLOAK_CLIENT_ID')!,
-    );
-    body.append(
-      'client_secret',
-      this.configService.get<string>('KEYCLOAK_CLIENT_SECRET')!,
-    );
-    body.append('grant_type', 'client_credentials');
+    body.append('client_id', clientId);
+    body.append('grant_type', 'password');
+    body.append('username', adminUsername);
+    body.append('password', adminPassword);
 
     try {
       const { data } = await firstValueFrom(
@@ -372,6 +407,302 @@ export class KeycloakAdapter implements IKeycloakAdapter {
       );
       throw new InternalServerErrorException(
         'Failed to obtain admin token',
+        axiosError.message,
+      );
+    }
+  }
+
+  async createRole(createRoleDto: CreateRoleDto): Promise<RoleDto> {
+    this.logger.log(`Attempting to create role: ${createRoleDto.name}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const clientId = this.getClientId();
+    const url = this.getUrl(`/admin/realms/${realm}/roles`);
+    this.logger.debug(`URL: ${url}`);
+
+    const rolePayload = {
+      name: createRoleDto.name,
+      description: createRoleDto.description || '',
+      composite: createRoleDto.composite || false,
+      clientRole: true,
+      containerId: clientId,
+    };
+
+    this.logger.debug(`Role payload: ${JSON.stringify(rolePayload, null, 2)}`);
+
+    try {
+      await firstValueFrom(
+        this.httpService.post<void>(url, rolePayload, {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      this.logger.log(`Role created successfully: ${createRoleDto.name}`);
+      const newRole = await this.findRoleByName(createRoleDto.name);
+      return newRole;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on createRole: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 409) {
+        throw new ConflictException('Role already exists');
+      }
+      throw new InternalServerErrorException(
+        'Error creating role',
+        axiosError.message,
+      );
+    }
+  }
+
+  async findAllRoles(): Promise<RoleDto[]> {
+    this.logger.log('Attempting to fetch all roles');
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    // const clientId = this.getClientId();
+    const url = this.getUrl(`/admin/realms/${realm}/roles`);
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<RoleDto[]>(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      this.logger.log('Roles fetched successfully');
+      return data;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on findAllRoles: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch roles',
+        axiosError.message,
+      );
+    }
+  }
+
+  async findRoleByName(name: string): Promise<RoleDto> {
+    this.logger.log(`Attempting to fetch role by name: ${name}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const clientId = this.getClientId();
+    const url = this.getUrl(`/admin/realms/${realm}/roles/${name}`);
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<RoleDto>(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      this.logger.log(`Role fetched successfully by name: ${name}`);
+      return data;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on findRoleByName: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(`Role with name "${name}" not found`);
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch role',
+        axiosError.message,
+      );
+    }
+  }
+
+  async updateRole(name: string, updateRoleDto: UpdateRoleDto): Promise<void> {
+    this.logger.log(`Attempting to update role: ${name}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const clientId = this.getClientId();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/clients/${clientId}/roles/${name}`,
+    );
+
+    // First, get the current role to preserve existing properties
+    const currentRole = await this.findRoleByName(name);
+
+    const rolePayload = {
+      id: currentRole.id,
+      name: updateRoleDto.name || currentRole.name,
+      description: updateRoleDto.description || currentRole.description,
+      composite:
+        updateRoleDto.composite !== undefined
+          ? updateRoleDto.composite
+          : currentRole.composite,
+      clientRole: true,
+      containerId: clientId,
+      attributes: currentRole.attributes || {},
+    };
+
+    this.logger.debug(
+      `Role update payload: ${JSON.stringify(rolePayload, null, 2)}`,
+    );
+
+    try {
+      await firstValueFrom(
+        this.httpService.put(url, rolePayload, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      this.logger.log(`Role updated successfully: ${name}`);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on updateRole: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(`Role with name "${name}" not found`);
+      }
+      throw new InternalServerErrorException(
+        'Failed to update role',
+        axiosError.message,
+      );
+    }
+  }
+
+  async deleteRole(name: string): Promise<void> {
+    this.logger.log(`Attempting to delete role: ${name}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const clientId = this.getClientId();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/clients/${clientId}/roles/${name}`,
+    );
+
+    try {
+      await firstValueFrom(
+        this.httpService.delete(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      this.logger.log(`Role deleted successfully: ${name}`);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on deleteRole: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(`Role with name "${name}" not found`);
+      }
+      throw new InternalServerErrorException(
+        'Failed to delete role',
+        axiosError.message,
+      );
+    }
+  }
+
+  async assignRoleToUser(roleName: string, userId: string): Promise<void> {
+    this.logger.log(`Attempting to assign role ${roleName} to user ${userId}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
+    );
+
+    // First, get the role to get its ID
+    const role = await this.findRoleByName(roleName);
+
+    const roleMappingPayload = [
+      {
+        id: role.id,
+        name: role.name,
+      },
+    ];
+
+    this.logger.debug(
+      `Role mapping payload: ${JSON.stringify(roleMappingPayload, null, 2)}`,
+    );
+
+    try {
+      await firstValueFrom(
+        this.httpService.post(url, roleMappingPayload, {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      this.logger.log(
+        `Role ${roleName} assigned successfully to user ${userId}`,
+      );
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on assignRoleToUser: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(
+          `User with ID "${userId}" or role "${roleName}" not found`,
+        );
+      }
+      throw new InternalServerErrorException(
+        'Failed to assign role to user',
+        axiosError.message,
+      );
+    }
+  }
+
+  async removeRoleFromUser(roleName: string, userId: string): Promise<void> {
+    this.logger.log(
+      `Attempting to remove role ${roleName} from user ${userId}`,
+    );
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
+    );
+
+    // First, get the role to get its ID
+    const role = await this.findRoleByName(roleName);
+
+    const roleMappingPayload = [
+      {
+        id: role.id,
+        name: role.name,
+      },
+    ];
+
+    this.logger.debug(
+      `Role mapping payload: ${JSON.stringify(roleMappingPayload, null, 2)}`,
+    );
+
+    try {
+      await firstValueFrom(
+        this.httpService.delete(url, {
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
+          data: roleMappingPayload,
+        }),
+      );
+      this.logger.log(
+        `Role ${roleName} removed successfully from user ${userId}`,
+      );
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on removeRoleFromUser: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(
+          `User with ID "${userId}" or role "${roleName}" not found`,
+        );
+      }
+      throw new InternalServerErrorException(
+        'Failed to remove role from user',
         axiosError.message,
       );
     }
