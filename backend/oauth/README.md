@@ -6,21 +6,6 @@ API REST que consome a API REST do Keycloak para autenticação e gerenciamento 
 
 ### Variáveis de Ambiente
 
-As seguintes variáveis estão configuradas no arquivo `.env`:
-
-```properties
-KEYCLOAK_CLIENT_ID=oauth
-KEYCLOAK_CLIENT_SECRET=wsNXUxaupU9X6jCncsn3rOEy6PDt7oJO
-KEYCLOAK_GRANT_TYPE=password
-KEYCLOAK_INTERNAL_PROTOCOL=http
-KEYCLOAK_INTERNAL_HOST=keycloak
-KEYCLOAK_INTERNAL_API_PORT=8080
-KEYCLOAK_EXTERNAL_PROTOCOL=http
-KEYCLOAK_EXTERNAL_HOST=localhost
-KEYCLOAK_EXTERNAL_API_PORT=8001
-KEYCLOAK_REALM=constrsw
-```
-
 ### Executar com Docker
 
 1. Criar o volume do Keycloak:
