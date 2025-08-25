@@ -16,7 +16,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cria um novo usuário",
+    summary="Criar um novo usuário",
+    description="Cria um novo usuário no sistema. Este endpoint pode ser público ou protegido dependendo da configuração global.",
+    response_description="Os dados públicos do usuário recém-criado.",
 )
 async def create_user(
     user_data: UserCreateRequest,
@@ -29,7 +31,10 @@ async def create_user(
 @router.get(
     "",
     response_model=list[UserResponse],
-    summary="Lista todos os usuários",
+    summary="Listar todos os usuários",
+    description="Retorna uma lista de todos os usuários cadastrados, com a opção de filtrar por status (enabled). Requer autenticação.",
+    response_description="Uma lista contendo os usuários.",
+    dependencies=[Depends(get_current_user)],
 )
 async def get_all_users(
     enabled: bool | None = None,
@@ -42,7 +47,10 @@ async def get_all_users(
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Busca um usuário por ID",
+    summary="Buscar um usuário por ID",
+    description="Retorna os detalhes de um usuário específico a partir do seu ID. Requer autenticação.",
+    response_description="Os dados detalhados do usuário solicitado.",
+    dependencies=[Depends(get_current_user)],
 )
 async def get_user_by_id(
     user_id: str,
@@ -55,7 +63,10 @@ async def get_user_by_id(
 @router.put(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Atualiza um usuário",
+    summary="Atualizar um usuário (completo)",
+    description="Atualiza todas as informações de um usuário existente. Todos os campos devem ser fornecidos. Requer autenticação.",
+    response_description="Os dados do usuário após a atualização.",
+    dependencies=[Depends(get_current_user)],
 )
 async def update_user(
     user_id: str,
@@ -69,7 +80,10 @@ async def update_user(
 @router.patch(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Reseta a senha de um usuário",
+    summary="Atualizar a senha de um usuário",
+    description="Define uma nova senha para um usuário específico. O corpo da requisição deve conter a nova senha. Requer autenticação.",
+    response_description="Nenhum conteúdo retornado em caso de sucesso.",
+    dependencies=[Depends(get_current_user)],
 )
 async def reset_password(
     user_id: str,
@@ -84,7 +98,10 @@ async def reset_password(
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Desativa um usuário",
+    summary="Desativar um usuário",
+    description="Realiza a exclusão lógica (desativação) de um usuário, alterando seu status para 'disabled'. Requer autenticação.",
+    response_description="Nenhum conteúdo retornado em caso de sucesso.",
+    dependencies=[Depends(get_current_user)],
 )
 async def delete_user(
     user_id: str,
@@ -98,7 +115,10 @@ async def delete_user(
 @router.post(
     "/{user_id}/roles",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Atribui roles a um usuário",
+    summary="Atribuir roles a um usuário",
+    description="Atribui uma ou mais roles a um usuário específico, com base nos IDs das roles fornecidos. Requer autenticação.",
+    response_description="Nenhum conteúdo retornado em caso de sucesso.",
+    dependencies=[Depends(get_current_user)],
 )
 async def assign_roles_to_user(
     user_id: str,
@@ -114,7 +134,10 @@ async def assign_roles_to_user(
 @router.delete(
     "/{user_id}/roles",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Remove roles de um usuário",
+    summary="Remover roles de um usuário",
+    description="Remove uma ou mais roles de um usuário específico, com base nos IDs das roles fornecidos. Requer autenticação.",
+    response_description="Nenhum conteúdo retornado em caso de sucesso.",
+    dependencies=[Depends(get_current_user)],
 )
 async def remove_roles_from_user(
     user_id: str,

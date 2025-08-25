@@ -23,18 +23,42 @@ class UserCreateRequest(UserBase):
     username: EmailStr = Field(..., example="joao.silva@email.com")
     password: str = Field(..., min_length=8, example="strongPassword123")
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "username": "joao.silva@email.com",
+                "password": "strongPassword123",
+                "firstName": "João",
+                "lastName": "Silva",
+            }
+        },
+    )
+
 
 class UserUpdateRequest(UserBase):
     """
     Schema para a atualização de um usuário.
     Herda os campos de UserBase que podem ser atualizados.
     """
-    pass
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "firstName": "José",
+                "lastName": "Santos",
+            }
+        },
+    )
 
 
 class PasswordUpdateRequest(BaseModel):
     """Schema específico para a atualização de senha."""
     password: str = Field(..., min_length=8, example="newStrongPassword123")
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"password": "newStrongPassword123"}}
+    )
 
 
 # ---------------------------------------------------------------------------
