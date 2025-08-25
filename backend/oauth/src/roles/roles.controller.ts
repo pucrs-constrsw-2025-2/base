@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Logger,
+  Put,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -40,6 +41,15 @@ export class RolesController {
     return this.rolesService.findOne(name);
   }
 
+  @Put(':name')
+  async updatePut(
+    @Param('name') name: string,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ): Promise<void> {
+    this.logger.log(`Updating role: ${name}`);
+    return this.rolesService.update(name, updateRoleDto);
+  }
+
   @Patch(':name')
   async update(
     @Param('name') name: string,
@@ -59,7 +69,7 @@ export class RolesController {
   async assignRoleToUser(
     @Param('name') name: string,
     @Param('userId') userId: string,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     this.logger.log(`Assigning role ${name} to user ${userId}`);
     return this.rolesService.assignRoleToUser(name, userId);
   }
@@ -68,7 +78,7 @@ export class RolesController {
   async removeRoleFromUser(
     @Param('name') name: string,
     @Param('userId') userId: string,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     this.logger.log(`Removing role ${name} from user ${userId}`);
     return this.rolesService.removeRoleFromUser(name, userId);
   }

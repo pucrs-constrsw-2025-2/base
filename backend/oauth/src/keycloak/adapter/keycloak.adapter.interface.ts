@@ -24,6 +24,12 @@ export interface IKeycloakAdapter {
   findRoleByName(name: string): Promise<RoleDto>;
   updateRole(name: string, updateRoleDto: UpdateRoleDto): Promise<void>;
   deleteRole(name: string): Promise<void>;
-  assignRoleToUser(roleName: string, userId: string): Promise<void>;
-  removeRoleFromUser(roleName: string, userId: string): Promise<void>;
+  assignRoleToUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }>;
+  removeRoleFromUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }>;
 }

@@ -39,12 +39,18 @@ export class RolesService {
     return this.keycloakAdapter.deleteRole(name);
   }
 
-  async assignRoleToUser(roleName: string, userId: string): Promise<void> {
+  async assignRoleToUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }> {
     this.logger.log(`Assigning role ${roleName} to user ${userId}`);
     return this.keycloakAdapter.assignRoleToUser(roleName, userId);
   }
 
-  async removeRoleFromUser(roleName: string, userId: string): Promise<void> {
+  async removeRoleFromUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }> {
     this.logger.log(`Removing role ${roleName} from user ${userId}`);
     return this.keycloakAdapter.removeRoleFromUser(roleName, userId);
   }

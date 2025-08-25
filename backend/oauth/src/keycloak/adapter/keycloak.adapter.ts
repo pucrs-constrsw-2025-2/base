@@ -582,25 +582,19 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     this.logger.log(`Attempting to update role: ${name}`);
     const adminToken = await this.getAdminToken();
     const realm = this.getRealm();
-    const clientId = this.getClientId();
-    const url = this.getUrl(
-      `/admin/realms/${realm}/clients/${clientId}/roles/${name}`,
-    );
+    const url = this.getUrl(`/admin/realms/${realm}/roles/${name}`);
 
     // First, get the current role to preserve existing properties
     const currentRole = await this.findRoleByName(name);
 
     const rolePayload = {
-      id: currentRole.id,
+      ...currentRole,
       name: updateRoleDto.name || currentRole.name,
       description: updateRoleDto.description || currentRole.description,
       composite:
         updateRoleDto.composite !== undefined
           ? updateRoleDto.composite
           : currentRole.composite,
-      clientRole: true,
-      containerId: clientId,
-      attributes: currentRole.attributes || {},
     };
 
     this.logger.debug(
@@ -610,7 +604,8 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     try {
       await firstValueFrom(
         this.httpService.put(url, rolePayload, {
-          headers: { Authorization: `Bearer ${adminToken}` },
+          headers: { Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json' },
         }),
       );
       this.logger.log(`Role updated successfully: ${name}`);
@@ -634,10 +629,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     this.logger.log(`Attempting to delete role: ${name}`);
     const adminToken = await this.getAdminToken();
     const realm = this.getRealm();
-    const clientId = this.getClientId();
-    const url = this.getUrl(
-      `/admin/realms/${realm}/clients/${clientId}/roles/${name}`,
-    );
+    const url = this.getUrl(`/admin/realms/${realm}/roles/${name}`);
 
     try {
       await firstValueFrom(
@@ -662,7 +654,10 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     }
   }
 
-  async assignRoleToUser(roleName: string, userId: string): Promise<void> {
+  async assignRoleToUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }> {
     this.logger.log(`Attempting to assign role ${roleName} to user ${userId}`);
     const adminToken = await this.getAdminToken();
     const realm = this.getRealm();
@@ -696,6 +691,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
       this.logger.log(
         `Role ${roleName} assigned successfully to user ${userId}`,
       );
+      return { message: 'Role assigned to user successfully' };
     } catch (error) {
       const axiosError = error as AxiosError;
       this.logger.error(
@@ -714,7 +710,10 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     }
   }
 
-  async removeRoleFromUser(roleName: string, userId: string): Promise<void> {
+  async removeRoleFromUser(
+    roleName: string,
+    userId: string,
+  ): Promise<{ message: string }> {
     this.logger.log(
       `Attempting to remove role ${roleName} from user ${userId}`,
     );
@@ -751,6 +750,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
       this.logger.log(
         `Role ${roleName} removed successfully from user ${userId}`,
       );
+      return { message: 'Role removed from user successfully' };
     } catch (error) {
       const axiosError = error as AxiosError;
       this.logger.error(
