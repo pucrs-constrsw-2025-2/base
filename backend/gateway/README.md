@@ -21,3 +21,21 @@ Este serviço atua como gateway autenticador utilizando Keycloak.
 ## Rotas
 - `/public`: rota aberta
 - `/secure`: rota protegida pelo Keycloak
+
+## Como rodar os testes
+
+1. Instale as dependências de desenvolvimento:
+   ```bash
+   npm install
+   ```
+
+2. Execute os testes unitários:
+   ```bash
+   npm test
+   ```
+   ou
+   ```bash
+   npx jest
+   ```
+
+Os testes estão localizados na pasta `__tests__` e utilizam Jest com suporte a TypeScript via `ts-jest`.
