@@ -17,6 +17,7 @@ export interface IKeycloakAdapter {
   deleteUser(id: string): Promise<void>;
   validateToken(token: string): Promise<boolean>;
   updatePassword(id: string, updatePassowrdDto: UpdatePasswordDto);
+  findRolesByUserId(userId: string): Promise<RoleDto[]>;
 
   // Role management methods
   createRole(createRoleDto: CreateRoleDto): Promise<RoleDto>;

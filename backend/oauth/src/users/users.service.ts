@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IKeycloakAdapter } from 'src/keycloak/adapter/keycloak.adapter.interface';
+import { RoleDto } from 'src/roles/dto/role.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -26,6 +27,11 @@ export class UsersService {
   findOne(id: string) {
     this.logger.log(`Service: finding user with id ${id}`);
     return this.keycloakAdapter.findUserById(id);
+  }
+
+  findRolesByUserId(id: string): Promise<RoleDto[]> {
+    this.logger.log(`Service: finding roles for user with id ${id}`);
+    return this.keycloakAdapter.findRolesByUserId(id);
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {

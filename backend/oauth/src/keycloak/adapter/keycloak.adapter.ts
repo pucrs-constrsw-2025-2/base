@@ -768,4 +768,36 @@ export class KeycloakAdapter implements IKeycloakAdapter {
       );
     }
   }
+
+  async findRolesByUserId(userId: string): Promise<RoleDto[]> {
+    this.logger.log(`Attempting to fetch roles for user ID: ${userId}`);
+    const adminToken = await this.getAdminToken();
+    const realm = this.getRealm();
+    const url = this.getUrl(
+      `/admin/realms/${realm}/users/${userId}/role-mappings`,
+    );
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<{ realmMappings: RoleDto[] }>(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      this.logger.log(`Roles fetched successfully for user ID: ${userId}`);
+      return data.realmMappings || [];
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      this.logger.error(
+        `Keycloak API error on findRolesByUserId: ${axiosError.message}`,
+        axiosError.stack,
+      );
+      if (axiosError.response?.status === 404) {
+        throw new NotFoundException(`User with ID "${userId}" not found`);
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch roles for user',
+        axiosError.message,
+      );
+    }
+  }
 }

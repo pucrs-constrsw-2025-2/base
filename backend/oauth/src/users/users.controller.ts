@@ -11,6 +11,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import { RoleDto } from 'src/roles/dto/role.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -40,6 +41,12 @@ export class UsersController {
   findOne(@Param('id') id: string) {
     this.logger.log(`Controller: GET /users/${id} request`);
     return this.usersService.findOne(id);
+  }
+
+  @Get(':id/roles')
+  findRolesByUserId(@Param('id') id: string): Promise<RoleDto[]> {
+    this.logger.log(`Controller: GET /users/${id}/roles request`);
+    return this.usersService.findRolesByUserId(id);
   }
 
   @Put(':id')
