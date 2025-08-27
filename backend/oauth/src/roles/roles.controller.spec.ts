@@ -4,6 +4,8 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { RoleDto } from './dto/role.dto';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { Reflector } from '@nestjs/core';
 
 describe('RolesController', () => {
   let controller: RolesController;
@@ -26,6 +28,18 @@ describe('RolesController', () => {
         {
           provide: RolesService,
           useValue: mockService,
+        },
+        {
+          provide: AuthGuard,
+          useValue: jest.fn().mockImplementation(() => true),
+        },
+        {
+          provide: 'IKeycloakAdapter',
+          useValue: {},
+        },
+        {
+          provide: Reflector,
+          useValue: {},
         },
       ],
     }).compile();

@@ -5,6 +5,8 @@ import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
 import type { UserDto } from './dto/user.dto';
 import { NotFoundException } from '@nestjs/common';
+import { RoleDto } from 'src/roles/dto/role.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 const mockKeycloakAdapter: IKeycloakAdapter = {
   login: jest.fn(),
@@ -14,6 +16,8 @@ const mockKeycloakAdapter: IKeycloakAdapter = {
   updateUser: jest.fn(),
   deleteUser: jest.fn(),
   validateToken: jest.fn(),
+  findRolesByUserId: jest.fn(),
+  updatePassword: jest.fn(),
 };
 
 describe('UsersService', () => {
@@ -151,6 +155,57 @@ describe('UsersService', () => {
       await service.remove(userId);
 
       expect(keycloakAdapter.deleteUser).toHaveBeenCalledWith(userId);
+    });
+  });
+
+  describe('findRolesByUserId', () => {
+    it('should return roles for a given user id', async () => {
+      const userId = '1';
+      const expectedRoles: RoleDto[] = [
+        {
+          id: 'role-id-1',
+          name: 'role1',
+          description: 'Role 1 description',
+          composite: false,
+          clientRole: true,
+          containerId: 'container-id-1',
+        },
+        {
+          id: 'role-id-2',
+          name: 'role2',
+          description: 'Role 2 description',
+          composite: false,
+          clientRole: true,
+          containerId: 'container-id-2',
+        },
+      ];
+      (keycloakAdapter.findRolesByUserId as jest.Mock).mockResolvedValue(
+        expectedRoles,
+      );
+
+      const result = await service.findRolesByUserId(userId);
+
+      expect(keycloakAdapter.findRolesByUserId).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(expectedRoles);
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('should update a users password', async () => {
+      const userId = '1';
+      const updatePasswordDto: UpdatePasswordDto = {
+        type: 'password',
+        value: 'new-password',
+        temporary: false,
+      };
+      (keycloakAdapter.updatePassword as jest.Mock).mockResolvedValue(undefined);
+
+      await service.updatePassword(userId, updatePasswordDto);
+
+      expect(keycloakAdapter.updatePassword).toHaveBeenCalledWith(
+        userId,
+        updatePasswordDto,
+      );
     });
   });
 });

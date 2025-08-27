@@ -4,6 +4,8 @@ import { UsersService } from './users.service';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
 import type { UserDto } from './dto/user.dto';
+import { RoleDto } from 'src/roles/dto/role.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 const mockUsersService = {
   create: jest.fn(),
@@ -11,6 +13,8 @@ const mockUsersService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+  findRolesByUserId: jest.fn(),
+  updatePassword: jest.fn(),
 };
 
 describe('UsersController', () => {
@@ -114,6 +118,49 @@ describe('UsersController', () => {
       await controller.remove(id);
 
       expect(service.remove).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('findRolesByUserId', () => {
+    it('should return an array of roles for a given user', async () => {
+      const id = '1';
+      const result: RoleDto[] = [
+        {
+          id: 'role-id-1',
+          name: 'role1',
+          description: 'Role 1 description',
+          composite: false,
+          clientRole: true,
+          containerId: 'container-id-1',
+        },
+        {
+          id: 'role-id-2',
+          name: 'role2',
+          description: 'Role 2 description',
+          composite: false,
+          clientRole: true,
+          containerId: 'container-id-2',
+        },
+      ];
+      (service.findRolesByUserId as jest.Mock).mockResolvedValue(result);
+
+      expect(await controller.findRolesByUserId(id)).toBe(result);
+      expect(service.findRolesByUserId).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('should update a users password', async () => {
+      const id = '1';
+      const updatePasswordDto: UpdatePasswordDto = {
+        type: 'password',
+        value: 'new-password',
+        temporary: false,
+      };
+
+      await controller.updatePassword(id, updatePasswordDto);
+
+      expect(service.updatePassword).toHaveBeenCalledWith(id, updatePasswordDto);
     });
   });
 });
