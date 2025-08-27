@@ -52,7 +52,6 @@ router.post('/users', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -72,7 +71,6 @@ router.get('/users', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -93,7 +91,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+
   }
 });
 
@@ -114,7 +112,7 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+
   }
 });
 
@@ -136,7 +134,7 @@ router.patch('/users/:id', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+
   }
 });
 
@@ -160,7 +158,6 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
         .status(error.response.status || 500)
         .json(error.response.data || { error: 'Internal Server Error' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 

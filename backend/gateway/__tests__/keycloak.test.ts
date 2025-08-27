@@ -188,5 +188,16 @@ describe('Keycloak Routes', () => {
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error', 'not found');
     });
+    it('should handle axios error', async () => {
+      mockedAxios.delete.mockRejectedValueOnce({
+        response: { status: 500, data: { error: 'internal server error' } },
+        isAxiosError: true,
+      });
+      const res = await request(app)
+        .delete('/users/1')
+        .set('Authorization', 'Bearer token');
+      expect(res.status).toBe(500);
+      expect(res.body).toHaveProperty('error', 'internal server error');
+    });
   });
 });
