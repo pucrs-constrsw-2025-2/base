@@ -1,6 +1,7 @@
+from oauth_api.core.domain.role import Role
 from oauth_api.core.exceptions import ConflictAlreadyExistsError, NotFoundError
 from oauth_api.core.ports.role_repository import IRoleRepository
-from oauth_api.core.domain.role import Role
+
 
 class RoleService:
     """Serviço contendo a lógica de negócio para roles."""
@@ -12,7 +13,9 @@ class RoleService:
         """Cria um novo role, garantindo que o nome não seja duplicado."""
         existing_role = await self.role_repository.find_by_name(role_data["name"])
         if existing_role:
-            raise ConflictAlreadyExistsError(f"Role com o nome '{role_data['name']}' já existe.")
+            raise ConflictAlreadyExistsError(
+                f"Role com o nome '{role_data['name']}' já existe."
+            )
         return await self.role_repository.create(role_data)
 
     async def get_all_roles(self) -> list[Role]:
@@ -31,25 +34,31 @@ class RoleService:
         await self.get_role_by_id(role_id)  # Garante que o role existe
         updated_role = await self.role_repository.update(role_id, update_data)
         if not updated_role:
-             raise NotFoundError(f"Não foi possível atualizar o role com ID '{role_id}'.")
+            raise NotFoundError(
+                f"Não foi possível atualizar o role com ID '{role_id}'."
+            )
         return updated_role
 
     async def partial_update_role(self, role_id: str, update_data: dict) -> Role:
         """Atualiza parcialmente um role."""
-        await self.get_role_by_id(role_id) # Garante que o role existe
+        await self.get_role_by_id(role_id)  # Garante que o role existe
         # Remove chaves com valor None para não sobrescrever campos existentes
         update_payload = {k: v for k, v in update_data.items() if v is not None}
         if not update_payload:
-            return await self.get_role_by_id(role_id) # Se nada for enviado, retorna o role atual
+            return await self.get_role_by_id(
+                role_id
+            )  # Se nada for enviado, retorna o role atual
 
         updated_role = await self.role_repository.update(role_id, update_payload)
         if not updated_role:
-             raise NotFoundError(f"Não foi possível atualizar o role com ID '{role_id}'.")
+            raise NotFoundError(
+                f"Não foi possível atualizar o role com ID '{role_id}'."
+            )
         return updated_role
 
     async def delete_role(self, role_id: str) -> None:
         """Deleta um role."""
-        await self.get_role_by_id(role_id) # Garante que o role existe
+        await self.get_role_by_id(role_id)  # Garante que o role existe
         success = await self.role_repository.delete(role_id)
         if not success:
             raise NotFoundError(f"Não foi possível deletar o role com ID '{role_id}'.")

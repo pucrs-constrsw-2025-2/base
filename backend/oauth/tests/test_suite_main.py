@@ -26,11 +26,13 @@ def test_settings_load_from_env(monkeypatch):
 # --- tests/test_integration/adapters/api/test_error_handler.py ---
 # Testes para o tratador de exceções da API.
 
-import pytest
 import json
-from fastapi import Request
+
+import pytest
+
 from oauth_api.adapters.api.error_handler import api_exception_handler
 from oauth_api.core.exceptions import NotFoundError
+
 
 @pytest.mark.asyncio
 async def test_api_exception_handler():
@@ -44,14 +46,14 @@ async def test_api_exception_handler():
     response = await api_exception_handler(mock_request, exc)
 
     assert response.status_code == 404
-    
+
     expected_content = {
         "error_code": "OA-404",
         "error_description": "Item não foi encontrado.",
         "error_source": "OAuthAPI",
         "error_stack": ["trace/here"],
     }
-    
+
     # CORREÇÃO: O objeto JSONResponse tem o conteúdo em .body (bytes)
     # e precisa ser decodificado para um dicionário Python.
     assert json.loads(response.body) == expected_content
@@ -60,11 +62,12 @@ async def test_api_exception_handler():
 # --- tests/test_integration/adapters/keycloak/test_keycloak_client.py ---
 # Testes para o cliente HTTP que conversa com o Keycloak.
 
-import pytest
 import httpx
+import pytest
 from respx import MockRouter
-from oauth_api.core.exceptions import KeycloakAPIError
+
 from oauth_api.adapters.keycloak.keycloak_client import KeycloakAdminClient
+
 
 @pytest.fixture
 def mock_settings(monkeypatch):
@@ -76,18 +79,17 @@ def mock_settings(monkeypatch):
     monkeypatch.setenv("KEYCLOAK_REALM", "test-realm")
     monkeypatch.setenv("KEYCLOAK_CLIENT_ID", "test-client")
     monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "a-secret")
-    
+
     # Força o módulo de settings a recarregar com as novas variáveis de ambiente
-    from oauth_api import config
     import importlib
+
+    from oauth_api import config
     importlib.reload(config)
     return config.settings
 
+
 import pytest
-import httpx
-from respx import MockRouter
-from oauth_api.core.exceptions import KeycloakAPIError
-from oauth_api.adapters.keycloak.keycloak_client import KeycloakAdminClient
+
 
 @pytest.fixture
 def mock_settings(monkeypatch):
@@ -102,15 +104,17 @@ def mock_settings(monkeypatch):
     monkeypatch.setenv("KEYCLOAK_REALM", "test-realm")
     monkeypatch.setenv("KEYCLOAK_CLIENT_ID", "test-client")
     monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "a-secret")
-    
-    from oauth_api import config
+
     import importlib
+
+    from oauth_api import config
     importlib.reload(config)
-    
+
     # A MÁGICA ACONTECE AQUI:
     monkeypatch.setattr("oauth_api.adapters.keycloak.keycloak_client.settings", config.settings)
-    
+
     return config.settings
+
 
 @pytest.mark.asyncio
 async def test_get_admin_token_success(respx_mock: MockRouter, mock_settings):
@@ -119,12 +123,13 @@ async def test_get_admin_token_success(respx_mock: MockRouter, mock_settings):
     respx_mock.post(mock_settings.keycloak_token_url).mock(
         return_value=httpx.Response(200, json={"access_token": "new-admin-token"})
     )
-    
+
     client = KeycloakAdminClient()
     token = await client._get_admin_token()
-    
+
     assert token == "new-admin-token"
     assert client._admin_token == "new-admin-token"
+
 
 @pytest.mark.asyncio
 async def test_request_token_expired_and_refreshed(respx_mock: MockRouter, mock_settings):
@@ -135,29 +140,31 @@ async def test_request_token_expired_and_refreshed(respx_mock: MockRouter, mock_
         httpx.Response(200, json={"access_token": "expired-token"}),
         httpx.Response(200, json={"access_token": "refreshed-token"}),
     ]
-    
+
     # Mock para as duas chamadas ao endpoint de usuários
     users_route = respx_mock.get(f"{mock_settings.keycloak_admin_api_url}/users")
     users_route.side_effect = [
-        httpx.Response(401), # Primeira chamada falha com token expirado
-        httpx.Response(200, json=[{"id": "success"}]), # Segunda chamada funciona com token novo
+        httpx.Response(401),  # Primeira chamada falha com token expirado
+        httpx.Response(200, json=[{"id": "success"}]),  # Segunda chamada funciona com token novo
     ]
 
     client = KeycloakAdminClient()
     response_data = await client.get("/users")
 
     assert response_data == [{"id": "success"}]
-    assert token_route.call_count == 2 # Deve chamar o token duas vezes
-    assert users_route.call_count == 2 # Deve chamar a rota de usuários duas vezes
+    assert token_route.call_count == 2  # Deve chamar o token duas vezes
+    assert users_route.call_count == 2  # Deve chamar a rota de usuários duas vezes
 
 # --- tests/test_integration/adapters/keycloak/test_keycloak_repositories.py ---
 # Testes para as implementações concretas dos repositórios.
 
-import pytest
+
 from unittest.mock import AsyncMock
-from oauth_api.core.exceptions import KeycloakAPIError, NotFoundError
-from oauth_api.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
+
+import pytest
+
 from oauth_api.adapters.keycloak.keycloak_role_repository import KeycloakRoleRepository
+from oauth_api.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
 
 # CORREÇÃO: Payload de usuário válido e completo que passa na validação do Pydantic
 VALID_KC_USER_PAYLOAD = {
@@ -168,9 +175,11 @@ VALID_KC_USER_PAYLOAD = {
     "enabled": True,
 }
 
+
 @pytest.fixture
 def mock_keycloak_client():
     return AsyncMock()
+
 
 @pytest.mark.asyncio
 async def test_user_repo_find_all_with_filter(mock_keycloak_client):
@@ -184,6 +193,7 @@ async def test_user_repo_find_all_with_filter(mock_keycloak_client):
     assert len(users) == 1
     assert users[0].id == "123"
 
+
 @pytest.mark.asyncio
 async def test_user_repo_create_success(mock_keycloak_client):
     """Testa a criação de um usuário com sucesso."""
@@ -191,7 +201,7 @@ async def test_user_repo_create_success(mock_keycloak_client):
     mock_response.headers = {"location": "http://.../users/new-user-id"}
     mock_keycloak_client.post.return_value = mock_response
     mock_keycloak_client.get.return_value = {**VALID_KC_USER_PAYLOAD, "id": "new-user-id"}
-    
+
     repo = KeycloakUserRepository(mock_keycloak_client)
     user_data = {
         "username": "u@example.com",
@@ -200,19 +210,19 @@ async def test_user_repo_create_success(mock_keycloak_client):
         "password": "p"
     }
     new_user = await repo.create(user_data)
-    
+
     assert new_user.id == "new-user-id"
+
 
 @pytest.mark.asyncio
 async def test_role_repo_update(mock_keycloak_client):
     """Testa a atualização de um role."""
     mock_keycloak_client.get.return_value = {"id": "role-1", "name": "old-name", "description": "old-desc"}
-    
+
     repo = KeycloakRoleRepository(mock_keycloak_client)
     update_data = {"name": "new-name"}
     updated_role = await repo.update("role-1", update_data)
-    
+
     assert updated_role.name == "new-name"
     assert updated_role.description == "old-desc"
     mock_keycloak_client.put.assert_awaited_once()
-

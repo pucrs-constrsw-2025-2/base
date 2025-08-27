@@ -1,8 +1,15 @@
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+
 from oauth_api.core.domain.user import User
+from oauth_api.core.exceptions import (
+    ConflictAlreadyExistsError,
+    KeycloakAPIError,
+    NotFoundError,
+)
 from oauth_api.core.ports.user_repository import IUserRepository
-from oauth_api.core.exceptions import NotFoundError, ConflictAlreadyExistsError, KeycloakAPIError
+
 from .keycloak_client import KeycloakAdminClient
+
 
 class KeycloakUserRepository(IUserRepository):
     def __init__(self, client: KeycloakAdminClient):
@@ -37,7 +44,7 @@ class KeycloakUserRepository(IUserRepository):
         # Passo 1: Busca a lista completa de usuários do Keycloak,
         # já que o filtro enabled=true não é suportado por eles.
         kc_users = await self.client.get("/users")
-        
+
         # Converte a resposta do Keycloak para a nossa lista de objetos de domínio User.
         all_users = [self._to_domain(user) for user in kc_users]
 
@@ -48,7 +55,7 @@ class KeycloakUserRepository(IUserRepository):
         # Passo 3: Se o filtro foi passado (True ou False),
         # a filtragem é feita aqui, na memória da nossa aplicação.
         filtered_users = [user for user in all_users if user.enabled == enabled]
-        
+
         return filtered_users
 
     async def create(self, user_data: dict) -> User:
@@ -58,7 +65,9 @@ class KeycloakUserRepository(IUserRepository):
             "firstName": user_data["first_name"],
             "lastName": user_data["last_name"],
             "enabled": True,
-            "credentials": [{"type": "password", "value": user_data["password"], "temporary": False}],
+            "credentials": [
+                {"type": "password", "value": user_data["password"], "temporary": False}
+            ],
         }
         try:
             response = await self.client.post("/users", json=kc_payload)
@@ -76,7 +85,7 @@ class KeycloakUserRepository(IUserRepository):
         existing_user = await self.find_by_id(user_id)
         if not existing_user:
             raise NotFoundError()
-        
+
         kc_payload = {
             "firstName": user_data.get("first_name", existing_user.first_name),
             "lastName": user_data.get("last_name", existing_user.last_name),

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
+
 from oauth_api.core.domain.user import User
 
 
@@ -7,7 +8,7 @@ class IUserRepository(ABC):
     @abstractmethod
     async def find_by_id(self, user_id: str) -> Optional[User]:
         raise NotImplementedError
-    
+
     @abstractmethod
     async def find_by_email(self, email: str) -> Optional[User]:
         raise NotImplementedError

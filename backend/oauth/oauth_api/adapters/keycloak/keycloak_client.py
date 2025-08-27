@@ -1,5 +1,7 @@
-import httpx
 from typing import Any, Dict
+
+import httpx
+
 from oauth_api.config import settings
 from oauth_api.core.exceptions import KeycloakAPIError
 

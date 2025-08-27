@@ -1,9 +1,11 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Form, status
+
 import httpx
+from fastapi import APIRouter, Form, status
+
+from oauth_api.adapters.api.schemas.user_schemas import TokenResponse
 from oauth_api.config import settings
 from oauth_api.core.exceptions import InvalidCredentialsError
-from oauth_api.adapters.api.schemas.user_schemas import TokenResponse
 
 router = APIRouter(tags=["Authentication"])
 

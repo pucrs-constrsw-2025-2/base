@@ -1,19 +1,21 @@
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, Response, status
+
+# Supondo que você tenha essas dependências configuradas
+from oauth_api.adapters.api.dependencies import get_current_user, get_role_service
 from oauth_api.adapters.api.schemas.role_schemas import (
     RoleCreateRequest,
+    RolePartialUpdateRequest,
     RoleResponse,
     RoleUpdateRequest,
-    RolePartialUpdateRequest,
 )
 from oauth_api.core.services.role_service import RoleService
-# Supondo que você tenha essas dependências configuradas
-from oauth_api.adapters.api.dependencies import get_role_service, get_current_user
 
 router = APIRouter(
     prefix="/roles",
     tags=["Roles"],
     dependencies=[Depends(get_current_user)],
 )
+
 
 @router.post(
     "",
@@ -33,12 +35,11 @@ async def create_role(
 
 
 @router.get(
-    "", 
-    response_model=list[RoleResponse], 
+    "",
+    response_model=list[RoleResponse],
     summary="Listar todos os roles",
     description="Retorna uma lista com todos os roles cadastrados no sistema.",
     response_description="Uma lista contendo todos os roles.",
-
 )
 async def get_all_roles(role_service: RoleService = Depends(get_role_service)):
     """Recupera os dados de todos os roles cadastrados."""
@@ -46,8 +47,8 @@ async def get_all_roles(role_service: RoleService = Depends(get_role_service)):
 
 
 @router.get(
-    "/{role_id}", 
-    response_model=RoleResponse, 
+    "/{role_id}",
+    response_model=RoleResponse,
     summary="Buscar um role por ID",
     description="Recupera os dados de um role específico a partir do seu ID único.",
     response_description="Os dados detalhados do role solicitado.",
@@ -61,8 +62,8 @@ async def get_role_by_id(
 
 
 @router.put(
-    "/{role_id}", 
-    response_model=RoleResponse, 
+    "/{role_id}",
+    response_model=RoleResponse,
     summary="Atualizar um role (completo)",
     description="Atualiza todos os dados de um role específico. Todos os campos devem ser fornecidos.",
     response_description="Os dados do role após a atualização completa.",
@@ -77,8 +78,8 @@ async def update_role(
 
 
 @router.patch(
-    "/{role_id}", 
-    response_model=RoleResponse, 
+    "/{role_id}",
+    response_model=RoleResponse,
     summary="Atualizar um role (parcial)",
     description="Atualiza parcialmente os dados de um role específico. Apenas os campos fornecidos no corpo da requisição serão alterados.",
     response_description="Os dados do role após a atualização parcial.",

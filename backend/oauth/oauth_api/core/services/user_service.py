@@ -1,8 +1,11 @@
 from typing import List, Optional
+
 from oauth_api.core.domain.user import User
-from oauth_api.core.ports.user_repository import IUserRepository
 from oauth_api.core.ports.role_repository import IRoleRepository
+from oauth_api.core.ports.user_repository import IUserRepository
+
 from .role_service import NotFoundError
+
 
 class UserService:
     def __init__(self, user_repo: IUserRepository, role_repo: IRoleRepository):

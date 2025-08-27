@@ -5,7 +5,9 @@ class RoleBase(BaseModel):
     """Schema base para roles, com campos comuns."""
 
     name: str = Field(..., min_length=3, max_length=50, description="Nome do role.")
-    description: str | None = Field(None, max_length=255, description="Descrição do role.")
+    description: str | None = Field(
+        None, max_length=255, description="Descrição do role."
+    )
 
 
 class RoleCreateRequest(RoleBase):
@@ -37,8 +39,12 @@ class RoleUpdateRequest(RoleBase):
 class RolePartialUpdateRequest(BaseModel):
     """Schema para a atualização parcial de um role (PATCH)."""
 
-    name: str | None = Field(None, min_length=3, max_length=50, description="Novo nome do role.")
-    description: str | None = Field(None, max_length=255, description="Nova descrição do role.")
+    name: str | None = Field(
+        None, min_length=3, max_length=50, description="Novo nome do role."
+    )
+    description: str | None = Field(
+        None, max_length=255, description="Nova descrição do role."
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -69,7 +75,9 @@ class RoleResponse(RoleBase):
 class UserRolesRequest(BaseModel):
     """Schema para atribuir/remover roles de um usuário."""
 
-    role_ids: list[str] = Field(..., description="Lista de IDs de roles a serem gerenciados.")
+    role_ids: list[str] = Field(
+        ..., description="Lista de IDs de roles a serem gerenciados."
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

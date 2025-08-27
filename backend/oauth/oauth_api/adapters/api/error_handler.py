@@ -1,5 +1,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
 from oauth_api.core.exceptions import BaseAPIException
 
 

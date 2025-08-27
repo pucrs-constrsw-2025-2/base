@@ -1,7 +1,9 @@
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 from oauth_api.core.domain.role import Role
-from oauth_api.core.ports.role_repository import IRoleRepository
 from oauth_api.core.exceptions import KeycloakAPIError, NotFoundError
+from oauth_api.core.ports.role_repository import IRoleRepository
+
 from .keycloak_client import KeycloakAdminClient
 
 
@@ -45,13 +47,17 @@ class KeycloakRoleRepository(IRoleRepository):
         # A API do Keycloak espera um payload JSON simples para criar um role
         kc_payload = {
             "name": role_data["name"],
-            "description": role_data.get("description"), # .get() é mais seguro para campos opcionais
-        } 
+            "description": role_data.get(
+                "description"
+            ),  # .get() é mais seguro para campos opcionais
+        }
         await self.client.post("/roles", json=kc_payload)
-        
+
         created_role = await self.find_by_name(role_data["name"])
         if not created_role:
-            raise KeycloakAPIError(500, "Não foi possível recuperar o role recém-criado.")
+            raise KeycloakAPIError(
+                500, "Não foi possível recuperar o role recém-criado."
+            )
         return created_role
 
     async def update(self, role_id: str, role_data: dict[str, Any]) -> Role:
@@ -67,17 +73,19 @@ class KeycloakRoleRepository(IRoleRepository):
             # 2. Mesclar os dados existentes com os novos dados parciais
             # O Pydantic nos ajuda a fazer isso de forma segura
             updated_role_data = role_to_update.model_copy(update=role_data)
-            
+
             # O payload para o Keycloak é um dicionário simples
-            kc_payload = updated_role_data.model_dump(include={'name', 'description'})
+            kc_payload = updated_role_data.model_dump(include={"name", "description"})
 
             # 3. Enviar o objeto completo para o Keycloak
             await self.client.put(f"/roles-by-id/{role_id}", json=kc_payload)
-            
+
             # Retorna o objeto de domínio atualizado
             return updated_role_data
         except Exception as e:
-            raise KeycloakAPIError(status_code=500, description=f"Erro ao atualizar role: {e}")
+            raise KeycloakAPIError(
+                status_code=500, description=f"Erro ao atualizar role: {e}"
+            )
 
     async def delete(self, role_id: str) -> bool:
         # O ideal é usar o ID do role para a exclusão

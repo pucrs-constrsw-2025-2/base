@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from oauth_api.adapters.api.routes import auth, users, roles
+
 from oauth_api.adapters.api.error_handler import api_exception_handler
+from oauth_api.adapters.api.routes import auth, roles, users
 from oauth_api.core.exceptions import BaseAPIException
 from oauth_api.core.services.role_service import NotFoundError
 

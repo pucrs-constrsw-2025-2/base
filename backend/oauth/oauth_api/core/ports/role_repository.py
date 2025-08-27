@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from oauth_api.core.domain.role import Role
 
 

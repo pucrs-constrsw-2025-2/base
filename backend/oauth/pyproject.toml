@@ -27,6 +27,7 @@ respx = "^0.20.2"
 taskipy = "^1.14.1"
 pysonar = "^1.1.0.2035"
 pytest-asyncio = "^1.1.0"
+bandit = "^1.8.6"
 
 [build-system]
 requires = ["poetry-core"]
@@ -52,4 +53,6 @@ ignore_missing_imports = true
 run = 'uvicorn oauth_api.main:app --reload'
 lint = 'ruff check .'
 format = 'ruff check . --fix ; ruff format .'
-test = 'pytest'
+test = 'pytest --cov=oauth_api -vv'
+post_test = 'coverage html'
+security= 'bandit -r oauth_api/'

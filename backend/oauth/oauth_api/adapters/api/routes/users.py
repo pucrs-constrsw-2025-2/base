@@ -1,16 +1,22 @@
-from fastapi import APIRouter, Depends, status, Response
-from oauth_api.core.services.role_service import RoleService
-from oauth_api.adapters.api.dependencies import get_role_service, get_user_service, get_current_user
+from fastapi import APIRouter, Depends, Response, status
+
+from oauth_api.adapters.api.dependencies import (
+    get_current_user,
+    get_role_service,
+    get_user_service,
+)
+from oauth_api.adapters.api.schemas.role_schemas import UserRolesRequest
 from oauth_api.adapters.api.schemas.user_schemas import (
+    PasswordUpdateRequest,
     UserCreateRequest,
     UserResponse,
     UserUpdateRequest,
-    PasswordUpdateRequest,
 )
+from oauth_api.core.services.role_service import RoleService
 from oauth_api.core.services.user_service import UserService
-from oauth_api.adapters.api.schemas.role_schemas import UserRolesRequest
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
 
 @router.post(
     "",
@@ -28,6 +34,7 @@ async def create_user(
     """Cria um novo usuário no sistema."""
     return await user_service.create_user(user_data.model_dump())
 
+
 @router.get(
     "",
     response_model=list[UserResponse],
@@ -43,6 +50,7 @@ async def get_all_users(
 ):
     """Retorna uma lista de usuários, com filtros opcionais."""
     return await user_service.find_all(enabled=enabled)
+
 
 @router.get(
     "/{user_id}",
@@ -60,6 +68,7 @@ async def get_user_by_id(
     """Retorna os detalhes de um usuário específico."""
     return await user_service.find_by_id(user_id)
 
+
 @router.put(
     "/{user_id}",
     response_model=UserResponse,
@@ -75,7 +84,10 @@ async def update_user(
     _: dict = Depends(get_current_user),
 ):
     """Atualiza as informações de um usuário e retorna o objeto atualizado."""
-    return await user_service.update_user(user_id, user_data.model_dump(exclude_unset=True))
+    return await user_service.update_user(
+        user_id, user_data.model_dump(exclude_unset=True)
+    )
+
 
 @router.patch(
     "/{user_id}",
@@ -95,6 +107,7 @@ async def reset_password(
     await user_service.reset_password(user_id, password_data.password)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -111,6 +124,7 @@ async def delete_user(
     """Realiza a exclusão lógica (desativação) de um usuário."""
     await user_service.disable_user(user_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post(
     "/{user_id}/roles",
