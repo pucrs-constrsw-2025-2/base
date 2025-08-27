@@ -83,7 +83,9 @@ services:
    # SonarQube
   sonarqube:
     container_name: sonarqube
-    image: sonarqube:latest
+    build:
+      context: ./backend/utils/sonarqube/
+      dockerfile: Dockerfile
     environment:
       - SONAR_WEB_HOST=${SONAR_WEB_HOST}
       - SONAR_WEB_PORT=${SONAR_WEB_PORT}
