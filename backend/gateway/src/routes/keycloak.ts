@@ -8,16 +8,15 @@ const router = Router();
 const keycloakBaseUrl = process.env.KEYCLOAK_BASE_URL;
 const realm = process.env.KEYCLOAK_REALM;
 
-// Helper function to get Keycloak token endpoint
-const getTokenEndpoint = () => `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/token`;
+// Helpers
+const getTokenEndpoint = () =>
+  `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/token`;
 
-// Helper function to get Keycloak users endpoint
-const getUsersEndpoint = () => `${keycloakBaseUrl}/admin/realms/${realm}/users`;
+const getUsersEndpoint = () =>
+  `${keycloakBaseUrl}/admin/realms/${realm}/users`;
 
 // POST /login
 router.post('/login', async (req: Request, res: Response) => {
-  console.log('Request body:', req.body); // Log para verificar o corpo da requisição
-
   const { client_id, username, password, grant_type } = req.body;
 
   try {
@@ -27,12 +26,13 @@ router.post('/login', async (req: Request, res: Response) => {
     });
 
     res.json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -46,12 +46,13 @@ router.post('/users', async (req: Request, res: Response) => {
     });
 
     res.status(201).json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -65,12 +66,13 @@ router.get('/users', async (req: Request, res: Response) => {
     });
 
     res.json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -85,12 +87,13 @@ router.get('/users/:id', async (req: Request, res: Response) => {
     });
 
     res.json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -105,12 +108,13 @@ router.put('/users/:id', async (req: Request, res: Response) => {
     });
 
     res.sendStatus(200);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -120,17 +124,19 @@ router.patch('/users/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
+    // Mantém axios.put porque os testes usam mockedAxios.put
     await axios.put(`${getUsersEndpoint()}/${id}`, req.body, {
       headers: { Authorization: authorization || '' },
     });
 
     res.sendStatus(200);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -145,12 +151,16 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
     });
 
     res.sendStatus(204);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal Server Error' });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    if (error.response) {
+      if (error.response.status === 404) {
+        return res.status(404).json({ error: 'not found' });
+      }
+      return res
+        .status(error.response.status || 500)
+        .json(error.response.data || { error: 'Internal Server Error' });
     }
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
