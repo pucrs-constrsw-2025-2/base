@@ -5,6 +5,14 @@
 /dist
 /build
 
+# coverage reports
+/coverage
+/.nyc_output
+/test-report.xml
+/reports
+/jest-junit.xml
+/junit.xml
+
 # logs
 *.log
 npm-debug.log*
