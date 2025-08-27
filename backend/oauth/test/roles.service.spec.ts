@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { RolesService } from './roles.service';
+import { RolesService } from '../src/roles/roles.service';
+
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
