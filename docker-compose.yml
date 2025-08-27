@@ -1,23 +1,23 @@
 networks:
-    constrsw:
+  constrsw:
+
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
-    constrsw-keycloak-data:
-        external: true
-    # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
-    constrsw-postgresql-data:
-        external: true
-    # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
-    constrsw-sonarqube-data:
-        external: true
-    constrsw-sonarqube-extensions:
-        external: true
-    constrsw-sonarqube-logs:
-        external: true
-        
-services:
+  # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
+  constrsw-keycloak-data:
+    external: true
+  # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
+  constrsw-postgresql-data:
+    external: true
+  # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
+  constrsw-sonarqube-data:
+    external: true
+  constrsw-sonarqube-extensions:
+    external: true
+  constrsw-sonarqube-logs:
+    external: true
 
+services:
   keycloak:
     container_name: keycloak
     build:
@@ -31,7 +31,7 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
-      - ./backend/utils/keycloak:/opt/keycloak/data/import     
+      - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
@@ -44,7 +44,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 50
- fastapi:
+
+  fastapi:
     container_name: fastapi
     build:
       context: backend/oauth
@@ -60,7 +61,7 @@ services:
       - "8000:8000"
     depends_on:
       - keycloak
-  # PostgreSQL
+
   postgresql:
     container_name: postgresql
     build:
@@ -94,8 +95,7 @@ services:
     restart: always
     # psql postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}
     # psql -h ${POSTGRESQL_INTERNAL_HOST} -p ${POSTGRESQL_INTERNAL_PORT} -U ${POSTGRESQL_USERNAME} -d ${POSTGRESQL_DB}
-    
-   # SonarQube
+
   sonarqube:
     container_name: sonarqube
     image: sonarqube:latest
@@ -121,7 +121,7 @@ services:
       postgresql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1"]
+      test: [ "CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1" ]
       start_period: 120s
       interval: 30s
       timeout: 10s
