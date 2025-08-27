@@ -24,8 +24,8 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
   @ApiResponse({ status: 401, description: 'Username e/ou password inválidos.' })
   async login(@Body() body: any) {
-    const username = body.username || body['username'];
-    const password = body.password || body['password'];
+    const username = body.username ?? body['username'];
+    const password = body.password ?? body['password'];
     const token = await this.usersService.login(username, password);
     return {
       token_type: token.token_type,

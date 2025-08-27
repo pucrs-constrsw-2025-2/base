@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 
 export class CustomHttpException extends HttpException {
   constructor(
@@ -13,7 +13,7 @@ export class CustomHttpException extends HttpException {
         error_code: `OA-${statusCode.toString().padStart(3, '0')}`,
         error_description: description,
         error_source: source,
-        error_stack: stack ? (Array.isArray(stack) ? stack : [stack]) : [],
+        error_stack: Array.isArray(stack) ? stack : [stack],
       },
       Number(statusCode),
     );

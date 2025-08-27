@@ -1,9 +1,8 @@
 const scanner = require('sonarqube-scanner').scan;
-console.log('Iniciando análise do SonarQube...');
-console.log(process.env.SONAR_TOKEN);
+
 scanner({
-  serverUrl: process.env.SONARQUBE_URL,
-  token: process.env.SONAR_TOKEN,
+  serverUrl: 'http://localhost:9000',
+  token: 'squ_eabe062c5c5ee235cdc4eed4cfa377fe7ed2909f',
   options: {
     'sonar.projectKey': 'constrsw-oauth',
     'sonar.projectName': 'ConstrSW OAuth Service',
@@ -11,6 +10,7 @@ scanner({
     'sonar.sources': 'src',
     'sonar.tests': 'test',
     'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
-    'sonar.testExecutionReportPaths': 'test-report.xml'
+    'sonar.junit.reportPath': 'coverage/test-report.xml',
+    'sonar.typescript.tsconfigPath': 'tsconfig.json'
   }
 });

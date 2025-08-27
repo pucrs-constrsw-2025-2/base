@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { CustomHttpException } from '../common/errors/custom-httpexception';
-import { UsersService } from './users.service';
+import { CustomHttpException } from '../src/common/errors/custom-httpexception';
+import { UsersService } from '../src/users/users.service';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;

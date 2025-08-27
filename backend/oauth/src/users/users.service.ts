@@ -5,11 +5,11 @@ import * as qs from 'querystring';
 
 @Injectable()
 export class UsersService {
-  private keycloakBase = process.env.KEYCLOAK_INTERNAL_PROTOCOL + '://' + process.env.KEYCLOAK_INTERNAL_HOST + ':' + process.env.KEYCLOAK_INTERNAL_API_PORT;
-  private realm = process.env.KEYCLOAK_REALM;
-  private clientId = process.env.KEYCLOAK_CLIENT_ID;
-  private clientSecret = process.env.KEYCLOAK_CLIENT_SECRET;
-  private grantType = process.env.KEYCLOAK_GRANT_TYPE ?? 'password';
+  private readonly keycloakBase = process.env.KEYCLOAK_INTERNAL_PROTOCOL + '://' + process.env.KEYCLOAK_INTERNAL_HOST + ':' + process.env.KEYCLOAK_INTERNAL_API_PORT;
+  private readonly realm = process.env.KEYCLOAK_REALM;
+  private readonly clientId = process.env.KEYCLOAK_CLIENT_ID;
+  private readonly clientSecret = process.env.KEYCLOAK_CLIENT_SECRET;
+  private readonly grantType = process.env.KEYCLOAK_GRANT_TYPE ?? 'password';
 
   async login(username: string, password: string) {
     if (!username || !password) {
@@ -39,7 +39,7 @@ export class UsersService {
       
       throw new CustomHttpException(
         `OA-${resp.status}`,
-        resp.data?.error_description || 'Authentication failed',
+        resp.data?.error_description ?? 'Authentication failed',
         'KeycloakAPI',
         resp.status,
         [resp.data]
@@ -50,7 +50,7 @@ export class UsersService {
         if (status === 401) {
           throw new CustomHttpException(
             'OA-401',
-            err.response.data?.error_description || 'Invalid credentials',
+            err.response.data?.error_description ?? 'Invalid credentials',
             'KeycloakAPI',
             HttpStatus.UNAUTHORIZED,
             [err.response.data]
@@ -59,7 +59,7 @@ export class UsersService {
 
         throw new CustomHttpException(
           `OA-${status}`,
-          err.response.data?.error_description || 'Keycloak authentication error',
+          err.response.data?.error_description ?? 'Keycloak authentication error',
           'KeycloakAPI',
           status,
           [err.response.data]
@@ -138,20 +138,20 @@ export class UsersService {
       }
 
       // forward Keycloak error
-      const status = resp.status || 500;
+      const status = resp.status ?? 500;
       throw new CustomHttpException(
         String(status),
-        resp.data || 'error from keycloak',
+        resp.data ?? 'error from keycloak',
         'OAuthAPI',
         status,
         [resp.data]
       );
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
+        const status = err.response.status ?? 500;
         throw new CustomHttpException(
           String(status),
-          err.response.data?.errorMessage || err.response.data || err.message,
+          err.response.data?.errorMessage ?? err.response.data ?? err.message,
           'OAuthAPI',
           status,
           [err.response.data]
@@ -176,10 +176,10 @@ export class UsersService {
       return resp.data.map((u: any) => ({ id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, enabled: u.enabled }));
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
+        const status = err.response.status ?? 500;
         throw new CustomHttpException(
           String(status),
-          err.response.data?.errorMessage || err.response.data || err.message,
+          err.response.data?.errorMessage ?? err.response.data ?? err.message,
           'OAuthAPI',
           status,
           [err.response.data]
@@ -225,7 +225,7 @@ export class UsersService {
 
       throw new CustomHttpException(
         `OA-${resp.status}`,
-        resp.data?.errorMessage || 'Keycloak error',
+        resp.data?.errorMessage ?? 'Keycloak error',
         'KeycloakAPI',
         resp.status,
         [resp.data]
@@ -235,7 +235,7 @@ export class UsersService {
         const status = err.response.status;
         throw new CustomHttpException(
           `OA-${status}`,
-          err.response.data?.errorMessage || 'Error accessing Keycloak',
+          err.response.data?.errorMessage ?? 'Error accessing Keycloak',
           'KeycloakAPI',
           status,
           [err.response.data]
@@ -274,17 +274,17 @@ export class UsersService {
       );
       throw new CustomHttpException(
         String(resp.status),
-        resp.data || 'error from keycloak',
+        resp.data ?? 'error from keycloak',
         'OAuthAPI',
         resp.status,
         [resp.data]
       );
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
+        const status = err.response.status ?? 500;
         throw new CustomHttpException(
           String(status),
-          err.response.data || err.message,
+          err.response.data ?? err.message,
           'OAuthAPI',
           status,
           [err.response.data]
@@ -316,17 +316,17 @@ export class UsersService {
       );
       throw new CustomHttpException(
         String(resp.status),
-        resp.data || 'error from keycloak',
+        resp.data ?? 'error from keycloak',
         'OAuthAPI',
         resp.status,
         [resp.data]
       );
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
+        const status = err.response.status ?? 500;
         throw new CustomHttpException(
           String(status),
-          err.response.data || err.message,
+          err.response.data ?? err.message,
           'OAuthAPI',
           status,
           [err.response.data]
@@ -358,17 +358,17 @@ export class UsersService {
       );
       throw new CustomHttpException(
         String(resp.status),
-        resp.data || 'error from keycloak',
+        resp.data ?? 'error from keycloak',
         'OAuthAPI',
         resp.status,
         [resp.data]
       );
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status || 500;
+        const status = err.response.status ?? 500;
         throw new CustomHttpException(
           String(status),
-          err.response.data || err.message,
+          err.response.data ?? err.message,
           'OAuthAPI',
           status,
           [err.response.data]
