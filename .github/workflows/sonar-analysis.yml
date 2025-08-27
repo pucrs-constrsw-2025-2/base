@@ -1,6 +1,5 @@
 name: SonarQube Analysis
 
-# Gatilhos: acionado em push para qualquer branch OU manualmente
 on:
   push:
     branches:
@@ -22,9 +21,30 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Adicionado passo para baixar dependências explicitamente
+      - name: Install Dependencies
+        working-directory: ./backend/oauth
+        run: go mod download
 
       - name: Run Tests and Generate Coverage
         working-directory: ./backend/oauth
+        # CORREÇÃO: Variáveis de ambiente agora correspondem ao config.go
+        env:
+          OAUTH_PORT: 8181
+          KEYCLOAK_INTERNAL_HOST: "localhost"
+          KEYCLOAK_INTERNAL_API_PORT: 8080
+          KEYCLOAK_REALM: "constrsw"
+          KEYCLOAK_CLIENT_ID: "oauth"
+          KEYCLOAK_CLIENT_SECRET: "a-secret-for-ci"
         run: go test ./... -coverprofile=coverage.out -json > test-report.out
 
       - name: SonarQube Scan
