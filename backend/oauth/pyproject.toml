@@ -25,7 +25,7 @@ mypy = "^1.9.0"
 pre-commit = "^3.7.0"
 respx = "^0.20.2"
 taskipy = "^1.14.1"
-
+pytest-asyncio = "^1.1.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -51,4 +51,5 @@ ignore_missing_imports = true
 run = 'uvicorn oauth_api.main:app --reload'
 lint = 'ruff check .'
 format = 'ruff check . --fix ; ruff format .'
-test = 'pytest'
+test = 'pytest --cov=oauth_api --cov-report=html --cov-report=term-missing'
+post_test = 'coverage html'
