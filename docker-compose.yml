@@ -4,9 +4,20 @@ networks:
   constrsw:
 
 volumes:
-  constrsw-keycloak-data:
-    external: true
-
+    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
+    constrsw-keycloak-data:
+        external: true
+    # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
+    constrsw-postgresql-data:
+        external: true
+    # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
+    constrsw-sonarqube-data:
+        external: true
+    constrsw-sonarqube-extensions:
+        external: true
+    constrsw-sonarqube-logs:
+        external: true
+        
 services:
   keycloak:
     container_name: keycloak
@@ -34,30 +45,96 @@ services:
       interval: 10s
       timeout: 10s
       retries: 50
-
-  oauth:
-    container_name: oauth
+  postgresql:
+    container_name: postgresql
     build:
-      context: backend/oauth
+      context: ./backend/utils/postgresql/
       dockerfile: Dockerfile
-    image: constrsw/oauth
+      args:
+        POSTGRESQL_HOST_AUTH_METHOD: ${POSTGRESQL_HOST_AUTH_METHOD}
+        POSTGRESQL_DATA: ${POSTGRESQL_DATA}
+        POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+        POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+    image: constrsw/postgresql
+    environment:
+      - POSTGRESQL_INTERNAL_HOST=${POSTGRESQL_INTERNAL_HOST}
+      - POSTGRESQL_INTERNAL_PORT=${POSTGRESQL_INTERNAL_PORT}
+      - POSTGRES_USER=${POSTGRESQL_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD}
+      - POSTGRESQL_DB=${POSTGRESQL_DB}
+    volumes:
+      # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
+      - constrsw-postgresql-data:${POSTGRESQL_DATA}
     networks:
       - constrsw
     ports:
-      - "3000:3000"
-    environment:
-      - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL}://${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
-      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
-    depends_on:
-      keycloak:
-        condition: service_healthy
+      - ${POSTGRESQL_EXTERNAL_PORT}:${POSTGRESQL_INTERNAL_PORT}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}" ]
+      start_period: 30s
+      interval: 20s
+      timeout: 10s
+      retries: 10
     restart: always
+    # psql postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}
+    # psql -h ${POSTGRESQL_INTERNAL_HOST} -p ${POSTGRESQL_INTERNAL_PORT} -U ${POSTGRESQL_USERNAME} -d ${POSTGRESQL_DB}
+    
+   # SonarQube
+  sonarqube:
+    container_name: sonarqube
+    image: sonarqube:latest
+    environment:
+      - SONAR_WEB_HOST=${SONAR_WEB_HOST}
+      - SONAR_WEB_PORT=${SONAR_WEB_PORT}
+      - SONAR_WEB_CONTEXT=${SONAR_WEB_CONTEXT}
+      - SONAR_JDBC_URL=jdbc:postgresql://${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/sonar
+      - SONAR_JDBC_USERNAME=${POSTGRESQL_USERNAME}
+      - SONAR_JDBC_PASSWORD=${POSTGRESQL_PASSWORD}
+      - SONARQUBE_USER=${SONARQUBE_USER}
+      - SONARQUBE_PASSWORD=${SONARQUBE_PASSWORD}
     volumes:
-      - ./backend/oauth:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run start:dev
+      # No terminal, criar o volume externo: docker volume create constrsw-sonarqube-data
+      - constrsw-sonarqube-data:/opt/sonarqube/data
+      - constrsw-sonarqube-extensions:/opt/sonarqube/extensions
+      - constrsw-sonarqube-logs:/opt/sonarqube/logs
+    networks:
+      - constrsw
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1"]
+      start_period: 120s
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    restart: always
+    
+oauth:
+  container_name: oauth
+  build:
+    context: backend/oauth
+    dockerfile: Dockerfile
+  image: constrsw/oauth
+  networks:
+    - constrsw
+  ports:
+    - "3000:3000"
+  environment:
+    - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL}://${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}
+    - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+    - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+    - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+    - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+    - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
+    - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+  depends_on:
+    keycloak:
+      condition: service_healthy
+  restart: always
+  volumes:
+    - ./backend/oauth:/usr/src/app
+    - /usr/src/app/node_modules
+  command: npm run start:dev
