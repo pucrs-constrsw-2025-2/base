@@ -12,6 +12,7 @@
 /reports
 /jest-junit.xml
 /junit.xml
+/.scannerwork
 
 # logs
 *.log
