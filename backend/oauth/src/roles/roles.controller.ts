@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, Get, Param, Put, Patch, Delete, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Post, Body, Headers, Get, Param, Put, Delete, HttpStatus, Res } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import type { Response } from 'express';
