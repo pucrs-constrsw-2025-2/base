@@ -1,0 +1,33 @@
+# Arquivos e diretórios a serem ignorados no build do Docker
+
+# Documentação
+README.md
+*.md
+
+# Scripts de desenvolvimento
+setup-sonar.ps1
+*.ps1
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Arquivos de configuração local
+.env
+.env.local
+
+# Diretórios de desenvolvimento
+.git/
+.vscode/
+.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db 
