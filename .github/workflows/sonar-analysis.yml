@@ -19,7 +19,7 @@ jobs:
 
       # PASSO 1: Iniciar os serviços SonarQube e PostgreSQL em background
       - name: Start Services
-        run: docker-compose up -d sonarqube postgresql
+        run: docker compose up -d sonarqube postgresql
 
       # PASSO 2: Esperar o SonarQube ficar pronto para receber conexões
       # (Este passo é CRUCIAL para evitar que a análise falhe)
