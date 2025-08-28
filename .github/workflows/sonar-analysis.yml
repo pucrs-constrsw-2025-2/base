@@ -36,7 +36,7 @@ jobs:
         run: go mod download
 
       - name: Run Tests and Generate Coverage
-        working-directory: ./backend/oauth
+        working-directory: ./backend/oauth/tests
         # CORREÇÃO: Variáveis de ambiente agora correspondem ao config.go
         env:
           OAUTH_PORT: 8181
