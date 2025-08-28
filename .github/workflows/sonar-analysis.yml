@@ -17,33 +17,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # PASSO 1: Iniciar os serviços SonarQube e PostgreSQL em background
-      - name: Start Services
-        run: docker compose up -d sonarqube postgresql
-
-      # PASSO 2: Esperar o SonarQube ficar pronto para receber conexões
-      # (Este passo é CRUCIAL para evitar que a análise falhe)
-      - name: Wait for SonarQube to be operational
-        run: |
-          echo "Waiting for SonarQube to start..."
-          for i in {1..30}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status)
-            if [ "$STATUS" = "200" ]; then
-              echo "SonarQube is up and running!"
-              exit 0
-            fi
-            echo -n "."
-            sleep 5
-          done
-          echo "SonarQube failed to start in time."
-          exit 1
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
       
-      # ... (seus passos de cache e go mod download continuam aqui)
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
@@ -51,14 +29,14 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
+      # Adicionado passo para baixar dependências explicitamente
       - name: Install Dependencies
         working-directory: ./backend/oauth
         run: go mod download
 
       - name: Run Tests and Generate Coverage
-        # ... (seu passo de testes continua igual)
         working-directory: ./backend/oauth/tests
+        # CORREÇÃO: Variáveis de ambiente agora correspondem ao config.go
         env:
           OAUTH_PORT: 8181
           KEYCLOAK_INTERNAL_HOST: "localhost"
@@ -68,13 +46,10 @@ jobs:
           KEYCLOAK_CLIENT_SECRET: "a-secret-for-ci"
         run: go test ./... -coverprofile=coverage.out -json > test-report.out
 
-      # PASSO 3: Rodar a análise apontando para o servidor local
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@master
         env:
-          # A URL agora é fixa, pois sempre rodará no runner. Não precisa de secret.
-          SONAR_HOST_URL: "http://localhost:9000"
-          # O token ainda é necessário para autenticar.
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           projectBaseDir: ./backend/oauth
