@@ -10,12 +10,15 @@ COPY Cargo.toml ./
 # Step 4: Build only the dependencies to leverage Docker cache
 # Create a dummy main.rs to allow dependency build
 RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
-# Remove the dummy binary
-RUN rm -f target/release/deps/oauth*
 
 # Step 5: Copy the actual source code
 COPY src ./src
+
+RUN ls -l src/
+
+RUN cargo build --release
+# Remove the dummy binary
+RUN rm -f target/release/deps/oauth*
 
 # Step 6: Build the application with the actual source code
 RUN cargo build --release
