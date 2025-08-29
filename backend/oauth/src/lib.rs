@@ -1,3 +1,7 @@
+pub mod controllers;
+pub mod services;
+pub mod adapters;
+pub mod interfaces;
 pub mod dtos;
 pub use dtos::*;
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse, Responder, Result};
@@ -24,73 +28,6 @@ use dtos::res::get_all_roles_res::GetAllRolesRes;
 pub async fn hello() -> impl Responder {
     
     HttpResponse::Ok().body("Hello, Actix!")
-}
-//USERSComo
-#[post("/login")]
-pub async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
-    println!("Login attempt for user: {}", form.username);
-
-    // Build Keycloak base URL from environment
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-
-    let client_id = env::var("KEYCLOAK_CLIENT_ID")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_ID"))?;
-    let client_secret = env::var("KEYCLOAK_CLIENT_SECRET")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_SECRET"))?;
-
-    // Token endpoint per Keycloak spec
-    let url = format!("{}/realms/{}/protocol/openid-connect/token", keycloak_url, realm);
-
-    let keycloak_request = LoginReqKeycloak {
-        client_id,
-        client_secret,
-        username: form.username.clone(),
-        password: form.password.clone(),
-        grant_type: "password".to_string(),
-    };
-
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .form(&keycloak_request)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to connect to Keycloak"))?;
-
-    let status = response.status();
-
-    if status.is_success() {
-        let keycloak_response = response.json::<LoginResKeycloak>().await
-            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-
-        let res = LoginRes {
-            token_type: keycloak_response.token_type,
-            access_token: keycloak_response.access_token,
-            expires_in: keycloak_response.expires_in.try_into().unwrap_or(0),
-            refresh_token: keycloak_response.refresh_token,
-            refresh_expires_in: keycloak_response.refresh_expires_in.try_into().unwrap_or(0),
-        };
-
-        // 201 Created per spec
-        Ok(HttpResponse::Created().json(res))
-    } else {
-        let error_body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        match status.as_u16() {
-            400 => Ok(HttpResponse::BadRequest().body(error_body)),
-            401 => Ok(HttpResponse::Unauthorized().body(error_body)),
-            s => Ok(HttpResponse::build(status).body(error_body)),
-        }
-    }
 }
 
 #[post("/users")]
