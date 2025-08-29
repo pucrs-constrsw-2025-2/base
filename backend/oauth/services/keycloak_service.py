@@ -1,22 +1,26 @@
 import requests
-from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 from models.user import UserCreate
 from config import CLIENT_ID, CLIENT_SECRET, KEYCLOAK_URL, REALM_NAME
+from exceptions import APIException  # Usando o nome final 'APIException'
+
+# Constante para a origem do erro, facilitando a manutenção
+ERROR_SOURCE = "KeycloakService"
 
 
-# Função para obter o token de acesso do Keycloak
 def get_keycloak_token(username: str, password: str):
     """
     Obtém um token de acesso do Keycloak usando o password grant.
+    Levanta APIException em caso de falha.
     """
     if not username or not password:
-        raise HTTPException(
-            status_code=400, detail="Username e/ou password não informados"
+        raise APIException(
+            status_code=400,
+            error_code="KS-400-01",
+            description="Username e/ou password não informados",
+            source=ERROR_SOURCE,
         )
 
     url = f"{KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/token"
-
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -25,25 +29,41 @@ def get_keycloak_token(username: str, password: str):
         "grant_type": "password",
     }
 
-    # Fazendo a requisição POST para obter o token
-    response = requests.post(url, data=data)
+    try:
+        # Fazendo a requisição POST para obter o token
+        response = requests.post(url, data=data)
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=401, detail="Username e/ou password inválidos")
+        if response.status_code != 200:
+            # Tenta extrair a mensagem de erro específica do Keycloak
+            kc_error_detail = response.json().get("error_description", "Username e/ou password inválidos")
+            raise APIException(
+                status_code=response.status_code,
+                error_code=f"KC-{response.status_code}", # Repassa o código de erro do Keycloak
+                description=kc_error_detail,
+                source=ERROR_SOURCE
+            )
 
-    return response.json()
+        # Em caso de sucesso, retorna o JSON com o token
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        # Captura erros de conexão (ex: Keycloak fora do ar)
+        raise APIException(
+            status_code=503, # Service Unavailable
+            error_code="KS-503-01",
+            description=f"Erro de comunicação com o serviço de autenticação: {e}",
+            source=ERROR_SOURCE,
+        )
 
 
-# Função para criar um novo usuário no Keycloak
 def create_keycloak_user(access_token: str, userCreate: UserCreate):
     """
-    Função para criar um novo usuário no Keycloak utilizando o token de acesso.
+    Cria um novo usuário no Keycloak.
+    Retorna um dicionário com os dados do usuário em sucesso.
+    Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users"
-    headers = {
-        "Authorization": access_token,  # mantém como veio (ex.: "Bearer xxx")
-        "Content-Type": "application/json",
-    }
+    headers = {"Authorization": access_token, "Content-Type": "application/json"}
     data = {
         "username": userCreate.username,
         "firstName": userCreate.first_name,
@@ -53,18 +73,22 @@ def create_keycloak_user(access_token: str, userCreate: UserCreate):
         "credentials": [cred.dict() for cred in userCreate.credentials],
     }
 
-    response = requests.post(url, json=data, headers=headers)
+    try:
+        response = requests.post(url, json=data, headers=headers)
 
-    if response.status_code == 201:
-        location_header = response.headers.get("Location")
-        if not location_header:
-            raise HTTPException(
-                status_code=500, detail="User created but ID not returned by Keycloak"
-            )
-        user_id = location_header.rstrip("/").split("/")[-1]
-        return JSONResponse(
-            status_code=201,
-            content={
+        if response.status_code == 201:
+            location_header = response.headers.get("Location")
+            if not location_header:
+                raise APIException(
+                    status_code=500,
+                    error_code="KC-500-01",
+                    description="Usuário criado mas ID não foi retornado pelo Keycloak",
+                    source=ERROR_SOURCE,
+                )
+            user_id = location_header.rstrip("/").split("/")[-1]
+            
+            # Retorna um dicionário em vez de JSONResponse
+            return {
                 "message": "User created successfully",
                 "user": {
                     "id": user_id,
@@ -73,58 +97,65 @@ def create_keycloak_user(access_token: str, userCreate: UserCreate):
                     "lastName": userCreate.last_name,
                     "enabled": True,
                 },
-            },
+            }
+
+        # Tratamento centralizado para outros códigos de erro
+        error_details = response.json().get("errorMessage", response.reason)
+        error_map = {
+            401: "Access token inválido ou expirado.",
+            403: "Ação não permitida. Verifique as permissões do token.",
+            409: f"Conflito: Usuário ou email já existente. (Detalhe: {error_details})",
+        }
+        description = error_map.get(response.status_code, f"Erro do Keycloak: {error_details}")
+
+        raise APIException(
+            status_code=response.status_code,
+            error_code=f"KC-{response.status_code}",
+            description=description,
+            source=ERROR_SOURCE,
+        )
+    except requests.exceptions.RequestException as e:
+        raise APIException(
+            status_code=503,
+            error_code="KS-503-02",
+            description=f"Erro de comunicação com o serviço de autenticação: {e}",
+            source=ERROR_SOURCE,
         )
 
-    # Tratamento de outros códigos de erro
-    if response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    if response.status_code == 403:
-        raise HTTPException(
-            status_code=403,
-            detail="Access token não concede permissão para acessar esse endpoint",
-        )
-    if response.status_code == 409:
-        raise HTTPException(status_code=409, detail="Username já existente")
 
-    # Erro genérico para outras falhas
-    raise HTTPException(
-        status_code=400,
-        detail="Erro na estrutura da chamada (headers, request body etc.)",
-    )
-
-
-# ---- helper para "exclusão lógica" (desabilitar usuário) ----
 def disable_keycloak_user(access_token: str, user_id: str):
     """
-    Desabilita (enabled=False) um usuário no Keycloak.
+    Desabilita (enabled=False) um usuário no Keycloak (exclusão lógica).
+    Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
-    headers = {
-        "Authorization": access_token,
-        "Content-Type": "application/json",
-    }
+    headers = {"Authorization": access_token, "Content-Type": "application/json"}
     data = {"enabled": False}
 
-    response = requests.put(url, json=data, headers=headers)
+    try:
+        response = requests.put(url, json=data, headers=headers)
 
-    if response.status_code == 204:
-        return
+        if response.status_code == 204:
+            return  # Sucesso, sem conteúdo para retornar
 
-    if response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Access token inválido")
-
-    if response.status_code == 403:
-        raise HTTPException(
-            status_code=403,
-            detail="Access token não concede permissão para acessar esse endpoint ou objeto",
+        # Tratamento de erros
+        error_map = {
+            401: "Access token inválido ou expirado.",
+            403: "Ação não permitida para este usuário.",
+            404: "Usuário não localizado.",
+        }
+        description = error_map.get(response.status_code, "Erro ao desabilitar usuário.")
+        
+        raise APIException(
+            status_code=response.status_code,
+            error_code=f"KC-{response.status_code}",
+            description=description,
+            source=ERROR_SOURCE
         )
-
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="Objeto não localizado")
-
-    # Demais erros de chamada
-    raise HTTPException(
-        status_code=400,
-        detail="Erro na estrutura da chamada (headers, request body etc.)",
-    )
+    except requests.exceptions.RequestException as e:
+        raise APIException(
+            status_code=503,
+            error_code="KS-503-03",
+            description=f"Erro de comunicação com o serviço de autenticação: {e}",
+            source=ERROR_SOURCE,
+        )

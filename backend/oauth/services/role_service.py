@@ -1,206 +1,189 @@
 import requests
-from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 from config import KEYCLOAK_URL, REALM_NAME
 from models.role import RoleCreate, RoleUpdate, UserRoleAssign
+from exceptions import APIException  # Usando o nome final 'APIException'
 
+# Constante para a origem do erro, facilitando a manutenção
+ERROR_SOURCE = "RoleService"
 
 def get_headers(access_token: str):
-    return {
-        "Authorization": access_token,
-        "Content-Type": "application/json",
-    }
+    """Cria os headers padrão para as requisições."""
+    return {"Authorization": access_token, "Content-Type": "application/json"}
 
+def _handle_keycloak_error(response: requests.Response, context: str):
+    """Função auxiliar para tratar e levantar erros comuns do Keycloak de forma padronizada."""
+    error_map = {
+        401: "Access token inválido ou expirado.",
+        403: "Ação não permitida. Verifique as permissões do token.",
+        404: f"O recurso solicitado para '{context}' não foi encontrado.",
+        409: f"Conflito ao '{context}'. O recurso provavelmente já existe.",
+    }
+    error_details = response.json().get("errorMessage", response.reason)
+    description = error_map.get(response.status_code, f"Erro inesperado ao {context}: {error_details}")
+    
+    raise APIException(
+        status_code=response.status_code,
+        error_code=f"KC-{response.status_code}",
+        description=description,
+        source=ERROR_SOURCE,
+    )
+
+def _handle_request_exception(exception: requests.exceptions.RequestException, context: str):
+    """Função auxiliar para tratar erros de conexão com o Keycloak."""
+    raise APIException(
+        status_code=503, # Service Unavailable
+        error_code="RS-503-01",
+        description=f"Erro de comunicação com o Keycloak ao {context}: {exception}",
+        source=ERROR_SOURCE,
+    )
 
 def create_role(access_token: str, role_create: RoleCreate):
+    """Cria uma nova role."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles"
-    response = requests.post(
-        url, json=role_create.dict(), headers=get_headers(access_token)
-    )
-    if response.status_code == 201:
-        return JSONResponse(
-            status_code=201,
-            content={"message": "Role criada com sucesso", "role": role_create.dict()},
-        )
-    if response.status_code == 409:
-        raise HTTPException(status_code=409, detail="Role já existe")
-    if response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    raise HTTPException(status_code=400, detail="Erro ao criar role")
-
+    context = "criar role"
+    try:
+        response = requests.post(url, json=role_create.dict(), headers=get_headers(access_token))
+        if response.status_code == 201:
+            return role_create.dict()  # Retorna os dados da role criada
+        _handle_keycloak_error(response, context)
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
 def list_roles(access_token: str):
+    """Lista todas as roles."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles"
-    response = requests.get(url, headers=get_headers(access_token))
-    if response.status_code == 200:
-        return response.json()
-    if response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Access token inválido")
-    raise HTTPException(status_code=400, detail="Erro ao listar roles")
-
+    context = "listar roles"
+    try:
+        response = requests.get(url, headers=get_headers(access_token))
+        if response.status_code == 200:
+            return response.json()
+        _handle_keycloak_error(response, context)
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
 def get_role_by_id(access_token: str, role_id: str):
-    # O endpoint do Keycloak para buscar por ID é 'roles-by-id'
+    """Busca uma role pelo seu ID."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
-    response = requests.get(url, headers=get_headers(access_token))
-    if response.status_code == 200:
-        return response.json()
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="Role não encontrada")
-    raise HTTPException(status_code=400, detail="Erro ao buscar role")
-
+    context = f"buscar role com ID {role_id}"
+    try:
+        response = requests.get(url, headers=get_headers(access_token))
+        if response.status_code == 200:
+            return response.json()
+        _handle_keycloak_error(response, context)
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
 def update_role(access_token: str, role_id: str, role_update: RoleUpdate):
+    """Atualiza uma role (PUT)."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
-    response = requests.put(
-        url,
-        json=role_update.dict(exclude_unset=True),
-        headers=get_headers(access_token),
-    )
-    if response.status_code == 204:
-        return JSONResponse(status_code=200, content={"message": "Role atualizada"})
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="Role não encontrada")
-    raise HTTPException(status_code=400, detail="Erro ao atualizar role")
-
-
-def patch_role(access_token: str, role_id: str, role_update: RoleUpdate):
-    """
-    Executa uma atualização parcial (PATCH) seguindo o padrão Read-Modify-Write.
-    """
+    context = f"atualizar role com ID {role_id}"
     try:
-        # 1. READ: Busca o estado atual e completo do role
+        # Garante que a role existe antes de tentar atualizar
+        get_role_by_id(access_token, role_id)
+        
+        response = requests.put(url, json=role_update.dict(), headers=get_headers(access_token))
+        if response.status_code == 204:
+            return  # Sucesso, sem conteúdo
+        _handle_keycloak_error(response, context)
+    except APIException as e:
+        # Repassa exceções de get_role_by_id ou do próprio PUT
+        raise e
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
+        
+def patch_role(access_token: str, role_id: str, role_update: RoleUpdate):
+    """Atualiza parcialmente uma role (PATCH simulado)."""
+    context = f"atualizar parcialmente role com ID {role_id}"
+    try:
         existing_role_data = get_role_by_id(access_token, role_id)
-
-        # 2. MODIFY: Mescla os dados existentes com os novos dados da requisição
-        # role_update.dict(exclude_unset=True) cria um dicionário contendo APENAS
-        # os campos que foram enviados pelo cliente na requisição PATCH.
         update_data = role_update.dict(exclude_unset=True)
-
-        # O método .update() do dicionário aplica as alterações parciais
         existing_role_data.update(update_data)
 
-        # 3. WRITE: Envia o objeto completo e atualizado para o Keycloak via PUT
         url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
-        response = requests.put(
-            url,
-            json=existing_role_data,  # Envia o objeto mesclado
-            headers=get_headers(access_token),
-        )
-
+        response = requests.put(url, json=existing_role_data, headers=get_headers(access_token))
+        
         if response.status_code == 204:
-            return JSONResponse(
-                status_code=200,
-                content={"message": "Role atualizado com sucesso (PATCH)"},
-            )
-
-        # Repassa o erro de forma mais detalhada
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Erro ao atualizar o role no Keycloak: {response.text}",
-        )
-
-    except HTTPException as e:
-        # Garante que o erro 404 de 'get_role_by_id' seja repassado corretamente
-        if e.status_code == 404:
-            raise HTTPException(
-                status_code=404, detail="Role não encontrado para atualização"
-            )
+            return # Sucesso
+        _handle_keycloak_error(response, context)
+    except APIException as e:
         raise e
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
-
-# Função para exclusão lógica
 def logical_delete_role(access_token: str, role_id: str):
-    """
-    Realiza a exclusão lógica adicionando um atributo 'isActive: false' ao role.
-    """
+    """Realiza a exclusão lógica de uma role."""
+    context = f"desativar role com ID {role_id}"
     try:
         role_to_update = get_role_by_id(access_token, role_id)
-
-        # Adiciona ou atualiza o atributo para marcar como inativo
+        
         if "attributes" not in role_to_update:
             role_to_update["attributes"] = {}
         role_to_update["attributes"]["isActive"] = ["false"]
 
-        # Envia a requisição PUT para atualizar o role com o novo atributo
         url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
-        response = requests.put(
-            url, json=role_to_update, headers=get_headers(access_token)
-        )
-
+        response = requests.put(url, json=role_to_update, headers=get_headers(access_token))
+        
         if response.status_code == 204:
-            return JSONResponse(
-                status_code=200,
-                content={"message": "Role desativada (exclusão lógica)"},
-            )
-        raise HTTPException(
-            status_code=response.status_code, detail="Erro ao desativar role"
-        )
-    except HTTPException as e:
-        if e.status_code == 404:
-            raise HTTPException(status_code=404, detail="Role não encontrada")
+            return # Sucesso
+        _handle_keycloak_error(response, context)
+    except APIException as e:
         raise e
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
-
-# Opcional: Função para exclusão física
 def physical_delete_role(access_token: str, role_id: str):
+    """Realiza a exclusão física de uma role."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
-    response = requests.delete(url, headers=get_headers(access_token))
-    if response.status_code == 204:
-        return JSONResponse(
-            status_code=200, content={"message": "Role excluída fisicamente"}
-        )
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="Role não encontrada")
-    raise HTTPException(status_code=400, detail="Erro ao excluir role")
+    context = f"excluir fisicamente role com ID {role_id}"
+    try:
+        response = requests.delete(url, headers=get_headers(access_token))
+        if response.status_code == 204:
+            return # Sucesso
+        _handle_keycloak_error(response, context)
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
-
-# Atribuir role buscando pelo ID
 def assign_role_to_user(access_token: str, role_id: str, assign: UserRoleAssign):
-    role_obj = get_role_by_id(access_token, role_id)
+    """Atribui uma role a um usuário."""
+    context = f"atribuir role {role_id} ao usuário {assign.user_id}"
+    try:
+        role_obj = get_role_by_id(access_token, role_id)
+        
+        # Validação de regra de negócio
+        attributes = role_obj.get("attributes", {})
+        is_active_values = attributes.get("isActive", ["true"])
+        if "false" in is_active_values:
+            raise APIException(
+                status_code=400,
+                error_code="RS-400-01", # Erro de regra de negócio específico
+                description="Não é possível atribuir um role que está desativado (excluído logicamente).",
+                source=ERROR_SOURCE
+            )
 
-    # Verifica se o role está ativo
-    # Por padrão, se o atributo não existir, consideramos o role ativo.
-    # Ele só é inativo se o atributo 'isActive' existir e for explicitamente 'false'.
-    attributes = role_obj.get("attributes", {})
-    is_active_values = attributes.get(
-        "isActive", ["true"]
-    )  # Padrão para 'true' se não existir
+        data = [role_obj]
+        url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{assign.user_id}/role-mappings/realm"
+        response = requests.post(url, json=data, headers=get_headers(access_token))
+        if response.status_code == 204:
+            return # Sucesso
+        _handle_keycloak_error(response, context)
+    except APIException as e:
+        raise e
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
 
-    if "false" in is_active_values:
-        raise HTTPException(
-            status_code=400,
-            detail="Não é possível atribuir um role que está desativado (excluído logicamente).",
-        )
-
-    # Prossegue com a atribuição se a validação passar
-    data = [role_obj]
-    url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{assign.user_id}/role-mappings/realm"
-    response = requests.post(url, json=data, headers=get_headers(access_token))
-
-    if response.status_code == 204:
-        return JSONResponse(
-            status_code=200,
-            content={"message": "Role atribuída ao usuário com sucesso"},
-        )
-    raise HTTPException(
-        status_code=response.status_code,
-        detail=f"Erro ao atribuir role ao usuário: {response.text}",
-    )
-
-
-# Desatribuir role buscando pelo ID
 def unassign_role_from_user(access_token: str, role_id: str, assign: UserRoleAssign):
-    # Busca o objeto completo da role pelo ID
-    role_obj = get_role_by_id(access_token, role_id)
-    data = [role_obj]
-    url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{assign.user_id}/role-mappings/realm"
-    response = requests.delete(url, json=data, headers=get_headers(access_token))
-    if response.status_code == 204:
-        return JSONResponse(
-            status_code=200, content={"message": "Role removida do usuário"}
-        )
-    raise HTTPException(
-        status_code=response.status_code,
-        detail=f"Erro ao remover role do usuário: {response.text}",
-    )
+    """Remove uma role de um usuário."""
+    context = f"remover role {role_id} do usuário {assign.user_id}"
+    try:
+        role_obj = get_role_by_id(access_token, role_id)
+        data = [role_obj]
+        
+        url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{assign.user_id}/role-mappings/realm"
+        response = requests.delete(url, json=data, headers=get_headers(access_token))
+        if response.status_code == 204:
+            return # Sucesso
+        _handle_keycloak_error(response, context)
+    except APIException as e:
+        raise e
+    except requests.exceptions.RequestException as e:
+        _handle_request_exception(e, context)
