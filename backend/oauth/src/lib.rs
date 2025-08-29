@@ -2,6 +2,7 @@ pub mod controllers;
 pub mod services;
 pub mod adapters;
 pub mod interfaces;
+pub mod validators;
 pub mod dtos;
 pub use dtos::*;
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse, Responder, Result};
