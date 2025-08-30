@@ -6,6 +6,7 @@ use crate::core::dtos::res::get_all_users_res::GetUsersRes;
 use crate::core::dtos::res::get_user_res::GetUserRes;
 use crate::core::dtos::res::get_all_roles_res::GetAllRolesRes;
 use crate::core::dtos::res::get_role_res::GetRoleRes;
+use crate::core::dtos::req::create_role_req::CreateRoleReq;
 use crate::core::interfaces::role_provider::RoleProvider;
 use crate::core::interfaces::auth_provider::AuthProvider;
 use crate::core::interfaces::user_provider::UserProvider;
@@ -363,6 +364,66 @@ impl UserProvider for KeycloakUserAdapter {
 
 #[async_trait::async_trait]
 impl RoleProvider for KeycloakRoleAdapter {
+    async fn create_role(&self, req: &CreateRoleReq, token: &str) -> Result<GetRoleRes, actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap()
+        );
+
+        let role_body = json!({
+            "name": req.name,
+            "composite": req.composite,
+            "clientRole": req.client_role,
+            "containerId": req.container_id
+        });
+
+        let client = Client::new();
+        let response = client
+            .post(&keycloak_url)
+            .header("Authorization", token)
+            .json(&role_body)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status().as_u16();
+        match status {
+            201 => {
+                // Buscar o role recém-criado pelo nome
+                let get_url = format!("{}/{}", keycloak_url, req.name);
+                let get_response = client
+                    .get(&get_url)
+                    .header("Authorization", token)
+                    .send()
+                    .await
+                    .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to fetch created role"))?;
+                
+                if get_response.status().is_success() {
+                    let value = get_response.json::<serde_json::Value>().await
+                        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+                    let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                    Ok(GetRoleRes { id, name, description })
+                } else {
+                    Err(actix_web::error::ErrorInternalServerError("Role created but could not fetch details"))
+                }
+            }
+            409 => Err(actix_web::error::ErrorConflict("Role already exists")),
+            401 => Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+            403 => Err(actix_web::error::ErrorForbidden("Forbidden")),
+            _ => {
+                let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(actix_web::error::ErrorInternalServerError(body))
+            }
+        }
+    }
+
     async fn get_roles(&self, token: &str) -> Result<GetAllRolesRes, actix_web::Error> {
         let keycloak_url = format!(
             "{}://{}:{}/admin/realms/{}/roles",
@@ -399,7 +460,7 @@ impl RoleProvider for KeycloakRoleAdapter {
             Err(actix_web::error::ErrorInternalServerError(format!("{}: {}", status, body)))
         }
     }
-    
+
     async fn get_role(&self, id: &str, token: &str) -> Result<GetRoleRes, actix_web::Error> {
         let keycloak_url = format!(
             "{}://{}:{}/admin/realms/{}/roles-by-id/{}",

@@ -16,7 +16,6 @@ COPY src ./src
 
 RUN ls -l src/
 
-RUN cargo build --release
 # Remove the dummy binary
 RUN rm -f target/release/deps/oauth*
 
