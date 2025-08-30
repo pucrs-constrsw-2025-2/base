@@ -399,4 +399,41 @@ impl RoleProvider for KeycloakRoleAdapter {
             Err(actix_web::error::ErrorInternalServerError(format!("{}: {}", status, body)))
         }
     }
+    
+    async fn get_role(&self, id: &str, token: &str) -> Result<GetRoleRes, actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+
+        let client = Client::new();
+        let response = client
+            .get(&keycloak_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status();
+
+        if status.is_success() {
+            let value = response.json::<serde_json::Value>().await
+                .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            Ok(GetRoleRes { id, name, description })
+        } else if status.as_u16() == 404 {
+            Err(actix_web::error::ErrorNotFound("Role not found"))
+        } else {
+            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+            Err(actix_web::error::ErrorInternalServerError(body))
+        }
+    }
 }
