@@ -7,7 +7,6 @@ use crate::core::dtos::res::get_user_res::GetUserRes;
 use crate::core::interfaces::auth_provider::AuthProvider;
 use crate::core::interfaces::user_provider::UserProvider;
 use serde_json::{ json, Value };
-
 use reqwest::Client;
 use std::env;
 
@@ -171,6 +170,68 @@ impl UserProvider for KeycloakUserAdapter {
             let status = response.status();
             let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
             Err(actix_web::error::ErrorInternalServerError(format!("{}: {}", status, body)))
+        }
+    }
+    
+    async fn get_user(&self, id: &str, token: &str) -> Result<GetUserRes, actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/users/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+
+        let client = Client::new();
+        let response = client
+            .get(&keycloak_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status();
+
+        if status.is_success() {
+            let user_value = response.json::<Value>().await
+                .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+            let id = user_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let username = user_value
+                .get("username")
+                .and_then(|v| v.as_str())
+                .or_else(|| user_value.get("email").and_then(|v| v.as_str()))
+                .unwrap_or("")
+                .to_string();
+            let first_name = user_value
+                .get("firstName")
+                .or_else(|| user_value.get("first-name"))
+                .or_else(|| user_value.get("first_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let last_name = user_value
+                .get("lastName")
+                .or_else(|| user_value.get("last-name"))
+                .or_else(|| user_value.get("last_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let enabled = user_value.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+
+            Ok(GetUserRes {
+                id,
+                username,
+                first_name,
+                last_name,
+                enabled,
+            })
+        } else if status.as_u16() == 404 {
+            Err(actix_web::error::ErrorNotFound("User not found"))
+        } else {
+            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+            Err(actix_web::error::ErrorInternalServerError(body))
         }
     }
 }
