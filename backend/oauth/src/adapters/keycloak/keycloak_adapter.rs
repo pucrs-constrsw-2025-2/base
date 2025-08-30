@@ -323,4 +323,36 @@ impl UserProvider for KeycloakUserAdapter {
             Err(actix_web::error::ErrorInternalServerError(body))
         }
     }
+
+    async fn delete_user(&self, id: &str, token: &str) -> Result<(), actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/users/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+
+        // Logical delete: disable user
+        let body = json!({ "enabled": false });
+        let client = Client::new();
+        let response = client
+            .put(&keycloak_url)
+            .header("Authorization", token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else if status.as_u16() == 404 {
+            Err(actix_web::error::ErrorNotFound("User not found"))
+        } else {
+            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+            Err(actix_web::error::ErrorInternalServerError(body))
+        }
+    }
 }

@@ -10,4 +10,5 @@ pub trait UserProvider: Send + Sync {
     async fn get_user(&self, id: &str, token: &str) -> Result<GetUserRes, actix_web::Error>;
     async fn update_user(&self, id: &str, req: &CreateUserReq, token: &str) -> Result<CreateUserRes, actix_web::Error>;
     async fn update_password(&self, id: &str, password: &str, token: &str) -> Result<(), actix_web::Error>;
+    async fn delete_user(&self, id: &str, token: &str) -> Result<(), actix_web::Error>;
 }

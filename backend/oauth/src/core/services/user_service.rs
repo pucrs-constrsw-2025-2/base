@@ -50,3 +50,11 @@ pub async fn update_password_service<P: UserProvider>(
     validate_update_password(password)?;
     provider.update_password(id, password, token).await
 }
+
+pub async fn delete_user_service<P: UserProvider>(
+    provider: &P,
+    id: &str,
+    token: &str,
+) -> Result<(), actix_web::Error> {
+    provider.delete_user(id, token).await
+}

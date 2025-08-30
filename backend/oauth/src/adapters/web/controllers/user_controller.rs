@@ -1,8 +1,9 @@
-use actix_web::{get, patch, post, put, web, HttpRequest, HttpResponse, Result};
+use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse, Result};
 use serde_json::Value;
 use crate::core::dtos::req::create_user_req::CreateUserReq;
 use crate::adapters::keycloak::keycloak_adapter::KeycloakUserAdapter;
-use crate::core::services::user_service::{ create_user_service, get_users_service, get_user_service, update_user_service, update_password_service };
+use crate::core::services::user_service::{ create_user_service, get_users_service, get_user_service,
+                                            update_user_service, update_password_service, delete_user_service };
 
 #[post("/users")]
 pub async fn create_user_controller(token_req: HttpRequest, web::Json(payload): web::Json<CreateUserReq>) -> Result<HttpResponse> {
@@ -85,6 +86,21 @@ pub async fn update_password_controller(
     let provider = KeycloakUserAdapter;
     match update_password_service(&provider, &id, password, &token).await {
         Ok(_) => Ok(HttpResponse::Ok().finish()),
+        Err(e) => Err(e),
+    }
+}
+
+#[delete("/users/{id}")]
+pub async fn delete_user_controller(token_req: HttpRequest, path: web::Path<String>) -> Result<HttpResponse> {
+    let id = path.into_inner();
+    let token = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    let provider = KeycloakUserAdapter;
+    match delete_user_service(&provider, &id, &token).await {
+        Ok(_) => Ok(HttpResponse::NoContent().finish()),
         Err(e) => Err(e),
     }
 }
