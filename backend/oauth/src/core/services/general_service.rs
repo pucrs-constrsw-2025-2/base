@@ -2,13 +2,16 @@ use crate::core::dtos::req::login_req::{LoginReq, LoginReqKeycloak};
 use crate::core::dtos::res::login_res::LoginRes;
 use crate::core::interfaces::auth_provider::AuthProvider;
 use crate::core::validators::login_validator::validate_login;
+use crate::core::error::AppError;
 use std::env;
 
 pub async fn login_service<P: AuthProvider>(
     provider: &P,
     form: &LoginReq,
-) -> Result<LoginRes, actix_web::Error> {
-    validate_login(form)?;
+) -> Result<LoginRes, AppError> {
+    if let Err(errors) = validate_login(form) {
+        return Err(AppError::ValidationError { details: errors.join(", ") });
+    }
 
     let client_id = env::var("KEYCLOAK_CLIENT_ID").unwrap();
     let client_secret = env::var("KEYCLOAK_CLIENT_SECRET").unwrap();
