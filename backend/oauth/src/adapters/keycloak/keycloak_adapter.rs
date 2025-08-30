@@ -1,6 +1,6 @@
-use crate::dtos::req::login_req::LoginReqKeycloak;
-use crate::dtos::res::login_res::LoginResKeycloak;
-use crate::interfaces::auth_provider::AuthProvider;
+use crate::core::dtos::req::login_req::LoginReqKeycloak;
+use crate::core::dtos::res::login_res::LoginResKeycloak;
+use crate::core::interfaces::auth_provider::AuthProvider;
 use reqwest::Client;
 use std::env;
 

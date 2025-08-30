@@ -1,7 +1,7 @@
 use actix_web::{post, web, HttpResponse, Result};
-use crate::dtos::req::login_req::LoginReq;
-use crate::services::general_service::login_service;
-use crate::adapters::keycloak_adapter::KeycloakAdapter;
+use crate::core::dtos::req::login_req::LoginReq;
+use crate::core::services::general_service::login_service;
+use crate::adapters::keycloak::keycloak_adapter::KeycloakAdapter;
 
 #[post("/login")]
 pub async fn login_controller(web::Form(form): web::Form<LoginReq>) -> Result<HttpResponse> {

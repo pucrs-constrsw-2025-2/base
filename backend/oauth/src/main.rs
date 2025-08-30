@@ -1,4 +1,4 @@
-use crate::controllers::general_controller::login_controller;
+use crate::adapters::web::controllers::general_controller::login_controller;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use std::env;

@@ -1,10 +1,6 @@
-pub mod controllers;
-pub mod services;
 pub mod adapters;
-pub mod interfaces;
-pub mod validators;
-pub mod dtos;
-pub use dtos::*;
+pub mod core;
+pub use core::dtos::*;
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse, Responder, Result};
 use serde_json::{json, Value};
 use reqwest::Client;
@@ -12,18 +8,18 @@ use regex::Regex;
 use std::env;
 
 //USERS
-use dtos::req::login_req::LoginReq;
-use dtos::req::login_req::LoginReqKeycloak;
-use dtos::res::login_res::LoginResKeycloak;
-use dtos::res::login_res::LoginRes;
-use dtos::req::create_user_req::CreateUserReq;
-use dtos::res::create_user_res::CreateUserRes;
-use dtos::res::get_user_res::GetUserRes;
-use dtos::res::get_all_users_res::GetUsersRes;
+use core::dtos::req::login_req::LoginReq;
+use core::dtos::req::login_req::LoginReqKeycloak;
+use core::dtos::res::login_res::LoginResKeycloak;
+use core::dtos::res::login_res::LoginRes;
+use core::dtos::req::create_user_req::CreateUserReq;
+use core::dtos::res::create_user_res::CreateUserRes;
+use core::dtos::res::get_user_res::GetUserRes;
+use core::dtos::res::get_all_users_res::GetUsersRes;
 //ROLES
-use dtos::req::create_role_req::CreateRoleReq;
-use dtos::res::get_role_res::GetRoleRes;
-use dtos::res::get_all_roles_res::GetAllRolesRes;
+use core::dtos::req::create_role_req::CreateRoleReq;
+use core::dtos::res::get_role_res::GetRoleRes;
+use core::dtos::res::get_all_roles_res::GetAllRolesRes;
 
 #[get("/")]
 pub async fn hello() -> impl Responder {

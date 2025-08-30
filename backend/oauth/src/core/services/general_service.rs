@@ -1,7 +1,7 @@
-use crate::dtos::req::login_req::{LoginReq, LoginReqKeycloak};
-use crate::dtos::res::login_res::LoginRes;
-use crate::interfaces::auth_provider::AuthProvider;
-use crate::validators::login_validator::validate_login;
+use crate::core::dtos::req::login_req::{LoginReq, LoginReqKeycloak};
+use crate::core::dtos::res::login_res::LoginRes;
+use crate::core::interfaces::auth_provider::AuthProvider;
+use crate::core::validators::login_validator::validate_login;
 use std::env;
 
 pub async fn login_service<P: AuthProvider>(
