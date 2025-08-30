@@ -4,6 +4,9 @@ use crate::core::dtos::req::create_user_req::CreateUserReq;
 use crate::core::dtos::res::create_user_res::CreateUserRes;
 use crate::core::dtos::res::get_all_users_res::GetUsersRes;
 use crate::core::dtos::res::get_user_res::GetUserRes;
+use crate::core::dtos::res::get_all_roles_res::GetAllRolesRes;
+use crate::core::dtos::res::get_role_res::GetRoleRes;
+use crate::core::interfaces::role_provider::RoleProvider;
 use crate::core::interfaces::auth_provider::AuthProvider;
 use crate::core::interfaces::user_provider::UserProvider;
 use serde_json::{ json, Value };
@@ -12,6 +15,7 @@ use std::env;
 
 pub struct KeycloakAuthAdapter;
 pub struct KeycloakUserAdapter;
+pub struct KeycloakRoleAdapter;
 
 #[async_trait::async_trait]
 impl AuthProvider for KeycloakAuthAdapter {
@@ -353,6 +357,46 @@ impl UserProvider for KeycloakUserAdapter {
         } else {
             let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
             Err(actix_web::error::ErrorInternalServerError(body))
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl RoleProvider for KeycloakRoleAdapter {
+    async fn get_roles(&self, token: &str) -> Result<GetAllRolesRes, actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap()
+        );
+
+        let client = Client::new();
+        let response = client
+            .get(&keycloak_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        if response.status().is_success() {
+            let roles_value = response.json::<Vec<serde_json::Value>>().await
+                .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+
+            let roles_vec: Vec<GetRoleRes> = roles_value.into_iter().map(|role_value| {
+                let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                GetRoleRes { id, name, description }
+            }).collect();
+
+            Ok(GetAllRolesRes { roles: roles_vec })
+        } else {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+            Err(actix_web::error::ErrorInternalServerError(format!("{}: {}", status, body)))
         }
     }
 }
