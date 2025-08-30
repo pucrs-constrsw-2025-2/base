@@ -8,4 +8,5 @@ pub trait RoleProvider: Send + Sync {
     async fn get_roles(&self, token: &str) -> Result<GetAllRolesRes, actix_web::Error>;
     async fn get_role(&self, id: &str, token: &str) -> Result<GetRoleRes, actix_web::Error>;
     async fn update_role(&self, id: &str, req: &CreateRoleReq, token: &str) -> Result<(), actix_web::Error>;
+    async fn delete_role(&self, id: &str, token: &str) -> Result<(), actix_web::Error>;
 }
