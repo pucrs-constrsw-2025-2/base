@@ -1,6 +1,21 @@
-use actix_web::{get, web, HttpRequest, HttpResponse, Result};
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Result};
+use crate::core::dtos::req::create_role_req::CreateRoleReq;
 use crate::adapters::keycloak::keycloak_adapter::KeycloakRoleAdapter;
-use crate::core::services::role_service::{get_roles_service, get_role_service};
+use crate::core::services::role_service::{get_roles_service, get_role_service, create_role_service};
+
+#[post("/roles")]
+pub async fn create_role_controller(token_req: HttpRequest, web::Json(payload): web::Json<CreateRoleReq>) -> Result<HttpResponse> {
+    let token = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
+    };
+
+    let provider = KeycloakRoleAdapter;
+    match create_role_service(&provider, &payload, &token).await {
+        Ok(res) => Ok(HttpResponse::Created().json(res)),
+        Err(e) => Err(e),
+    }
+}
 
 #[get("/roles")]
 pub async fn get_roles_controller(token_req: HttpRequest) -> Result<HttpResponse> {
