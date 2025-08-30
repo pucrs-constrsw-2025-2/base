@@ -1,11 +1,16 @@
 use crate::core::dtos::req::create_role_req::CreateRoleReq;
 
-pub fn validate_create_role(req: &CreateRoleReq) -> Result<(), actix_web::Error> {
+pub fn validate_create_role(req: &CreateRoleReq) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
     if req.name.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Role name is required"));
+        errors.push("Role name is required".to_string());
     }
     if req.container_id.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Container ID is required"));
+        errors.push("Container ID is required".to_string());
     }
-    Ok(())
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }

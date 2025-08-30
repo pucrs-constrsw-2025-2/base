@@ -1,11 +1,11 @@
-pub fn validate_update_password(password: &str) -> Result<(), actix_web::Error> {
+pub fn validate_update_password(password: &str) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
     if password.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Password is required"));
+        errors.push("Password is required".to_string());
     }
-    /**
-    if password.len() < 8 {
-        return Err(actix_web::error::ErrorBadRequest("Password must be at least 8 characters"));
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
     }
-    */
-    Ok(())
 }
