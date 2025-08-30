@@ -157,59 +157,6 @@ pub async fn get_role(token_req: HttpRequest, path: web::Path<String>) -> Result
     }
 }
 
-#[get("/roles")]
-pub async fn get_all_roles(token_req: HttpRequest) -> Result<impl Responder> {
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Build Keycloak base URL
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-
-    // Keycloak endpoint for all roles
-    let url = format!("{}/admin/realms/{}/roles", keycloak_url, realm);
-
-    let client = Client::new();
-    let response = client
-        .get(&url)
-        .header("Authorization", auth)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    if response.status().is_success() {
-        let roles_value = response.json::<Vec<serde_json::Value>>().await
-            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-
-        let roles_vec: Vec<GetRoleRes> = roles_value.into_iter().map(|role_value| {
-            let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-            GetRoleRes { id, name, description }
-        }).collect();
-
-        let res = GetAllRolesRes { roles: roles_vec };
-        Ok(HttpResponse::Ok().json(res))
-    } else {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
-}
-
 #[put("/roles/{id}")]
 pub async fn update_role(
     token_req: HttpRequest,

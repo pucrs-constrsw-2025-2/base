@@ -1,6 +1,7 @@
 use crate::adapters::web::controllers::general_controller::login_controller;
 use crate::adapters::web::controllers::user_controller::{create_user_controller, get_users_controller, get_user_controller, 
                                                         update_user_controller, update_password_controller, delete_user_controller};
+use crate::adapters::web::controllers::role_controller::{get_roles_controller};
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use std::env;
@@ -26,7 +27,7 @@ async fn main() -> std::io::Result<()> {
             .service(delete_user_controller)
             .service(create_role)
             .service(get_role)
-            .service(get_all_roles)
+            .service(get_roles_controller)
             .service(update_role)
     })
     .bind(addr)?
