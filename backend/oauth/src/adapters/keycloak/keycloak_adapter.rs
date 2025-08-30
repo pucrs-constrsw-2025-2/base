@@ -494,6 +494,26 @@ impl RoleProvider for KeycloakRoleAdapter {
             let value = response.json::<serde_json::Value>().await
                 .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
 
+            // Checagem inline de soft delete
+            let deleted = value
+                .get("attributes")
+                .and_then(|a| a.get("deleted"))
+                .map(|del| match del {
+                    serde_json::Value::Array(arr) => arr.iter().any(|x| {
+                        x.as_str()
+                            .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
+                            .unwrap_or(false)
+                    }),
+                    serde_json::Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
+                    serde_json::Value::Bool(b) => *b,
+                    _ => false,
+                })
+                .unwrap_or(false);
+
+            if deleted {
+                return Err(actix_web::error::ErrorNotFound("Role not found"));
+            }
+
             let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
