@@ -5,6 +5,7 @@ use crate::core::dtos::res::get_user_res::GetUserRes;
 use crate::core::interfaces::user_provider::UserProvider;
 use crate::core::validators::update_user_validator::validate_update_user;
 use crate::core::validators::create_user_validator::validate_create_user;
+use crate::core::validators::update_password_validator::validate_update_password;
 
 pub async fn create_user_service<P: UserProvider>(
     provider: &P,
@@ -38,4 +39,14 @@ pub async fn update_user_service<P: UserProvider>(
 ) -> Result<CreateUserRes, actix_web::Error> {
     validate_update_user(req)?;
     provider.update_user(id, req, token).await
+}
+
+pub async fn update_password_service<P: UserProvider>(
+    provider: &P,
+    id: &str,
+    password: &str,
+    token: &str,
+) -> Result<(), actix_web::Error> {
+    validate_update_password(password)?;
+    provider.update_password(id, password, token).await
 }
