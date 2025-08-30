@@ -8,6 +8,7 @@ use crate::core::dtos::res::get_user_res::GetUserRes;
 use crate::core::dtos::res::get_all_roles_res::GetAllRolesRes;
 use crate::core::dtos::res::get_role_res::GetRoleRes;
 use crate::core::dtos::req::create_role_req::CreateRoleReq;
+use crate::core::dtos::req::update_role_partial_req::UpdateRolePartialReq;
 use crate::core::interfaces::role_provider::RoleProvider;
 use crate::core::interfaces::auth_provider::AuthProvider;
 use crate::core::interfaces::user_provider::UserProvider;
@@ -662,6 +663,86 @@ impl RoleProvider for KeycloakRoleAdapter {
             409 => Err(AppError::Conflict { resource: "role".into(), details: "Conflict updating role".into() }),
             _ => {
                 let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+                Err(AppError::ExternalServiceError { details: body })
+            }
+        }
+    }
+
+    async fn patch_role(&self, id: &str, req: &UpdateRolePartialReq, token: &str) -> Result<GetRoleRes, AppError> {
+        let url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+        let client = Client::new();
+        let get_resp = client.get(&url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match get_resp.status().as_u16() {
+            404 => return Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
+            401 => return Err(AppError::InvalidToken),
+            403 => return Err(AppError::Forbidden),
+            s if s >= 400 => {
+                let body = get_resp.text().await.unwrap_or_default();
+                return Err(AppError::ExternalServiceError { details: body });
+            }
+            _ => {}
+        }
+
+        let mut role_json = get_resp.json::<Value>().await
+            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+
+        let deleted = role_json
+            .get("attributes")
+            .and_then(|a| a.get("deleted"))
+            .map(|v| match v {
+                Value::Array(arr) => arr.iter().any(|x| {
+                    x.as_str()
+                        .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
+                        .unwrap_or(false)
+                }),
+                Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
+                Value::Bool(b) => *b,
+                _ => false,
+            })
+            .unwrap_or(false);
+
+        if deleted {
+            return Err(AppError::ValidationError { details: "Role is deleted".into() });
+        }
+
+        if let Some(name) = &req.name { role_json["name"] = json!(name); }
+        if let Some(desc) = &req.description { role_json["description"] = json!(desc); }
+        if let Some(composite) = req.composite { role_json["composite"] = json!(composite); }
+        if let Some(client_role) = req.client_role { role_json["clientRole"] = json!(client_role); }
+        if let Some(container_id) = &req.container_id { role_json["containerId"] = json!(container_id); }
+
+        let put_resp = client.put(&url)
+            .header("Authorization", token)
+            .json(&role_json)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match put_resp.status().as_u16() {
+            200 | 204 => {
+                let id_out = role_json.get("id").and_then(|v| v.as_str()).unwrap_or(id).to_string();
+                let name = role_json.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let description = role_json.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                Ok(GetRoleRes { id: id_out, name, description })
+            }
+            404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
+            401 => Err(AppError::InvalidToken),
+            403 => Err(AppError::Forbidden),
+            409 => Err(AppError::Conflict { resource: "role".into(), details: "Conflict updating role".into() }),
+            _ => {
+                let body = put_resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
                 Err(AppError::ExternalServiceError { details: body })
             }
         }
