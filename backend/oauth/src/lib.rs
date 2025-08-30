@@ -4,16 +4,9 @@ pub use core::dtos::*;
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse, Responder, Result};
 use serde_json::{json, Value};
 use reqwest::Client;
-use regex::Regex;
 use std::env;
 
 //USERS
-use core::dtos::req::login_req::LoginReq;
-use core::dtos::req::login_req::LoginReqKeycloak;
-use core::dtos::res::login_res::LoginResKeycloak;
-use core::dtos::res::login_res::LoginRes;
-use core::dtos::req::create_user_req::CreateUserReq;
-use core::dtos::res::create_user_res::CreateUserRes;
 use core::dtos::res::get_user_res::GetUserRes;
 use core::dtos::res::get_all_users_res::GetUsersRes;
 //ROLES
@@ -25,134 +18,6 @@ use core::dtos::res::get_all_roles_res::GetAllRolesRes;
 pub async fn hello() -> impl Responder {
     
     HttpResponse::Ok().body("Hello, Actix!")
-}
-
-#[post("/users")]
-pub async fn create_user(token_req: HttpRequest, web::Json(payload): web::Json<CreateUserReq>) -> Result<impl Responder> {
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Serialize DTO so we can access fields even if they are not `pub`
-    let payload_value = serde_json::to_value(&payload)
-        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid request payload"))?;
-
-    // Extract fields
-    let username = payload_value.get("username")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| actix_web::error::ErrorBadRequest("Missing username"))?;
-
-    let password = payload_value.get("password")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| actix_web::error::ErrorBadRequest("Missing password"))?;
-
-    // firstName may be sent as "firstName" or "first_name" etc.
-    let first_name = payload_value.get("firstName")
-        .or_else(|| payload_value.get("first_name"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .unwrap_or_default();
-
-    let last_name = payload_value.get("lastName")
-        .or_else(|| payload_value.get("last_name"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .unwrap_or_default();
-
-    // Validate email (username must be a valid email per spec)
-    // Add dependency: regex = "1"
-    let email_regex = Regex::new(r#"(?i)^(?:[-!#-'*+\/-9=?A-Z^-~]+(?:\.[-!#-'*+\/-9=?A-Z^-~]+)*|"(?:[\x20\x21\x23-\x5b\x5d-\x7e]|\\[\x00-\x7f])*")@(?:[-!#-'*+\/-9=?A-Z^-~]+(?:\.[-!#-'*+\/-9=?A-Z^-~]+)*|\[[\t -Z^-~]*\])$"#)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to compile email regex"))?;
-
-    if !email_regex.is_match(&username) {
-        return Ok(HttpResponse::BadRequest().body("Invalid email"));
-    }
-
-    // Configure routes
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-    let url = format!("{}/admin/realms/{}/users", keycloak_url, realm);
-
-    // Build Keycloak-compatible body (include credentials so password is set)
-    let user_body = json!({
-        "username": username,
-        "email": username,
-        "firstName": first_name,
-        "lastName": last_name,
-        "enabled": true,
-        "credentials": [
-            {
-                "type": "password",
-                "value": password,
-                "temporary": false
-            }
-        ]
-    });
-
-    // Creates HTTP Client and request
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .header("Authorization", auth)
-        .json(&user_body)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    // Map responses
-    let status = response.status().as_u16();
-    match status {
-        201 => {
-            // Keycloak returns Location header with created user id
-            let id = response
-                .headers()
-                .get("Location")
-                .and_then(|v| v.to_str().ok())
-                .and_then(|loc| loc.rsplit('/').next())
-                .map(|s| s.to_string())
-                .unwrap_or_default();
-
-            let res = CreateUserRes {
-                id,
-                username: username.clone(),
-                first_name,
-                last_name,
-                enabled: true,
-            };
-            Ok(HttpResponse::Created().json(res))
-        }
-        409 => {
-            // Conflict: username already exists
-            let body = response.text().await.unwrap_or_else(|_| "Conflict".to_string());
-            Ok(HttpResponse::Conflict().body(body))
-        }
-        401 => {
-            let body = response.text().await.unwrap_or_else(|_| "Unauthorized".to_string());
-            Ok(HttpResponse::Unauthorized().body(body))
-        }
-        403 => {
-            let body = response.text().await.unwrap_or_else(|_| "Forbidden".to_string());
-            Ok(HttpResponse::Forbidden().body(body))
-        }
-        s => {
-            // pass through other statuses (400, 500, etc.)
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            Ok(HttpResponse::build(actix_web::http::StatusCode::from_u16(s).unwrap()).body(body))
-        }
-    }
 }
 
 #[get("/users")]

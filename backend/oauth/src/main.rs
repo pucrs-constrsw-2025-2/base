@@ -1,4 +1,5 @@
 use crate::adapters::web::controllers::general_controller::login_controller;
+use crate::adapters::web::controllers::user_controller::create_user_controller;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use std::env;
@@ -16,7 +17,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(hello)
             .service(login_controller)
-            .service(create_user)
+            .service(create_user_controller)
             .service(get_users)
             .service(get_user)
             .service(update_user)
