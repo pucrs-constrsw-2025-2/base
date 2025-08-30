@@ -2,8 +2,10 @@ use crate::core::interfaces::role_provider::RoleProvider;
 use crate::core::dtos::req::create_role_req::CreateRoleReq;
 use crate::core::dtos::res::get_role_res::GetRoleRes;
 use crate::core::dtos::res::get_all_roles_res::GetAllRolesRes;
+use crate::core::dtos::req::update_role_partial_req::UpdateRolePartialReq;
 use crate::core::validators::create_role_validator::validate_create_role;
 use crate::core::validators::update_role_validator::validate_update_role;
+use crate::core::validators::patch_role_validator::validate_update_role_partial;
 use crate::core::error::AppError;
 
 pub async fn get_roles_service<P: RoleProvider>(
@@ -50,4 +52,16 @@ pub async fn delete_role_service<P: RoleProvider>(
     token: &str
 ) -> Result<(), AppError> {
     provider.delete_role(id, token).await
+}
+
+pub async fn patch_role_service<P: RoleProvider>(
+    provider: &P,
+    id: &str,
+    req: &UpdateRolePartialReq,
+    token: &str,
+) -> Result<GetRoleRes, AppError> {
+    if let Err(errors) = validate_update_role_partial(req) {
+        return Err(AppError::ValidationError { details: errors.join(", ") });
+    }
+    provider.patch_role(id, req, token).await
 }
