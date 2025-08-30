@@ -102,61 +102,6 @@ pub async fn create_role(token_req: HttpRequest, web::Json(payload): web::Json<C
     }
 }
 
-#[get("/roles/{id}")]
-pub async fn get_role(token_req: HttpRequest, path: web::Path<String>) -> Result<impl Responder> {
-    let id = path.into_inner();
-
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Build Keycloak base URL
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-
-    // Use /roles-by-id/{roleId} endpoint
-    let url = format!("{}/admin/realms/{}/roles-by-id/{}", keycloak_url, realm, id);
-
-    let client = Client::new();
-    let response = client
-        .get(&url)
-        .header("Authorization", auth)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    let status = response.status();
-
-    if status.is_success() {
-        let value = response.json::<serde_json::Value>().await
-            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
-
-        let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-        let dto = GetRoleRes { id, name, description };
-        Ok(HttpResponse::Ok().json(dto))
-    } else if status.as_u16() == 404 {
-        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
-        Ok(HttpResponse::NotFound().body(body))
-    } else {
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
-}
-
 #[put("/roles/{id}")]
 pub async fn update_role(
     token_req: HttpRequest,
