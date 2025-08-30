@@ -578,15 +578,73 @@ impl RoleProvider for KeycloakRoleAdapter {
             id
         );
 
+        let client = Client::new();
+
+        // GET para garantir existência e inspecionar atributos
+        let get_resp = client
+            .get(&keycloak_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match get_resp.status().as_u16() {
+            404 => return Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
+            401 => return Err(AppError::InvalidToken),
+            403 => return Err(AppError::Forbidden),
+            s if s >= 400 => {
+                let body = get_resp.text().await.unwrap_or_default();
+                return Err(AppError::ExternalServiceError { details: body });
+            }
+            _ => {}
+        }
+
+        let current_role = get_resp
+            .json::<Value>()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+
+        // Verifica atributo "disabled" (soft flag). Se presente e true, bloqueia update.
+        let is_disabled = current_role
+            .get("attributes")
+            .and_then(|a| a.get("deleted"))
+            .map(|v| match v {
+                Value::Array(arr) => arr.iter().any(|x| {
+                    x.as_str()
+                        .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
+                        .unwrap_or(false)
+                }),
+                Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
+                Value::Bool(b) => *b,
+                _ => false,
+            })
+            .unwrap_or(false);
+
+        if is_disabled {
+            return Err(AppError::ValidationError { details: "Role is disabled".into() });
+        }
+
+        // Preserva campos não enviados no DTO
+        let description = current_role
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        let attributes = current_role
+            .get("attributes")
+            .cloned()
+            .unwrap_or_else(|| json!({}));
+
         let role_body = json!({
             "id": id,
             "name": req.name,
+            "description": description,
             "composite": req.composite,
             "clientRole": req.client_role,
-            "containerId": req.container_id
+            "containerId": req.container_id,
+            "attributes": attributes
         });
 
-        let client = Client::new();
         let response = client
             .put(&keycloak_url)
             .header("Authorization", token)
@@ -601,6 +659,7 @@ impl RoleProvider for KeycloakRoleAdapter {
             404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
             401 => Err(AppError::InvalidToken),
             403 => Err(AppError::Forbidden),
+            409 => Err(AppError::Conflict { resource: "role".into(), details: "Conflict updating role".into() }),
             _ => {
                 let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
                 Err(AppError::ExternalServiceError { details: body })
