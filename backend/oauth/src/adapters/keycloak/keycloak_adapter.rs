@@ -172,7 +172,7 @@ impl UserProvider for KeycloakUserAdapter {
             Err(actix_web::error::ErrorInternalServerError(format!("{}: {}", status, body)))
         }
     }
-    
+
     async fn get_user(&self, id: &str, token: &str) -> Result<GetUserRes, actix_web::Error> {
         let keycloak_url = format!(
             "{}://{}:{}/admin/realms/{}/users/{}",
@@ -232,6 +232,59 @@ impl UserProvider for KeycloakUserAdapter {
         } else {
             let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
             Err(actix_web::error::ErrorInternalServerError(body))
+        }
+    }
+    
+    async fn update_user(&self, id: &str, req: &CreateUserReq, token: &str) -> Result<CreateUserRes, actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/users/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+
+        let user_body = json!({
+            "username": req.username,
+            "email": req.username,
+            "firstName": req.first_name,
+            "lastName": req.last_name,
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": req.password,
+                    "temporary": false
+                }
+            ]
+        });
+
+        let client = Client::new();
+        let response = client
+            .put(&keycloak_url)
+            .header("Authorization", token)
+            .json(&user_body)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status().as_u16();
+        match status {
+            200 | 204 => Ok(CreateUserRes {
+                id: id.to_string(),
+                username: req.username.clone(),
+                first_name: req.first_name.clone(),
+                last_name: req.last_name.clone(),
+                enabled: true,
+            }),
+            404 => Err(actix_web::error::ErrorNotFound("User not found")),
+            401 => Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+            403 => Err(actix_web::error::ErrorForbidden("Forbidden")),
+            _ => {
+                let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(actix_web::error::ErrorInternalServerError(body))
+            }
         }
     }
 }

@@ -6,9 +6,6 @@ use serde_json::{json, Value};
 use reqwest::Client;
 use std::env;
 
-//USERS
-use core::dtos::res::get_user_res::GetUserRes;
-use core::dtos::res::get_all_users_res::GetUsersRes;
 //ROLES
 use core::dtos::req::create_role_req::CreateRoleReq;
 use core::dtos::res::get_role_res::GetRoleRes;
@@ -18,58 +15,6 @@ use core::dtos::res::get_all_roles_res::GetAllRolesRes;
 pub async fn hello() -> impl Responder {
     
     HttpResponse::Ok().body("Hello, Actix!")
-}
-
-#[put("/users/{id}")]
-pub async fn update_user(
-    token_req: HttpRequest,
-    path: web::Path<String>,
-    web::Json(payload): web::Json<Value>,
-) -> Result<impl Responder> {
-    let id = path.into_inner();
-
-    // Require Authorization
-    let auth = match token_req.headers().get("Authorization").and_then(|v| v.to_str().ok()) {
-        Some(s) if !s.is_empty() => s.to_string(),
-        _ => return Ok(HttpResponse::Unauthorized().body("Missing Authorization header")),
-    };
-
-    // Build Keycloak base URL
-    let keycloak_url = match (
-        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
-        env::var("KEYCLOAK_INTERNAL_HOST"),
-        env::var("KEYCLOAK_INTERNAL_API_PORT"),
-    ) {
-        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
-        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
-    }?;
-
-    let realm = env::var("KEYCLOAK_REALM")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
-
-    let url = format!("{}/admin/realms/{}/users/{}", keycloak_url, realm, id);
-
-    let client = Client::new();
-    let response = client
-        .put(&url)
-        .header("Authorization", auth)
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
-
-    let status = response.status();
-
-    if status.is_success() {
-        // Return empty body for success (mapped to 200 OK)
-        Ok(HttpResponse::Ok().finish())
-    } else if status.as_u16() == 404 {
-        let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
-        Ok(HttpResponse::NotFound().body(body))
-    } else {
-        let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        Ok(HttpResponse::build(status).body(body))
-    }
 }
 
 #[patch("/users/{id}")]
