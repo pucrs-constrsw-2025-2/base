@@ -400,7 +400,7 @@ impl RoleProvider for KeycloakRoleAdapter {
                     .send()
                     .await
                     .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to fetch created role"))?;
-                
+
                 if get_response.status().is_success() {
                     let value = get_response.json::<serde_json::Value>().await
                         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
@@ -495,6 +495,55 @@ impl RoleProvider for KeycloakRoleAdapter {
         } else {
             let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
             Err(actix_web::error::ErrorInternalServerError(body))
+        }
+    }
+
+    async fn update_role(&self, id: &str, req: &CreateRoleReq, token: &str) -> Result<(), actix_web::Error> {
+        let keycloak_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+
+        let role_body = json!({
+            "id": id,
+            "name": req.name,
+            "composite": req.composite,
+            "clientRole": req.client_role,
+            "containerId": req.container_id
+        });
+
+        let client = Client::new();
+        let response = client
+            .put(&keycloak_url)
+            .header("Authorization", token)
+            .json(&role_body)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to call Keycloak"))?;
+
+        let status = response.status().as_u16();
+        match status {
+            200 | 204 => Ok(()),
+            404 => {
+                let body = response.text().await.unwrap_or_else(|_| "Not found".to_string());
+                Err(actix_web::error::ErrorNotFound(body))
+            }
+            401 => {
+                let body = response.text().await.unwrap_or_else(|_| "Unauthorized".to_string());
+                Err(actix_web::error::ErrorUnauthorized(body))
+            }
+            403 => {
+                let body = response.text().await.unwrap_or_else(|_| "Forbidden".to_string());
+                Err(actix_web::error::ErrorForbidden(body))
+            }
+            _ => {
+                let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+                Err(actix_web::error::ErrorInternalServerError(body))
+            }
         }
     }
 }
