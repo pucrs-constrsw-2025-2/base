@@ -1,1 +1,2 @@
-pub mod keycloak_adapter;
+pub mod web;
+pub mod keycloak;

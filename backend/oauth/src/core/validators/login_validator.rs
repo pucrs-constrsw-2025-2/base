@@ -1,4 +1,4 @@
-use crate::dtos::req::login_req::LoginReq;
+use crate::core::dtos::req::login_req::LoginReq;
 use regex::Regex;
 
 pub fn validate_login(form: &LoginReq) -> Result<(), actix_web::Error> {
