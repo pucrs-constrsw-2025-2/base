@@ -1,23 +1,34 @@
-use crate::core::dtos::req::create_user_req::CreateUserReq;
+use crate::core::dtos::req::update_user_req::UpdateUserReq;
 use regex::Regex;
 
-pub fn validate_update_user(req: &CreateUserReq) -> Result<(), actix_web::Error> {
-    if req.username.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Email is required"));
+pub fn validate_update_user(req: &UpdateUserReq) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+
+    if let Some(username) = &req.username {
+        if username.trim().is_empty() {
+            errors.push("Username cannot be empty".to_string());
+        }
+        let email_regex = Regex::new(r#"(?i)^[^@\s]+@[^@\s]+\.[^@\s]+$"#).unwrap();
+        if !email_regex.is_match(username) {
+            errors.push("Invalid email format".to_string());
+        }
     }
-    let email_regex = Regex::new(r#"(?i)^[^@\s]+@[^@\s]+\.[^@\s]+$"#)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to compile email regex"))?;
-    if !email_regex.is_match(&req.username) {
-        return Err(actix_web::error::ErrorBadRequest("Invalid email format"));
+
+    if let Some(first_name) = &req.first_name {
+        if first_name.trim().is_empty() {
+            errors.push("First name cannot be empty".to_string());
+        }
     }
-    if req.password.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Password is required"));
+
+    if let Some(last_name) = &req.last_name {
+        if last_name.trim().is_empty() {
+            errors.push("Last name cannot be empty".to_string());
+        }
     }
-    if req.first_name.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("First name is required"));
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
     }
-    if req.last_name.trim().is_empty() {
-        return Err(actix_web::error::ErrorBadRequest("Last name is required"));
-    }
-    Ok(())
 }
