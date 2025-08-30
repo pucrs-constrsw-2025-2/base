@@ -38,3 +38,11 @@ pub async fn update_role_service<P: RoleProvider>(
     validate_update_role(req)?;
     provider.update_role(id, req, token).await
 }
+
+pub async fn delete_role_service<P: RoleProvider>(
+    provider: &P,
+    id: &str,
+    token: &str
+) -> Result<(), actix_web::Error> {
+    provider.delete_role(id, token).await
+}

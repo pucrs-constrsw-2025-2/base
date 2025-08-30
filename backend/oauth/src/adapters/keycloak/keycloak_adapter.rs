@@ -426,7 +426,7 @@ impl RoleProvider for KeycloakRoleAdapter {
 
     async fn get_roles(&self, token: &str) -> Result<GetAllRolesRes, actix_web::Error> {
         let keycloak_url = format!(
-            "{}://{}:{}/admin/realms/{}/roles",
+            "{}://{}:{}/admin/realms/{}/roles?briefRepresentation=false",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
             env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
@@ -445,15 +445,24 @@ impl RoleProvider for KeycloakRoleAdapter {
             let roles_value = response.json::<Vec<serde_json::Value>>().await
                 .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
 
-            let roles_vec: Vec<GetRoleRes> = roles_value.into_iter().map(|role_value| {
-                let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-                GetRoleRes { id, name, description }
-            }).collect();
-
-            Ok(GetAllRolesRes { roles: roles_vec })
+            let roles_vec: Vec<GetRoleRes> = roles_value.into_iter()
+        .filter(|rv| {
+            // Mantém apenas não deletados
+            let deleted = rv.get("attributes")
+                .and_then(|a| a.get("deleted"))
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().any(|x| x.as_str() == Some("true")))
+                .unwrap_or(false);
+            !deleted
+        })
+        .map(|role_value| {
+            let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            GetRoleRes { id, name, description }
+        })
+        .collect();
+    Ok(GetAllRolesRes { roles: roles_vec })
         } else {
             let status = response.status();
             let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
@@ -542,6 +551,71 @@ impl RoleProvider for KeycloakRoleAdapter {
             }
             _ => {
                 let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+                Err(actix_web::error::ErrorInternalServerError(body))
+            }
+        }
+    }
+
+    async fn delete_role(&self, id: &str, token: &str) -> Result<(), actix_web::Error> {
+        // 1. Buscar role atual
+        let get_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            id
+        );
+        let client = Client::new();
+        let get_resp = client
+            .get(&get_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to fetch role"))?;
+
+        if get_resp.status().as_u16() == 404 {
+            return Err(actix_web::error::ErrorNotFound("Role not found"));
+        }
+        if !get_resp.status().is_success() {
+            let body = get_resp.text().await.unwrap_or_default();
+            return Err(actix_web::error::ErrorInternalServerError(body));
+        }
+
+        let mut role_json = get_resp
+            .json::<Value>()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse role"))?;
+
+        // 2. Marcar exclusão lógica (atributo customizado)
+        {
+            let attrs = role_json
+                .as_object_mut()
+                .unwrap()
+                .entry("attributes")
+                .or_insert_with(|| json!({}));
+            if attrs.is_object() {
+                attrs.as_object_mut().unwrap().insert("deleted".to_string(), json!(["true"]));
+            }
+        }
+
+        // 3. PUT roles-by-id/{id} com atributos atualizados
+        let put_resp = client
+            .put(&get_url)
+            .header("Authorization", token)
+            .json(&role_json)
+            .send()
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to update role"))?;
+
+        let status = put_resp.status().as_u16();
+        match status {
+            200 | 204 => Ok(()),
+            404 => Err(actix_web::error::ErrorNotFound("Role not found")),
+            401 => Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+            403 => Err(actix_web::error::ErrorForbidden("Forbidden")),
+            _ => {
+                let body = put_resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
                 Err(actix_web::error::ErrorInternalServerError(body))
             }
         }
