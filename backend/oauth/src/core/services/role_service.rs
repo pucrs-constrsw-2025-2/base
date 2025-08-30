@@ -3,6 +3,7 @@ use crate::core::dtos::req::create_role_req::CreateRoleReq;
 use crate::core::dtos::res::get_role_res::GetRoleRes;
 use crate::core::dtos::res::get_all_roles_res::GetAllRolesRes;
 use crate::core::validators::create_role_validator::validate_create_role;
+use crate::core::validators::update_role_validator::validate_update_role;
 
 pub async fn get_roles_service<P: RoleProvider>(
     provider: &P,
@@ -26,4 +27,14 @@ pub async fn create_role_service<P: RoleProvider>(
 ) -> Result<GetRoleRes, actix_web::Error> {
     validate_create_role(&req)?;
     provider.create_role(req, token).await
+}
+
+pub async fn update_role_service<P: RoleProvider>(
+    provider: &P,
+    id: &str,
+    req: &CreateRoleReq,
+    token: &str,
+) -> Result<(), actix_web::Error> {
+    validate_update_role(req)?;
+    provider.update_role(id, req, token).await
 }
