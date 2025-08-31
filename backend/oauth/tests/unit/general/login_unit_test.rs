@@ -50,7 +50,11 @@ impl AuthProvider for MockAuthProvider {
                 refresh_token: "REF-123".into(),
                 refresh_expires_in: 1800,
             }),
-            MockMode::ExternalError => Err(AppError::ExternalServiceError { details: "kc down".into() }),
+            MockMode::ExternalError => Err(AppError::ExternalServiceError {
+                code: 500,
+                details: "kc down".into(),
+                source: None,
+            }),
         }
     }
 }
@@ -124,7 +128,7 @@ async fn login_service_external_error_propagates() {
 
     let err = login_service(&provider, &input).await.unwrap_err();
     match err {
-        AppError::ExternalServiceError { details } => assert_eq!(details, "kc down"),
+        AppError::ExternalServiceError { details, .. } => assert_eq!(details, "kc down"),
         other => panic!("Esperado ExternalServiceError, obtido {:?}", other),
     }
     assert_eq!(provider.calls(), 1);
