@@ -21,5 +21,9 @@ path = "src/lib.rs"
 name = "login_unit_test"
 path = "tests/unit/general/login_unit_test.rs"
 
+[[test]]
+name = "user_service_unit_test"
+path = "tests/unit/user/user_service_unit_test.rs"
+
 [dev-dependencies]
 actix-rt = "2"
