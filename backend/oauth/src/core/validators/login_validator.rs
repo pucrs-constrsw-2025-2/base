@@ -8,7 +8,7 @@ pub fn validate_login(form: &LoginReq) -> Result<(), Vec<String>> {
         errors.push("Username is required".to_string());
     } else {
         let email_regex = Regex::new(r#"(?i)^(?:[-!#-'*+\/-9=?A-Z^-~]+(?:\.[-!#-'*+\/-9=?A-Z^-~]+)*|"(?:[\x20\x21\x23-\x5b\x5d-\x7e]|\\[\x00-\x7f])*")@(?:[-!#-'*+\/-9=?A-Z^-~]+(?:\.[-!#-'*+\/-9=?A-Z^-~]+)*|\[[\t -Z^-~]*\])$"#)
-            .map_err(|_| vec!["Failed to compile email regex".to_string()])?;
+            .expect("hardcoded email regex must compile");
 
         if !email_regex.is_match(&form.username) {
             errors.push("Invalid email format".to_string());
