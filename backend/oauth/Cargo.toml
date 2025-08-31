@@ -25,5 +25,9 @@ path = "tests/unit/general/login_unit_test.rs"
 name = "user_service_unit_test"
 path = "tests/unit/user/user_service_unit_test.rs"
 
+[[test]]
+name = "role_service_unit_test"
+path = "tests/unit/role/role_service_unit_test.rs"
+
 [dev-dependencies]
 actix-rt = "2"
