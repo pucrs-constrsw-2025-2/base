@@ -99,15 +99,27 @@ fn clone_app_error(e: &AppError) -> AppError {
     match e {
         AppError::ValidationError { details } =>
             AppError::ValidationError { details: details.clone() },
-        AppError::ExternalServiceError { details } =>
-            AppError::ExternalServiceError { details: details.clone() },
-        AppError::NotFound { resource, id } =>
-            AppError::NotFound { resource: resource.clone(), id: id.clone() },
-        AppError::Conflict { resource, details } =>
-            AppError::Conflict { resource: resource.clone(), details: details.clone() },
-        AppError::Forbidden => AppError::Forbidden,
-        AppError::InvalidToken => AppError::InvalidToken,
-        AppError::InvalidCredentials => AppError::InvalidCredentials,
+        AppError::ExternalServiceError { details, code, source } =>
+            AppError::ExternalServiceError {
+                details: details.clone(),
+                code: *code,
+                source: None, // Clona a fonte se for clonável
+            },
+        AppError::NotFound { resource, id, code } =>
+            AppError::NotFound {
+                resource: resource.clone(),
+                id: id.clone(),
+                code: *code,
+            },
+        AppError::Conflict { resource, details, code } =>
+            AppError::Conflict {
+                resource: resource.clone(),
+                details: details.clone(),
+                code: *code,
+            },
+        AppError::Forbidden { code } => AppError::Forbidden { code: *code },
+        AppError::InvalidToken { code } => AppError::InvalidToken { code: *code },
+        AppError::InvalidCredentials { code } => AppError::InvalidCredentials { code: *code },
     }
 }
 
@@ -222,7 +234,11 @@ async fn create_user_service_validation_error() {
 #[tokio::test]
 async fn create_user_service_provider_error() {
     let mock = MockUserProvider::new();
-    mock.set_create_error(AppError::ExternalServiceError { details: "down".into() });
+    mock.set_create_error(AppError::ExternalServiceError {
+        details: "down".into(),
+        code: 500,
+        source: None,
+    });
     let req = make_valid_create_user_req();
     let err = create_user_service(&mock, &req, "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
@@ -247,7 +263,11 @@ async fn get_users_service_success() {
 #[tokio::test]
 async fn get_users_service_error() {
     let mock = MockUserProvider::new();
-    mock.set_get_users_error(AppError::ExternalServiceError { details: "err".into() });
+    mock.set_get_users_error(AppError::ExternalServiceError {
+        details: "err".into(),
+        code: 500,
+        source: None,
+    });
     let err = get_users_service(&mock, "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
     assert_eq!(mock.calls_get_users.load(Ordering::SeqCst), 1);
@@ -263,7 +283,11 @@ async fn get_user_service_success() {
 #[tokio::test]
 async fn get_user_service_error() {
     let mock = MockUserProvider::new();
-    mock.set_get_user_error(AppError::NotFound { resource: "user".into(), id: "u1".into() });
+    mock.set_get_user_error(AppError::NotFound {
+        resource: "user".into(),
+        id: "u1".into(),
+        code: 404,
+    });
     let err = get_user_service(&mock, "u1", "tok").await.unwrap_err();
     matches!(err, AppError::NotFound { .. });
     assert_eq!(mock.calls_get_user.load(Ordering::SeqCst), 1);
@@ -289,7 +313,11 @@ async fn update_user_service_validation_error() {
 #[tokio::test]
 async fn update_user_service_provider_error() {
     let mock = MockUserProvider::new();
-    mock.set_update_user_error(AppError::Conflict { resource: "user".into(), details: "email exists".into() });
+    mock.set_update_user_error(AppError::Conflict {
+        resource: "user".into(),
+        details: "email exists".into(),
+        code: 409,
+    });
     let req = make_valid_update_user_req();
     let err = update_user_service(&mock, "u1", &req, "tok").await.unwrap_err();
     matches!(err, AppError::Conflict { .. });
@@ -314,7 +342,11 @@ async fn update_password_service_validation_error() {
 #[tokio::test]
 async fn update_password_service_provider_error() {
     let mock = MockUserProvider::new();
-    mock.set_update_password_error(AppError::ExternalServiceError { details: "fail".into() });
+    mock.set_update_password_error(AppError::ExternalServiceError {
+        details: "fail".into(),
+        code: 500,
+        source: None,
+    });
     let err = update_password_service(&mock, "u1", "ValidPass1", "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
     assert_eq!(mock.calls_update_password.load(Ordering::SeqCst), 1);
@@ -330,9 +362,9 @@ async fn delete_user_service_success() {
 #[tokio::test]
 async fn delete_user_service_error() {
     let mock = MockUserProvider::new();
-    mock.set_delete_user_error(AppError::Forbidden);
+    mock.set_delete_user_error(AppError::Forbidden { code: 403 });
     let err = delete_user_service(&mock, "u1", "tok").await.unwrap_err();
-    matches!(err, AppError::Forbidden);
+    matches!(err, AppError::Forbidden { .. });
     assert_eq!(mock.calls_delete_user.load(Ordering::SeqCst), 1);
 }
 
@@ -354,7 +386,11 @@ async fn add_role_to_user_service_validation_error() {
 #[tokio::test]
 async fn add_role_to_user_service_provider_error() {
     let mock = MockUserProvider::new();
-    mock.set_add_role_error(AppError::NotFound { resource: "role".into(), id: "roleA".into() });
+    mock.set_add_role_error(AppError::NotFound {
+        resource: "role".into(),
+        id: "roleA".into(),
+        code: 404,
+    });
     let err = add_role_to_user_service(&mock, "u1", "roleA", "tok").await.unwrap_err();
     matches!(err, AppError::NotFound { .. });
     assert_eq!(mock.calls_add_role.load(Ordering::SeqCst), 1);
@@ -370,7 +406,11 @@ async fn remove_role_from_user_service_success() {
 #[tokio::test]
 async fn remove_role_from_user_service_error() {
     let mock = MockUserProvider::new();
-    mock.set_remove_role_error(AppError::ExternalServiceError { details: "kc".into() });
+    mock.set_remove_role_error(AppError::ExternalServiceError {
+        details: "kc".into(),
+        code: 500,
+        source: None,
+    });
     let err = remove_role_from_user_service(&mock, "u1", "roleA", "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
     assert_eq!(mock.calls_remove_role.load(Ordering::SeqCst), 1);

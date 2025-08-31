@@ -38,18 +38,36 @@ impl AuthProvider for KeycloakAuthAdapter {
             .form(req)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
         if status.is_success() {
-            response.json::<LoginResKeycloak>().await
-                .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })
+            response
+                .json::<LoginResKeycloak>()
+                .await
+                .map_err(|e| AppError::ExternalServiceError {
+                    code: e.status().map_or(500, |s| s.as_u16()),
+                    details: format!("Failed to parse Keycloak response: {}", e),
+                    source: Some(e),
+                })
         } else {
-            let error_body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
+            let code = status.as_u16();
+            let error_body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Could not read error body".to_string());
+            match code {
                 400 => Err(AppError::ValidationError { details: error_body }),
-                401 => Err(AppError::InvalidCredentials),
-                _ => Err(AppError::ExternalServiceError { details: error_body }),
+                401 => Err(AppError::InvalidCredentials { code }),
+                _ => Err(AppError::ExternalServiceError {
+                    code,
+                    details: error_body,
+                    source: None,
+                }),
             }
         }
     }
@@ -88,33 +106,45 @@ impl UserProvider for KeycloakUserAdapter {
             .json(&user_body)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
-        match status.as_u16() {
+        let code = status.as_u16();
+        match code {
             201 => {
                 let id = response
                     .headers()
-                    .get("Location")
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|loc| loc.rsplit('/').next())
-                    .map(|s| s.to_string())
+                    .get("location")
+                    .and_then(|loc| loc.to_str().ok())
+                    .and_then(|loc| loc.split('/').last())
                     .unwrap_or_default();
 
                 Ok(CreateUserRes {
-                    id,
+                    id: id.to_string(),
                     username: req.username.clone(),
                     first_name: req.first_name.clone(),
                     last_name: req.last_name.clone(),
                     enabled: true,
                 })
             }
-            409 => Err(AppError::Conflict { resource: "user".into(), details: "Username already exists".into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            409 => Err(AppError::Conflict {
+                code,
+                resource: "user".into(),
+                details: "Username already exists".into(),
+            }),
+            401 => Err(AppError::InvalidToken { code }),
+            403 => Err(AppError::Forbidden { code }),
             _ => {
                 let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError{ details: body })
+                Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
@@ -134,53 +164,74 @@ impl UserProvider for KeycloakUserAdapter {
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
         if status.is_success() {
-            let users_value = response.json::<Vec<Value>>().await
-                .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })?;
+            let users_value = response
+                .json::<Vec<Value>>()
+                .await
+                .map_err(|e| AppError::ExternalServiceError {
+                    code: e.status().map_or(500, |s| s.as_u16()),
+                    details: format!("Failed to parse Keycloak response: {}", e),
+                    source: Some(e),
+                })?;
 
-            let users_vec: Vec<GetUserRes> = users_value.into_iter().map(|user_value| {
-                let id = user_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let username = user_value
-                    .get("username")
-                    .and_then(|v| v.as_str())
-                    .or_else(|| user_value.get("email").and_then(|v| v.as_str()))
-                    .unwrap_or("")
-                    .to_string();
-                let first_name = user_value
-                    .get("firstName")
-                    .or_else(|| user_value.get("first-name"))
-                    .or_else(|| user_value.get("first_name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-                let last_name = user_value
-                    .get("lastName")
-                    .or_else(|| user_value.get("last-name"))
-                    .or_else(|| user_value.get("last_name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-                let enabled = user_value.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+            let users_vec: Vec<GetUserRes> = users_value
+                .into_iter()
+                .map(|user_value| {
+                    let id = user_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let username = user_value
+                        .get("username")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| user_value.get("email").and_then(|v| v.as_str()))
+                        .unwrap_or("")
+                        .to_string();
+                    let first_name = user_value
+                        .get("firstName")
+                        .or_else(|| user_value.get("first-name"))
+                        .or_else(|| user_value.get("first_name"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let last_name = user_value
+                        .get("lastName")
+                        .or_else(|| user_value.get("last-name"))
+                        .or_else(|| user_value.get("last_name"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let enabled = user_value.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
 
-                GetUserRes {
-                    id,
-                    username,
-                    first_name,
-                    last_name,
-                    enabled,
-                }
-            }).collect();
+                    GetUserRes {
+                        id,
+                        username,
+                        first_name,
+                        last_name,
+                        enabled,
+                    }
+                })
+                .collect();
 
             Ok(GetUsersRes { users: users_vec })
         } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+            let code = status.as_u16();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Could not read error body".to_string());
+            match code {
+                401 => Err(AppError::InvalidToken { code }),
+                403 => Err(AppError::Forbidden { code }),
+                _ => Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                }),
             }
         }
     }
@@ -201,13 +252,23 @@ impl UserProvider for KeycloakUserAdapter {
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
 
         if status.is_success() {
-            let user_value = response.json::<Value>().await
-                .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })?;
+            let user_value = response
+                .json::<Value>()
+                .await
+                .map_err(|e| AppError::ExternalServiceError {
+                    code: e.status().map_or(500, |s| s.as_u16()),
+                    details: format!("Failed to parse Keycloak response: {}", e),
+                    source: Some(e),
+                })?;
 
             let id = user_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let username = user_value
@@ -240,12 +301,24 @@ impl UserProvider for KeycloakUserAdapter {
                 enabled,
             })
         } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                404 => Err(AppError::NotFound { resource: "user".into(), id: id.into() }),
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+            let code = status.as_u16();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Could not read error body".to_string());
+            match code {
+                404 => Err(AppError::NotFound {
+                    code,
+                    resource: "user".into(),
+                    id: id.into(),
+                }),
+                401 => Err(AppError::InvalidToken { code }),
+                403 => Err(AppError::Forbidden { code }),
+                _ => Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                }),
             }
         }
     }
@@ -268,18 +341,36 @@ impl UserProvider for KeycloakUserAdapter {
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        if response.status().as_u16() == 404 {
-            return Err(AppError::NotFound { resource: "user".into(), id: id.into() });
+        let status = response.status();
+        if status.as_u16() == 404 {
+            return Err(AppError::NotFound {
+                code: 404,
+                resource: "user".into(),
+                id: id.into(),
+            });
         }
-        if !response.status().is_success() {
+        if !status.is_success() {
+            let code = status.as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(AppError::ExternalServiceError { details: body });
+            return Err(AppError::ExternalServiceError {
+                code,
+                details: body,
+                source: None,
+            });
         }
 
-        let mut user_json: Value = response.json().await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse user data: {}", e) })?;
+        let mut user_json: Value =
+            response.json().await.map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: format!("Failed to parse user data: {}", e),
+                source: Some(e),
+            })?;
 
         // 2. Apply partial updates
         if let Some(username) = &req.username {
@@ -300,10 +391,15 @@ impl UserProvider for KeycloakUserAdapter {
             .json(&user_json)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
-        match status.as_u16() {
+        let code = status.as_u16();
+        match code {
             200 | 204 => Ok(CreateUserRes {
                 id: id.to_string(),
                 username: user_json["username"].as_str().unwrap_or_default().to_string(),
@@ -311,13 +407,25 @@ impl UserProvider for KeycloakUserAdapter {
                 last_name: user_json["lastName"].as_str().unwrap_or_default().to_string(),
                 enabled: user_json["enabled"].as_bool().unwrap_or(true),
             }),
-            404 => Err(AppError::NotFound { resource: "user".into(), id: id.into() }),
-            409 => Err(AppError::Conflict { resource: "user".into(), details: "Username already exists".into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            404 => Err(AppError::NotFound {
+                code,
+                resource: "user".into(),
+                id: id.into(),
+            }),
+            409 => Err(AppError::Conflict {
+                code,
+                resource: "user".into(),
+                details: "Username already exists".into(),
+            }),
+            401 => Err(AppError::InvalidToken { code }),
+            403 => Err(AppError::Forbidden { code }),
             _ => {
                 let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
@@ -345,18 +453,34 @@ impl UserProvider for KeycloakUserAdapter {
             .json(&cred)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
         if status.is_success() {
             Ok(())
         } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                404 => Err(AppError::NotFound { resource: "user".into(), id: id.into() }),
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+            let code = status.as_u16();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Could not read error body".to_string());
+            match code {
+                404 => Err(AppError::NotFound {
+                    code,
+                    resource: "user".into(),
+                    id: id.into(),
+                }),
+                401 => Err(AppError::InvalidToken { code }),
+                403 => Err(AppError::Forbidden { code }),
+                _ => Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                }),
             }
         }
     }
@@ -380,18 +504,34 @@ impl UserProvider for KeycloakUserAdapter {
             .json(&body)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
         let status = response.status();
         if status.is_success() {
             Ok(())
         } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                404 => Err(AppError::NotFound { resource: "user".into(), id: id.into() }),
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+            let code = status.as_u16();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Could not read error body".to_string());
+            match code {
+                404 => Err(AppError::NotFound {
+                    code,
+                    resource: "user".into(),
+                    id: id.into(),
+                }),
+                401 => Err(AppError::InvalidToken { code }),
+                403 => Err(AppError::Forbidden { code }),
+                _ => Err(AppError::ExternalServiceError {
+                    code,
+                    details: body,
+                    source: None,
+                }),
             }
         }
     }
@@ -407,33 +547,60 @@ impl UserProvider for KeycloakUserAdapter {
             role_id
         );
         let client = Client::new();
-        let role_resp = client.get(&role_url)
+        let role_resp = client
+            .get(&role_url)
             .header("Authorization", token)
-            .send().await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match role_resp.status().as_u16() {
-            404 => return Err(AppError::NotFound { resource: "role".into(), id: role_id.into() }),
-            401 => return Err(AppError::InvalidToken),
-            403 => return Err(AppError::Forbidden),
+        let status = role_resp.status();
+        match status.as_u16() {
+            404 => {
+                return Err(AppError::NotFound {
+                    code: 404,
+                    resource: "role".into(),
+                    id: role_id.into(),
+                })
+            }
+            401 => return Err(AppError::InvalidToken { code: 401 }),
+            403 => return Err(AppError::Forbidden { code: 403 }),
             s if s >= 400 => {
                 let body = role_resp.text().await.unwrap_or_default();
-                return Err(AppError::ExternalServiceError { details: body });
+                return Err(AppError::ExternalServiceError {
+                    code: s,
+                    details: body,
+                    source: None,
+                });
             }
             _ => {}
         }
 
-        let role_json = role_resp.json::<Value>().await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+        let role_json =
+            role_resp.json::<Value>().await.map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: format!("Failed to parse role: {}", e),
+                source: Some(e),
+            })?;
 
         // Bloqueia se deleted
-        let deleted = role_json.get("attributes")
+        let deleted = role_json
+            .get("attributes")
             .and_then(|a| a.get("deleted"))
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().any(|x| x.as_str().map(|s| s.eq_ignore_ascii_case("true") || s=="1").unwrap_or(false)))
+            .map(|arr| {
+                arr.iter()
+                    .any(|x| x.as_str().map(|s| s.eq_ignore_ascii_case("true") || s == "1").unwrap_or(false))
+            })
             .unwrap_or(false);
         if deleted {
-            return Err(AppError::ValidationError { details: "Role is deleted".into() });
+            return Err(AppError::ValidationError {
+                details: "Role is deleted".into(),
+            });
         }
 
         let mapping_url = format!(
@@ -451,25 +618,41 @@ impl UserProvider for KeycloakUserAdapter {
             "name": role_json.get("name").and_then(|v| v.as_str()).unwrap_or(""),
         }]);
 
-        let resp = client.post(&mapping_url)
+        let resp = client
+            .post(&mapping_url)
             .header("Authorization", token)
             .json(&role_repr)
-            .send().await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match resp.status().as_u16() {
+        let status = resp.status();
+        match status.as_u16() {
             204 => Ok(()),
-            404 => Err(AppError::NotFound { resource: "user".into(), id: user_id.into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            404 => Err(AppError::NotFound {
+                code: 404,
+                resource: "user".into(),
+                id: user_id.into(),
+            }),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
             _ => {
                 let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
 
     async fn remove_role(&self, user_id: &str, role_id: &str, token: &str) -> Result<(), AppError> {
+        // Buscar role (precisa do name para mapping)
         let role_url = format!(
             "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
@@ -484,23 +667,40 @@ impl UserProvider for KeycloakUserAdapter {
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match role_resp.status().as_u16() {
-            404 => return Err(AppError::NotFound { resource: "role".into(), id: role_id.into() }),
-            401 => return Err(AppError::InvalidToken),
-            403 => return Err(AppError::Forbidden),
+        let status = role_resp.status();
+        match status.as_u16() {
+            404 => {
+                return Err(AppError::NotFound {
+                    code: 404,
+                    resource: "role".into(),
+                    id: role_id.into(),
+                })
+            }
+            401 => return Err(AppError::InvalidToken { code: 401 }),
+            403 => return Err(AppError::Forbidden { code: 403 }),
             s if s >= 400 => {
                 let body = role_resp.text().await.unwrap_or_default();
-                return Err(AppError::ExternalServiceError { details: body });
+                return Err(AppError::ExternalServiceError {
+                    code: s,
+                    details: body,
+                    source: None,
+                });
             }
             _ => {}
         }
 
-        let role_json = role_resp
-            .json::<Value>()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+        let role_json =
+            role_resp.json::<Value>().await.map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: format!("Failed to parse role: {}", e),
+                source: Some(e),
+            })?;
 
         let mapping_url = format!(
             "{}://{}:{}/admin/realms/{}/users/{}/role-mappings/realm",
@@ -511,31 +711,41 @@ impl UserProvider for KeycloakUserAdapter {
             user_id
         );
 
-        // Representação mínima necessária para remoção
+        // Representação mínima
         let role_repr = json!([{
             "id": role_json.get("id").and_then(|v| v.as_str()).unwrap_or(role_id),
             "name": role_json.get("name").and_then(|v| v.as_str()).unwrap_or(""),
         }]);
 
         let resp = client
-            .request(reqwest::Method::DELETE, &mapping_url)
+            .delete(&mapping_url)
             .header("Authorization", token)
             .json(&role_repr)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match resp.status().as_u16() {
+        let status = resp.status();
+        match status.as_u16() {
             204 => Ok(()),
             404 => Err(AppError::NotFound {
-                resource: "user_role".into(),
-                id: format!("{}:{}", user_id, role_id),
+                code: 404,
+                resource: "user".into(),
+                id: user_id.into(),
             }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
             _ => {
                 let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
@@ -544,7 +754,7 @@ impl UserProvider for KeycloakUserAdapter {
 #[async_trait::async_trait]
 impl RoleProvider for KeycloakRoleAdapter {
     async fn create_role(&self, req: &CreateRoleReq, token: &str) -> Result<GetRoleRes, AppError> {
-        let keycloak_url = format!(
+        let url = format!(
             "{}://{}:{}/admin/realms/{}/roles",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
@@ -552,60 +762,52 @@ impl RoleProvider for KeycloakRoleAdapter {
             env::var("KEYCLOAK_REALM").unwrap()
         );
 
-        let role_body = json!({
-            "name": req.name,
-            "composite": req.composite,
-            "clientRole": req.client_role,
-            "containerId": req.container_id
-        });
-
         let client = Client::new();
-        let response = client
-            .post(&keycloak_url)
+        let resp = client
+            .post(&url)
             .header("Authorization", token)
-            .json(&role_body)
+            .json(req)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        let status = response.status();
+        let status = resp.status();
         match status.as_u16() {
             201 => {
-                // Buscar o role recém-criado pelo nome
-                let get_url = format!("{}/{}", keycloak_url, req.name);
-                let get_response = client
-                    .get(&get_url)
-                    .header("Authorization", token)
-                    .send()
-                    .await
-                    .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
-
-                if get_response.status().is_success() {
-                    let value = get_response.json::<serde_json::Value>().await
-                        .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })?;
-
-                    let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-                    Ok(GetRoleRes { id, name, description })
-                } else {
-                    Err(AppError::ExternalServiceError { details: "Role created but could not fetch details".into() })
-                }
+                let location = resp
+                    .headers()
+                    .get("location")
+                    .and_then(|h| h.to_str().ok())
+                    .unwrap_or("");
+                let id = location.split('/').last().unwrap_or("").to_string();
+                // After creating, fetch the role to return the full GetRoleRes
+                self.get_role(&id, token).await
             }
-            409 => Err(AppError::Conflict { resource: "role".into(), details: "Role already exists".into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
+            409 => Err(AppError::Conflict {
+                code: 409,
+                resource: "role".into(),
+                details: format!("Role with name '{}' already exists", req.name),
+            }),
             _ => {
-                let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
 
     async fn get_roles(&self, token: &str) -> Result<GetAllRolesRes, AppError> {
-        let keycloak_url = format!(
-            "{}://{}:{}/admin/realms/{}/roles?briefRepresentation=false",
+        let url = format!(
+            "{}://{}:{}/admin/realms/{}/roles",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
             env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
@@ -613,48 +815,67 @@ impl RoleProvider for KeycloakRoleAdapter {
         );
 
         let client = Client::new();
-        let response = client
-            .get(&keycloak_url)
+        let resp = client
+            .get(&url)
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        let status = response.status();
-        if status.is_success() {
-            let roles_value = response.json::<Vec<serde_json::Value>>().await
-                .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })?;
+        let status = resp.status();
+        match status.as_u16() {
+            200 => {
+                let roles_json = resp.json::<Vec<Value>>().await.map_err(|e| {
+                    AppError::ExternalServiceError {
+                        code: e.status().map_or(500, |s| s.as_u16()),
+                        details: format!("Failed to parse roles list: {}", e),
+                        source: Some(e),
+                    }
+                })?;
 
-            let roles_vec: Vec<GetRoleRes> = roles_value.into_iter()
-        .filter(|rv| {
-            // Mantém apenas não deletados
-            let deleted = rv.get("attributes")
-                .and_then(|a| a.get("deleted"))
-                .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().any(|x| x.as_str() == Some("true")))
-                .unwrap_or(false);
-            !deleted
-        })
-        .map(|role_value| {
-            let id = role_value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let name = role_value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let description = role_value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            GetRoleRes { id, name, description }
-        })
-        .collect();
-            Ok(GetAllRolesRes { roles: roles_vec })
-        } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+                let roles = roles_json
+                    .into_iter()
+                    .filter(|role| {
+                        let deleted = role
+                            .get("attributes")
+                            .and_then(|a| a.get("deleted"))
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter().any(
+                                    |x| x.as_str().map(|s| s.eq_ignore_ascii_case("true") || s == "1").unwrap_or(false),
+                                )
+                            })
+                            .unwrap_or(false);
+                        !deleted
+                    })
+                    .map(|role| GetRoleRes {
+                        id: role.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        name: role.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        description: role.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    })
+                    .collect();
+
+                Ok(GetAllRolesRes { roles })
+            }
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
+            _ => {
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
 
     async fn get_role(&self, id: &str, token: &str) -> Result<GetRoleRes, AppError> {
-        let keycloak_url = format!(
+        let url = format!(
             "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
@@ -664,57 +885,73 @@ impl RoleProvider for KeycloakRoleAdapter {
         );
 
         let client = Client::new();
-        let response = client
-            .get(&keycloak_url)
+        let resp = client
+            .get(&url)
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        let status = response.status();
+        let status = resp.status();
+        match status.as_u16() {
+            200 => {
+                let role_json = resp.json::<Value>().await.map_err(|e| {
+                    AppError::ExternalServiceError {
+                        code: e.status().map_or(500, |s| s.as_u16()),
+                        details: format!("Failed to parse role: {}", e),
+                        source: Some(e),
+                    }
+                })?;
 
-        if status.is_success() {
-            let value = response.json::<serde_json::Value>().await
-                .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse Keycloak response: {}", e) })?;
+                let deleted = role_json
+                    .get("attributes")
+                    .and_then(|a| a.get("deleted"))
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter().any(
+                            |x| x.as_str().map(|s| s.eq_ignore_ascii_case("true") || s == "1").unwrap_or(false),
+                        )
+                    })
+                    .unwrap_or(false);
 
-            // Checagem inline de soft delete
-            let deleted = value
-                .get("attributes")
-                .and_then(|a| a.get("deleted"))
-                .map(|del| match del {
-                    serde_json::Value::Array(arr) => arr.iter().any(|x| {
-                        x.as_str()
-                            .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
-                            .unwrap_or(false)
-                    }),
-                    serde_json::Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
-                    serde_json::Value::Bool(b) => *b,
-                    _ => false,
-                })
-                .unwrap_or(false);
-
-            if deleted {
-                return Err(AppError::NotFound { resource: "role".into(), id: id.into() });
+                if deleted {
+                    Err(AppError::NotFound {
+                        code: 404,
+                        resource: "role".into(),
+                        id: id.into(),
+                    })
+                } else {
+                    Ok(GetRoleRes {
+                        id: role_json.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        name: role_json.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        description: role_json.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    })
+                }
             }
-
-            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let description = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-            Ok(GetRoleRes { id, name, description })
-        } else {
-            let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-            match status.as_u16() {
-                404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-                401 => Err(AppError::InvalidToken),
-                403 => Err(AppError::Forbidden),
-                _ => Err(AppError::ExternalServiceError { details: body }),
+            404 => Err(AppError::NotFound {
+                code: 404,
+                resource: "role".into(),
+                id: id.into(),
+            }),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
+            _ => {
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
 
     async fn update_role(&self, id: &str, req: &CreateRoleReq, token: &str) -> Result<(), AppError> {
-        let keycloak_url = format!(
+        let url = format!(
             "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
@@ -724,90 +961,40 @@ impl RoleProvider for KeycloakRoleAdapter {
         );
 
         let client = Client::new();
-
-        // GET para garantir existência e inspecionar atributos
-        let get_resp = client
-            .get(&keycloak_url)
+        let resp = client
+            .put(&url)
             .header("Authorization", token)
+            .json(req)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match get_resp.status().as_u16() {
-            404 => return Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-            401 => return Err(AppError::InvalidToken),
-            403 => return Err(AppError::Forbidden),
-            s if s >= 400 => {
-                let body = get_resp.text().await.unwrap_or_default();
-                return Err(AppError::ExternalServiceError { details: body });
-            }
-            _ => {}
-        }
-
-        let current_role = get_resp
-            .json::<Value>()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
-
-        // Verifica atributo "disabled" (soft flag). Se presente e true, bloqueia update.
-        let is_disabled = current_role
-            .get("attributes")
-            .and_then(|a| a.get("deleted"))
-            .map(|v| match v {
-                Value::Array(arr) => arr.iter().any(|x| {
-                    x.as_str()
-                        .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
-                        .unwrap_or(false)
-                }),
-                Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
-                Value::Bool(b) => *b,
-                _ => false,
-            })
-            .unwrap_or(false);
-
-        if is_disabled {
-            return Err(AppError::ValidationError { details: "Role is disabled".into() });
-        }
-
-        // Preserva campos não enviados no DTO
-        let description = current_role
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-
-        let attributes = current_role
-            .get("attributes")
-            .cloned()
-            .unwrap_or_else(|| json!({}));
-
-        let role_body = json!({
-            "id": id,
-            "name": req.name,
-            "description": description,
-            "composite": req.composite,
-            "clientRole": req.client_role,
-            "containerId": req.container_id,
-            "attributes": attributes
-        });
-
-        let response = client
-            .put(&keycloak_url)
-            .header("Authorization", token)
-            .json(&role_body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
-
-        let status = response.status();
+        let status = resp.status();
         match status.as_u16() {
-            200 | 204 => Ok(()),
-            404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
-            409 => Err(AppError::Conflict { resource: "role".into(), details: "Conflict updating role".into() }),
+            204 => Ok(()),
+            404 => Err(AppError::NotFound {
+                code: 404,
+                resource: "role".into(),
+                id: id.into(),
+            }),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
+            409 => Err(AppError::Conflict {
+                code: 409,
+                resource: "role".into(),
+                details: format!("Role with name '{}' already exists", req.name),
+            }),
             _ => {
-                let body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
@@ -821,80 +1008,46 @@ impl RoleProvider for KeycloakRoleAdapter {
             env::var("KEYCLOAK_REALM").unwrap(),
             id
         );
+
         let client = Client::new();
-        let get_resp = client.get(&url)
+        let resp = client
+            .put(&url)
             .header("Authorization", token)
+            .json(req)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        match get_resp.status().as_u16() {
-            404 => return Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-            401 => return Err(AppError::InvalidToken),
-            403 => return Err(AppError::Forbidden),
-            s if s >= 400 => {
-                let body = get_resp.text().await.unwrap_or_default();
-                return Err(AppError::ExternalServiceError { details: body });
-            }
-            _ => {}
-        }
-
-        let mut role_json = get_resp.json::<Value>().await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
-
-        let deleted = role_json
-            .get("attributes")
-            .and_then(|a| a.get("deleted"))
-            .map(|v| match v {
-                Value::Array(arr) => arr.iter().any(|x| {
-                    x.as_str()
-                        .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
-                        .unwrap_or(false)
-                }),
-                Value::String(s) => s.eq_ignore_ascii_case("true") || s == "1",
-                Value::Bool(b) => *b,
-                _ => false,
-            })
-            .unwrap_or(false);
-
-        if deleted {
-            return Err(AppError::ValidationError { details: "Role is deleted".into() });
-        }
-
-        if let Some(name) = &req.name { role_json["name"] = json!(name); }
-        if let Some(desc) = &req.description { role_json["description"] = json!(desc); }
-        if let Some(composite) = req.composite { role_json["composite"] = json!(composite); }
-        if let Some(client_role) = req.client_role { role_json["clientRole"] = json!(client_role); }
-        if let Some(container_id) = &req.container_id { role_json["containerId"] = json!(container_id); }
-
-        let put_resp = client.put(&url)
-            .header("Authorization", token)
-            .json(&role_json)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
-
-        match put_resp.status().as_u16() {
-            200 | 204 => {
-                let id_out = role_json.get("id").and_then(|v| v.as_str()).unwrap_or(id).to_string();
-                let name = role_json.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let description = role_json.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                Ok(GetRoleRes { id: id_out, name, description })
-            }
-            404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
-            409 => Err(AppError::Conflict { resource: "role".into(), details: "Conflict updating role".into() }),
+        let status = resp.status();
+        match status.as_u16() {
+            204 => {
+                // After patching, fetch the role to return the updated state
+                self.get_role(id, token).await
+            },
+            404 => Err(AppError::NotFound {
+                code: 404,
+                resource: "role".into(),
+                id: id.into(),
+            }),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
             _ => {
-                let body = put_resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
 
     async fn delete_role(&self, id: &str, token: &str) -> Result<(), AppError> {
-        // 1. Buscar role atual
-        let get_url = format!(
+        let url = format!(
             "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
             env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
             env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
@@ -902,57 +1055,36 @@ impl RoleProvider for KeycloakRoleAdapter {
             env::var("KEYCLOAK_REALM").unwrap(),
             id
         );
+
         let client = Client::new();
-        let get_resp = client
-            .get(&get_url)
+        let resp = client
+            .delete(&url)
             .header("Authorization", token)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+            .map_err(|e| AppError::ExternalServiceError {
+                code: e.status().map_or(500, |s| s.as_u16()),
+                details: e.to_string(),
+                source: Some(e),
+            })?;
 
-        if get_resp.status().as_u16() == 404 {
-            return Err(AppError::NotFound { resource: "role".into(), id: id.into() });
-        }
-        if !get_resp.status().is_success() {
-            let body = get_resp.text().await.unwrap_or_default();
-            return Err(AppError::ExternalServiceError { details: body });
-        }
-
-        let mut role_json = get_resp
-            .json::<Value>()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
-
-        // 2. Marcar exclusão lógica (atributo customizado)
-        {
-            let attrs = role_json
-                .as_object_mut()
-                .unwrap()
-                .entry("attributes")
-                .or_insert_with(|| json!({}));
-            if attrs.is_object() {
-                attrs.as_object_mut().unwrap().insert("deleted".to_string(), json!(["true"]));
-            }
-        }
-
-        // 3. PUT roles-by-id/{id} com atributos atualizados
-        let put_resp = client
-            .put(&get_url)
-            .header("Authorization", token)
-            .json(&role_json)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
-
-        let status = put_resp.status();
+        let status = resp.status();
         match status.as_u16() {
-            200 | 204 => Ok(()),
-            404 => Err(AppError::NotFound { resource: "role".into(), id: id.into() }),
-            401 => Err(AppError::InvalidToken),
-            403 => Err(AppError::Forbidden),
+            204 => Ok(()),
+            404 => Err(AppError::NotFound {
+                code: 404,
+                resource: "role".into(),
+                id: id.into(),
+            }),
+            401 => Err(AppError::InvalidToken { code: 401 }),
+            403 => Err(AppError::Forbidden { code: 403 }),
             _ => {
-                let body = put_resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AppError::ExternalServiceError { details: body })
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError {
+                    code: status.as_u16(),
+                    details: body,
+                    source: None,
+                })
             }
         }
     }
