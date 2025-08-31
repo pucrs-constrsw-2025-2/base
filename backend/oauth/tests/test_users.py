@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from main import app
 from unittest import mock
 import json
+from exceptions import APIException
 
 client = TestClient(app)
 
@@ -37,7 +38,7 @@ def test_create_user_success(mock_create_user):
 
 def test_create_user_failure(mock_create_user):
     # Mock de falha na criação do usuário (usuário já existe)
-    mock_create_user.side_effect = Exception("Usuário já existe")
+    mock_create_user.side_effect = APIException(status_code=409, description="Usuário já existe", error_code="RS-409-01", source="UserService")
 
     # Payload completo para corresponder ao modelo UserCreate
     payload = {
@@ -56,14 +57,14 @@ def test_create_user_failure(mock_create_user):
     assert response.json() == {"detail": "Usuário já existe"}
 
 @pytest.fixture
-def mock_update_user():
-    # O roteador de usuários usa 'requests.put' diretamente, então é isso que precisamos simular
-    with mock.patch('routers.users.requests.put') as mock_put_request:
-        yield mock_put_request
+def mock_update_password_service():
+    with mock.patch('routers.users.update_keycloak_user_password') as mock_service:
+        yield mock_service
 
-def test_patch_user_success(mock_update_user):
-    # Mock do sucesso na atualização do usuário
-    mock_update_user.return_value.status_code = 204
+
+def test_patch_update_password_success(mock_update_password_service):
+    # Mock do sucesso na atualização da senha do usuário
+    mock_update_password_service.return_value = None
     
     response = client.patch(
         "/users/123", json={"password": "updatedpassword"}, headers=MOCK_AUTH_HEADER
@@ -71,27 +72,25 @@ def test_patch_user_success(mock_update_user):
 
     assert response.status_code == 204
 
-def test_patch_user_failure(mock_update_user):
-    # Mock de falha na atualização do usuário
-    mock_update_user.return_value.status_code = 400
-    # Mockamos a resposta JSON com a estrutura da APIException
-    mock_update_user.return_value.json.return_value = {
-        "status_code": 400,
-        "error_code": "KC-400",
-        "description": "Erro ao atualizar a senha.",
-        "source": "UserRouter"
-    }
-
+def test_patch_update_password_failure(mock_update_password_service):
+    # Mock de falha na atualização da senha do usuário
+    mock_update_password_service.side_effect = APIException(status_code=400, description="Erro ao atualizar a senha.", error_code="RS-400-01", source="UserService")
+    
     response = client.patch(
         "/users/123", json={"password": "updatedpassword"}, headers=MOCK_AUTH_HEADER
     )
 
     assert response.status_code == 400
-    assert response.json()["description"] == "Erro ao atualizar a senha."
+    assert response.json()["detail"] == "Erro ao atualizar a senha."
 
-def test_put_user_success(mock_update_user):
+@pytest.fixture
+def mock_update_user_data():
+    with mock.patch('routers.users.update_keycloak_user_data') as mock_service:
+        yield mock_service
+
+def test_put_user_success(mock_update_user_data):
     # Mock do sucesso na substituição do usuário
-    mock_update_user.return_value.status_code = 204
+    mock_update_user_data.return_value = None
 
     # Payload completo para corresponder ao modelo UserUpdate
     payload = {
@@ -107,16 +106,9 @@ def test_put_user_success(mock_update_user):
 
     assert response.status_code == 204
 
-def test_put_user_failure(mock_update_user):
+def test_put_user_failure(mock_update_user_data):
     # Mock de falha na substituição do usuário
-    mock_update_user.return_value.status_code = 400
-    # Mockamos a resposta JSON com a estrutura da APIException
-    mock_update_user.return_value.json.return_value = {
-        "status_code": 400,
-        "error_code": "KC-400",
-        "description": "Erro ao atualizar usuário.",
-        "source": "UserRouter"
-    }
+    mock_update_user_data.side_effect = APIException(status_code=400, description="Erro ao atualizar usuário.", error_code="RS-400-01", source="UserService")
 
     # Payload completo para corresponder ao modelo UserUpdate
     payload = {
@@ -131,4 +123,4 @@ def test_put_user_failure(mock_update_user):
     )
 
     assert response.status_code == 400
-    assert response.json()["description"] == "Erro ao atualizar usuário."
+    assert response.json()["detail"] == "Erro ao atualizar usuário."

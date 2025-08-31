@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from main import app
 from unittest import mock
+from exceptions import APIException
 
 client = TestClient(app)
 
@@ -27,7 +28,7 @@ def test_create_role_success(mock_create_role):
 
 def test_create_role_failure(mock_create_role):
     # Mock de falha na criação da role (role já existe)
-    mock_create_role.side_effect = Exception("Role já existe")
+    mock_create_role.side_effect = APIException(status_code=409, description="Role já existe", error_code="RS-409-01", source="RoleService")
 
     response = client.post(
         "/roles", json={"name": "admin", "description": "Admin role"}, headers=MOCK_AUTH_HEADER
@@ -54,7 +55,7 @@ def test_patch_role_success(mock_patch_role):
 
 def test_patch_role_failure(mock_patch_role):
     # Mock de falha na atualização da role
-    mock_patch_role.side_effect = Exception("Erro ao atualizar role")
+    mock_patch_role.side_effect = APIException(status_code=400, description="Erro ao atualizar role", error_code="RS-400-01", source="RoleService")
 
     response = client.patch(
         "/roles/123", json={"name": "admin", "description": "Updated role"}, headers=MOCK_AUTH_HEADER
@@ -81,7 +82,7 @@ def test_put_role_success(mock_update_role):
 
 def test_put_role_failure(mock_update_role):
     # Mock de falha na substituição da role
-    mock_update_role.side_effect = Exception("Erro ao substituir role")
+    mock_update_role.side_effect = APIException(status_code=400, description="Erro ao substituir role", error_code="RS-400-02", source="RoleService")
 
     response = client.put(
         "/roles/123", json={"name": "admin", "description": "Replaced role"}, headers=MOCK_AUTH_HEADER

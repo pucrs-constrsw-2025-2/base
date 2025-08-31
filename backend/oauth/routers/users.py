@@ -2,12 +2,14 @@ import re
 from typing import Annotated
 import requests
 
-from fastapi import APIRouter, Header, Response, Body
+from fastapi import APIRouter, Header, Response, Body, HTTPException
 from models.user import UserCreate, UserUpdate, TokenResponse, LoginRequest
 from services.keycloak_service import (
     get_keycloak_token,
     create_keycloak_user,
     disable_keycloak_user,
+    update_keycloak_user_data,
+    update_keycloak_user_password
 )
 from exceptions import APIException
 from config import KEYCLOAK_URL, REALM_NAME
@@ -33,9 +35,11 @@ def _validate_token(authorization: str | None):
 @router.post("/login", response_model=TokenResponse)
 async def login(login_request: LoginRequest):
     """Endpoint para autenticar o usuário e obter o access token."""
-    # A chamada de serviço já valida os campos e levanta APIException em caso de falha
-    token_data = get_keycloak_token(login_request.username, login_request.password)
-    return token_data
+    try:
+        token_data = get_keycloak_token(login_request.username, login_request.password)
+        return token_data
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.description)
 
 @router.post("/", response_model=dict, status_code=201)
 async def create_user(user: UserCreate, authorization: Annotated[str | None, Header()] = None):
@@ -49,9 +53,12 @@ async def create_user(user: UserCreate, authorization: Annotated[str | None, Hea
             description="O formato do e-mail fornecido é inválido.",
             source=ERROR_SOURCE,
         )
-
-    new_user_data = create_keycloak_user(authorization, user)
-    return new_user_data
+    
+    try:
+        new_user_data = create_keycloak_user(authorization, user)
+        return new_user_data
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.description)
 
 @router.get("/", response_model=list)
 async def list_users(authorization: Annotated[str | None, Header()] = None, enabled: bool | None = None):
@@ -68,9 +75,8 @@ async def list_users(authorization: Annotated[str | None, Header()] = None, enab
         response = requests.get(url, headers=headers, params=params)
         
         if response.status_code == 200:
-            return response.json() # Retorna a lista de usuários diretamente
+            return response.json()
 
-        # Tratamento de erros da requisição
         error_map = {
             401: "Access token inválido ou expirado.",
             403: "Ação não permitida. Verifique as permissões do token.",
@@ -114,61 +120,42 @@ async def get_user(user_id: str, authorization: Annotated[str | None, Header()] 
 async def delete_user(user_id: str, authorization: Annotated[str | None, Header()] = None):
     """Desabilita um usuário (exclusão lógica)."""
     _validate_token(authorization)
-    disable_keycloak_user(authorization, user_id)
-    return Response(status_code=204)
+    try:
+        disable_keycloak_user(authorization, user_id)
+        return Response(status_code=204)
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.description)
+
 
 @router.put("/{user_id}", status_code=204)
 async def update_user(user_id: str, user_update: UserUpdate, authorization: Annotated[str | None, Header()] = None):
-    """Atualiza dados de um usuário (lógica mantida no router)."""
+    """Atualiza dados de um usuário (lógica agora no serviço)."""
     _validate_token(authorization)
     
-    url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
-    headers = {"Authorization": authorization, "Content-Type": "application/json"}
-    # Usamos dict() para converter o modelo Pydantic em um dicionário para o JSON
+    # Prepara o payload para o serviço, garantindo que ele inclua os campos
+    # necessários para o Keycloak
     data = user_update.dict()
-    # Adicionamos manualmente os campos que não estão no modelo UserUpdate mas são necessários
     data["enabled"] = True
     data["credentials"] = [{"type": "password", "value": user_update.password, "temporary": False}]
 
     try:
-        response = requests.put(url, headers=headers, json=data)
-        if response.status_code == 204:
-            return Response(status_code=204)
+        update_keycloak_user_data(authorization, user_id, data)
+        return Response(status_code=204)
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.description)
 
-        error_map = {
-            401: "Access token inválido ou expirado.",
-            403: "Ação não permitida para este usuário.",
-            404: "Usuário não localizado.",
-        }
-        description = error_map.get(response.status_code, "Erro ao atualizar usuário.")
-        raise APIException(status_code=response.status_code, error_code=f"KC-{response.status_code}", description=description, source=ERROR_SOURCE)
-    except requests.exceptions.RequestException as e:
-        raise APIException(status_code=503, error_code="KC-CONN-ERR", description=f"Erro de comunicação com o Keycloak: {e}", source=ERROR_SOURCE)
 
 @router.patch("/{user_id}", status_code=204)
 async def update_password(user_id: str, body: dict = Body(...), authorization: Annotated[str | None, Header()] = None):
-    """Atualiza a senha de um usuário (lógica mantida no router)."""
+    """Atualiza a senha de um usuário (lógica agora no serviço)."""
     _validate_token(authorization)
     
     password = body.get("password")
     if not password:
         raise APIException(status_code=400, error_code="VALID-400-02", description="O campo 'password' é obrigatório.", source=ERROR_SOURCE)
 
-    url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}/reset-password"
-    headers = {"Authorization": authorization, "Content-Type": "application/json"}
-    data = {"type": "password", "value": password, "temporary": False}
-
     try:
-        response = requests.put(url, json=data, headers=headers)
-        if response.status_code == 204:
-            return Response(status_code=204)
-
-        error_map = {
-            401: "Access token inválido ou expirado.",
-            403: "Ação não permitida para este usuário.",
-            404: "Usuário não localizado.",
-        }
-        description = error_map.get(response.status_code, "Erro ao atualizar a senha.")
-        raise APIException(status_code=response.status_code, error_code=f"KC-{response.status_code}", description=description, source=ERROR_SOURCE)
-    except requests.exceptions.RequestException as e:
-        raise APIException(status_code=503, error_code="KC-CONN-ERR", description=f"Erro de comunicação com o Keycloak: {e}", source=ERROR_SOURCE)
+        update_keycloak_user_password(authorization, user_id, password)
+        return Response(status_code=204)
+    except APIException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.description)
