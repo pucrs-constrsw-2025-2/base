@@ -13,6 +13,8 @@ regex = "1"
 serde = { version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 thiserror = "1.0"
+utoipa = "5.4.0" 
+utoipa-swagger-ui = { version = "9.0.2", features = ["actix-web"] }
 
 [lib]
 path = "src/lib.rs"
@@ -29,5 +31,10 @@ path = "tests/unit/user/user_service_unit_test.rs"
 name = "role_service_unit_test"
 path = "tests/unit/role/role_service_unit_test.rs"
 
+[[test]]
+name = "general_integration_test"
+path = "tests/integration/general/general_integration_test.rs"
+
 [dev-dependencies]
+wiremock = "=0.5.22"
 actix-rt = "2"

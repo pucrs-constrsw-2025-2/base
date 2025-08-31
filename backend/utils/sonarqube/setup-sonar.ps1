@@ -59,7 +59,7 @@ function New-SonarUser {
     
     try {
         $credential = New-Object System.Management.Automation.PSCredential($adminUser, (ConvertTo-SecureString $adminPassword -AsPlainText -Force))
-        $response = Invoke-RestMethod -Uri "$SonarUrl/api/users/create" -Method Post -Body $body -ContentType "application/x-www-form-urlencoded" -Credential $credential
+        $response = Invoke-RestMethod -Uri "$SonarUrl/api/users/create" -Method Post -Body $body -ContentType "application/x-www-form-urlencoded" -Credential $credential -AllowUnencryptedAuthentication
         Write-Success "Usuário '$user' criado com sucesso!"
         return $true
     } catch {

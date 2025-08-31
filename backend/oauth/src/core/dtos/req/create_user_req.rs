@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct CreateUserReq{
     #[serde(alias="email", alias = "userName", alias="user_name", alias="user-name")]
     pub username: String,
