@@ -17,5 +17,9 @@ thiserror = "1.0"
 [lib]
 path = "src/lib.rs"
 
+[[test]]
+name = "login_unit_test"
+path = "tests/unit/general/login_unit_test.rs"
+
 [dev-dependencies]
 actix-rt = "2"

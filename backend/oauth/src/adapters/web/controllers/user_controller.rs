@@ -1,6 +1,5 @@
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse};
 use serde_json::Value;
-use actix_web::web::Json;
 use crate::core::dtos::req::create_user_req::CreateUserReq;
 use crate::core::dtos::req::update_user_req::UpdateUserReq;
 use crate::core::dtos::req::assign_role_req::AssignRoleReq;
