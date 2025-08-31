@@ -3,3 +3,4 @@ pub mod create_user_req;
 pub mod create_role_req;
 pub mod update_user_req;
 pub mod update_role_partial_req;
+pub mod assign_role_req;

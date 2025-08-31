@@ -66,3 +66,24 @@ pub async fn delete_user_service<P: UserProvider>(
 ) -> Result<(), AppError> {
     provider.delete_user(id, token).await
 }
+
+pub async fn add_role_to_user_service<P: UserProvider>(
+    provider: &P,
+    user_id: &str,
+    role_id: &str,
+    token: &str,
+) -> Result<(), AppError> {
+    if role_id.trim().is_empty() {
+        return Err(AppError::ValidationError { details: "role id cannot be empty".into() });
+    }
+    provider.add_role(user_id, role_id, token).await
+}
+
+pub async fn remove_role_from_user_service<P: UserProvider>(
+    provider: &P,
+    user_id: &str,
+    role_id: &str,
+    token: &str,
+) -> Result<(), AppError> {
+    provider.remove_role(user_id, role_id, token).await
+}
