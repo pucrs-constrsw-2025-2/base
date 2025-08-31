@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct LoginRes{
     pub token_type: String,
     pub access_token: String,
@@ -9,7 +9,7 @@ pub struct LoginRes{
     pub refresh_expires_in: u16
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct LoginResKeycloak {
     pub access_token: String,
     pub expires_in: i64,

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct UpdateUserReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
