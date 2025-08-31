@@ -11,7 +11,7 @@ fn extract_token(req: &HttpRequest) -> Result<String, AppError> {
         .get("Authorization")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
-        .ok_or(AppError::InvalidToken)
+        .ok_or(AppError::InvalidToken { code: 401 })
 }
 
 #[post("/roles")]

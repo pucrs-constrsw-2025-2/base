@@ -191,7 +191,11 @@ async fn get_roles_service_success() {
 #[tokio::test]
 async fn get_roles_service_error() {
     let mock = MockRoleProvider::new();
-    mock.set_get_roles_error(AppError::ExternalServiceError { details: "down".into() });
+    mock.set_get_roles_error(AppError::ExternalServiceError {
+        details: "down".into(),
+        code: 500,
+        source: None,
+    });
     let err = get_roles_service(&mock, "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
     assert_eq!(mock.calls_get_roles.load(Ordering::SeqCst), 1);
@@ -207,7 +211,11 @@ async fn get_role_service_success() {
 #[tokio::test]
 async fn get_role_service_not_found() {
     let mock = MockRoleProvider::new();
-    mock.set_get_role_error(AppError::NotFound { resource: "role".into(), id: "rX".into() });
+    mock.set_get_role_error(AppError::NotFound {
+        resource: "role".into(),
+        id: "rX".into(),
+        code: 404,
+    });
     let err = get_role_service(&mock, "rX", "tok").await.unwrap_err();
     matches!(err, AppError::NotFound { .. });
     assert_eq!(mock.calls_get_role.load(Ordering::SeqCst), 1);
@@ -233,7 +241,11 @@ async fn create_role_service_validation_error() {
 #[tokio::test]
 async fn create_role_service_provider_error() {
     let mock = MockRoleProvider::new();
-    mock.set_create_error(AppError::Conflict { resource: "role".into(), details: "name exists".into() });
+    mock.set_create_error(AppError::Conflict {
+        resource: "role".into(),
+        details: "name exists".into(),
+        code: 409,
+    });
     let req = make_valid_create_role_req();
     let err = create_role_service(&mock, &req, "tok").await.unwrap_err();
     matches!(err, AppError::Conflict { .. });
@@ -268,7 +280,11 @@ async fn update_role_service_validation_error() {
 #[tokio::test]
 async fn update_role_service_provider_error() {
     let mock = MockRoleProvider::new();
-    mock.set_update_role_error(AppError::ExternalServiceError { details: "fail".into() });
+    mock.set_update_role_error(AppError::ExternalServiceError {
+        details: "fail".into(),
+        code: 500,
+        source: None,
+    });
     let req = make_valid_update_role_req();
     let err = update_role_service(&mock, "r1", &req, "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
@@ -304,7 +320,11 @@ async fn patch_role_service_validation_error() {
 #[tokio::test]
 async fn patch_role_service_provider_error() {
     let mock = MockRoleProvider::new();
-    mock.set_patch_role_error(AppError::ExternalServiceError { details: "ext".into() });
+    mock.set_patch_role_error(AppError::ExternalServiceError {
+        details: "ext".into(),
+        code: 500,
+        source: None,
+    });
     let req = make_valid_patch_role_req();
     let err = patch_role_service(&mock, "r1", &req, "tok").await.unwrap_err();
     matches!(err, AppError::ExternalServiceError { .. });
@@ -350,8 +370,8 @@ async fn delete_role_service_success() {
 #[tokio::test]
 async fn delete_role_service_error() {
     let mock = MockRoleProvider::new();
-    mock.set_delete_role_error(AppError::Forbidden);
+    mock.set_delete_role_error(AppError::Forbidden { code: 403 });
     let err = delete_role_service(&mock, "r1", "tok").await.unwrap_err();
-    matches!(err, AppError::Forbidden);
+    matches!(err, AppError::Forbidden { .. });
     assert_eq!(mock.calls_delete_role.load(Ordering::SeqCst), 1);
 }
