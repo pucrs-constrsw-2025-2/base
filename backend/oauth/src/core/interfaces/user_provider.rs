@@ -13,4 +13,6 @@ pub trait UserProvider: Send + Sync {
     async fn update_user(&self, id: &str, req: &UpdateUserReq, token: &str) -> Result<CreateUserRes, AppError>;
     async fn update_password(&self, id: &str, password: &str, token: &str) -> Result<(), AppError>;
     async fn delete_user(&self, id: &str, token: &str) -> Result<(), AppError>;
+    async fn add_role(&self, user_id: &str, role_id: &str, token: &str) -> Result<(), AppError>;
+    async fn remove_role(&self, user_id: &str, role_id: &str, token: &str) -> Result<(), AppError>;
 }

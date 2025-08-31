@@ -395,6 +395,150 @@ impl UserProvider for KeycloakUserAdapter {
             }
         }
     }
+
+    async fn add_role(&self, user_id: &str, role_id: &str, token: &str) -> Result<(), AppError> {
+        // Buscar role (precisa do name para mapping)
+        let role_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            role_id
+        );
+        let client = Client::new();
+        let role_resp = client.get(&role_url)
+            .header("Authorization", token)
+            .send().await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match role_resp.status().as_u16() {
+            404 => return Err(AppError::NotFound { resource: "role".into(), id: role_id.into() }),
+            401 => return Err(AppError::InvalidToken),
+            403 => return Err(AppError::Forbidden),
+            s if s >= 400 => {
+                let body = role_resp.text().await.unwrap_or_default();
+                return Err(AppError::ExternalServiceError { details: body });
+            }
+            _ => {}
+        }
+
+        let role_json = role_resp.json::<Value>().await
+            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+
+        // Bloqueia se deleted
+        let deleted = role_json.get("attributes")
+            .and_then(|a| a.get("deleted"))
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().any(|x| x.as_str().map(|s| s.eq_ignore_ascii_case("true") || s=="1").unwrap_or(false)))
+            .unwrap_or(false);
+        if deleted {
+            return Err(AppError::ValidationError { details: "Role is deleted".into() });
+        }
+
+        let mapping_url = format!(
+            "{}://{}:{}/admin/realms/{}/users/{}/role-mappings/realm",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            user_id
+        );
+
+        // Representação mínima
+        let role_repr = json!([{
+            "id": role_json.get("id").and_then(|v| v.as_str()).unwrap_or(role_id),
+            "name": role_json.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+        }]);
+
+        let resp = client.post(&mapping_url)
+            .header("Authorization", token)
+            .json(&role_repr)
+            .send().await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match resp.status().as_u16() {
+            204 => Ok(()),
+            404 => Err(AppError::NotFound { resource: "user".into(), id: user_id.into() }),
+            401 => Err(AppError::InvalidToken),
+            403 => Err(AppError::Forbidden),
+            _ => {
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError { details: body })
+            }
+        }
+    }
+
+    async fn remove_role(&self, user_id: &str, role_id: &str, token: &str) -> Result<(), AppError> {
+        let role_url = format!(
+            "{}://{}:{}/admin/realms/{}/roles-by-id/{}",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            role_id
+        );
+        let client = Client::new();
+        let role_resp = client
+            .get(&role_url)
+            .header("Authorization", token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match role_resp.status().as_u16() {
+            404 => return Err(AppError::NotFound { resource: "role".into(), id: role_id.into() }),
+            401 => return Err(AppError::InvalidToken),
+            403 => return Err(AppError::Forbidden),
+            s if s >= 400 => {
+                let body = role_resp.text().await.unwrap_or_default();
+                return Err(AppError::ExternalServiceError { details: body });
+            }
+            _ => {}
+        }
+
+        let role_json = role_resp
+            .json::<Value>()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: format!("Failed to parse role: {}", e) })?;
+
+        let mapping_url = format!(
+            "{}://{}:{}/admin/realms/{}/users/{}/role-mappings/realm",
+            env::var("KEYCLOAK_INTERNAL_PROTOCOL").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_HOST").unwrap(),
+            env::var("KEYCLOAK_INTERNAL_API_PORT").unwrap(),
+            env::var("KEYCLOAK_REALM").unwrap(),
+            user_id
+        );
+
+        // Representação mínima necessária para remoção
+        let role_repr = json!([{
+            "id": role_json.get("id").and_then(|v| v.as_str()).unwrap_or(role_id),
+            "name": role_json.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+        }]);
+
+        let resp = client
+            .request(reqwest::Method::DELETE, &mapping_url)
+            .header("Authorization", token)
+            .json(&role_repr)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError { details: e.to_string() })?;
+
+        match resp.status().as_u16() {
+            204 => Ok(()),
+            404 => Err(AppError::NotFound {
+                resource: "user_role".into(),
+                id: format!("{}:{}", user_id, role_id),
+            }),
+            401 => Err(AppError::InvalidToken),
+            403 => Err(AppError::Forbidden),
+            _ => {
+                let body = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                Err(AppError::ExternalServiceError { details: body })
+            }
+        }
+    }
 }
 
 #[async_trait::async_trait]

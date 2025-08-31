@@ -1,10 +1,13 @@
 use actix_web::{delete, get, patch, post, put, web, HttpRequest, HttpResponse};
 use serde_json::Value;
+use actix_web::web::Json;
 use crate::core::dtos::req::create_user_req::CreateUserReq;
 use crate::core::dtos::req::update_user_req::UpdateUserReq;
+use crate::core::dtos::req::assign_role_req::AssignRoleReq;
 use crate::adapters::keycloak::keycloak_adapter::KeycloakUserAdapter;
 use crate::core::services::user_service::{ create_user_service, get_users_service, get_user_service,
-                                            update_user_service, update_password_service, delete_user_service };
+                                            update_user_service, update_password_service, delete_user_service,
+                                            add_role_to_user_service, remove_role_from_user_service };
 use crate::core::error::AppError;
 
 fn extract_token(req: &HttpRequest) -> Result<String, AppError> {
@@ -77,5 +80,30 @@ pub async fn delete_user_controller(token_req: HttpRequest, path: web::Path<Stri
     let token = extract_token(&token_req)?;
     let provider = KeycloakUserAdapter;
     delete_user_service(&provider, &id, &token).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[post("/users/{user_id}/roles")]
+pub async fn add_role_to_user_controller(
+    token_req: HttpRequest,
+    path: web::Path<String>,
+    web::Json(payload): web::Json<AssignRoleReq>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = path.into_inner();
+    let token = extract_token(&token_req)?;
+    let provider = KeycloakUserAdapter;
+    add_role_to_user_service(&provider, &user_id, &payload.role_id, &token).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[delete("/users/{user_id}/roles/{role_id}")]
+pub async fn remove_role_from_user_controller(
+    token_req: HttpRequest,
+    path: web::Path<(String, String)>,
+) -> Result<HttpResponse, AppError> {
+    let (user_id, role_id) = path.into_inner();
+    let token = extract_token(&token_req)?;
+    let provider = KeycloakUserAdapter;
+    remove_role_from_user_service(&provider, &user_id, &role_id, &token).await?;
     Ok(HttpResponse::NoContent().finish())
 }
