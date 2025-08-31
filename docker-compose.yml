@@ -1,3 +1,5 @@
+# remover tudo do docker, docker system prune -a --volumes -f
+
 networks:
     constrsw:
 
@@ -64,7 +66,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD}
       - POSTGRESQL_DB=${POSTGRESQL_DB}
     volumes:
-      # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
       - constrsw-postgresql-data:${POSTGRESQL_DATA}
     networks:
       - constrsw
@@ -94,7 +95,6 @@ services:
       - SONARQUBE_USER=${SONARQUBE_USER}
       - SONARQUBE_PASSWORD=${SONARQUBE_PASSWORD}
     volumes:
-      # No terminal, criar o volume externo: docker volume create constrsw-sonarqube-data
       - constrsw-sonarqube-data:/opt/sonarqube/data
       - constrsw-sonarqube-extensions:/opt/sonarqube/extensions
       - constrsw-sonarqube-logs:/opt/sonarqube/logs
