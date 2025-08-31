@@ -21,3 +21,21 @@ Para gerenciar a autenticação e autorização, desenvolvemos o **Oauth Service
 4.  Execute o comando `docker compose up --build` para construir as imagens e iniciar os contêineres.
 
 O arquivo `docker-compose.yml` se encarregará de iniciar o Keycloak e os outros serviços, garantindo que tudo funcione perfeitamente.
+
+## 🧪 Como Rodar os Testes
+
+Para garantir que a aplicação funcione como esperado, executamos testes unitários nas suas principais funcionalidades
+
+Para rodar os testes, utilize o seguinte comando no terminal, substituindo <container-id> pelo ID do seu contêiner contendo o FastApi:
+
+`docker exec -it <container-id> sh -c "export PYTHONPATH=/app && pytest"`
+
+* docker exec -it <container-id>: Executa um comando interativo dentro do seu contêiner Docker.
+
+* export PYTHONPATH=/app: Esta variável de ambiente informa ao Python onde encontrar os módulos do projeto (routers, services, main, etc.), garantindo que as importações funcionem corretamente dentro do contêiner.
+
+* pytest: Inicia o executor de testes Pytest, que vai encontrar e rodar todos os testes na sua aplicação.
+
+Para descobrir o ID de seus contêiners, execute o seguinte comando:
+
+`docker ps`
