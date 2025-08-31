@@ -128,7 +128,7 @@ pub async fn update_user_controller(
 // Ajustado para usar PasswordUpdateReq
 #[utoipa::path(
     patch,
-    path = "/users/{id}/password",
+    path = "/users/{id}",
     tag = "users",
     params(
         ("id" = String, Path, description = "User ID")
@@ -146,7 +146,7 @@ pub async fn update_user_controller(
     ),
     security(("bearerAuth" = []))
 )]
-#[patch("/users/{id}/password")]
+#[patch("/users/{id}")]
 pub async fn update_password_controller(
     token_req: HttpRequest,
     path: web::Path<String>,
