@@ -6,20 +6,20 @@ public class UserResponse {
     
     private String id;
     private String username;
-    @JsonProperty("first-name")
+    @JsonProperty("firstName")
     private String first_name;
-    @JsonProperty("last-name")
+    @JsonProperty("lastName")
     private String last_name;
     private Boolean enabled;
     
     public UserResponse() {}
     
     public UserResponse(String id, String username, String first_name, String last_name, Boolean enabled) {
-        this.id = id;
-        this.username = username;
+        this.id         = id;
+        this.username   = username;
         this.first_name = first_name;
-        this.last_name = last_name;
-        this.enabled = enabled;
+        this.last_name  = last_name;
+        this.enabled    = enabled;
     }
     
     public String getId() { return id; }
