@@ -423,7 +423,7 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     const url = this.getUrl(`/realms/master/protocol/openid-connect/token`);
 
     // For master realm admin operations, use admin-cli client
-    const clientId = 'admin-cli';
+    const clientId = this.configService.get<string>('KEYCLOAK_ADMIN_CLIENT_ID')!;
     const clientSecret = this.configService.get<string>(
       'KEYCLOAK_CLIENT_SECRET',
     )!;

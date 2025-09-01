@@ -37,6 +37,8 @@ describe('KeycloakAdapter', () => {
           return 'admin';
         case 'KEYCLOAK_ADMIN_PASSWORD':
           return 'admin-password';
+        case 'KEYCLOAK_ADMIN_CLIENT_ID':
+          return 'admin-cli';
         default:
           return null;
       }
