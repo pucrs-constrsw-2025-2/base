@@ -132,14 +132,8 @@ async def update_user(user_id: str, user_update: UserUpdate, authorization: Anno
     """Atualiza dados de um usuário (lógica agora no serviço)."""
     _validate_token(authorization)
     
-    # Prepara o payload para o serviço, garantindo que ele inclua os campos
-    # necessários para o Keycloak
-    data = user_update.dict()
-    data["enabled"] = True
-    data["credentials"] = [{"type": "password", "value": user_update.password, "temporary": False}]
-
     try:
-        update_keycloak_user_data(authorization, user_id, data)
+        update_keycloak_user_data(authorization, user_id, user_update)
         return Response(status_code=204)
     except APIException as e:
         raise HTTPException(status_code=e.status_code, detail=e.description)

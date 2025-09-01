@@ -1,7 +1,7 @@
 import requests
 from config import KEYCLOAK_URL, REALM_NAME
 from models.role import RoleCreate, RoleUpdate, UserRoleAssign
-from exceptions import APIException
+from exceptions import APIException  # Usando o nome final 'APIException'
 
 # Constante para a origem do erro, facilitando a manutenção
 ERROR_SOURCE = "RoleService"
@@ -18,12 +18,7 @@ def _handle_keycloak_error(response: requests.Response, context: str):
         404: f"O recurso solicitado para '{context}' não foi encontrado.",
         409: f"Conflito ao '{context}'. O recurso provavelmente já existe.",
     }
-    # Tenta obter a mensagem de erro da resposta JSON, caso contrário usa a razão padrão
-    try:
-        error_details = response.json().get("errorMessage", response.reason)
-    except requests.exceptions.JSONDecodeError:
-        error_details = response.reason
-        
+    error_details = response.json().get("errorMessage", response.reason)
     description = error_map.get(response.status_code, f"Erro inesperado ao {context}: {error_details}")
     
     raise APIException(
@@ -43,14 +38,30 @@ def _handle_request_exception(exception: requests.exceptions.RequestException, c
     )
 
 def create_role(access_token: str, role_create: RoleCreate):
-    """Cria uma nova role e levanta exceções em caso de falha."""
+    """Cria uma nova role e retorna os dados, incluindo o ID da role criada."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles"
     context = "criar role"
+    
     try:
-        response = requests.post(url, json=role_create.model_dump(), headers=get_headers(access_token))
+        # Cria a role
+        response = requests.post(url, json=role_create.dict(), headers=get_headers(access_token))
+
+        # Verifica se a criação foi bem-sucedida
         if response.status_code == 201:
-            return response.json()
+            # Requisição para obter os detalhes da role criada, incluindo o ID
+            get_url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles/{role_create.dict()['name']}"
+            response_get = requests.get(get_url, headers=get_headers(access_token))
+
+            if response_get.status_code == 200:
+                role_data = response_get.json()
+                role_create_dict = role_create.dict()
+                role_create_dict['id'] = role_data.get('id')  # Adiciona o ID da role na resposta
+                return role_create_dict  # Retorna a role criada com o ID
+                
+            _handle_keycloak_error(response_get, "obter detalhes da role")
+        
         _handle_keycloak_error(response, context)
+    
     except requests.exceptions.RequestException as e:
         _handle_request_exception(e, context)
 
@@ -79,14 +90,14 @@ def get_role_by_id(access_token: str, role_id: str):
         _handle_request_exception(e, context)
 
 def update_role(access_token: str, role_id: str, role_update: RoleUpdate):
-    """Atualiza uma role (PUT) e levanta exceções em caso de falha."""
+    """Atualiza uma role (PUT)."""
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"
     context = f"atualizar role com ID {role_id}"
     try:
         # Garante que a role existe antes de tentar atualizar
         get_role_by_id(access_token, role_id)
         
-        response = requests.put(url, json=role_update.model_dump(), headers=get_headers(access_token))
+        response = requests.put(url, json=role_update.dict(), headers=get_headers(access_token))
         if response.status_code == 204:
             return  # Sucesso, sem conteúdo
         _handle_keycloak_error(response, context)
@@ -97,11 +108,11 @@ def update_role(access_token: str, role_id: str, role_update: RoleUpdate):
         _handle_request_exception(e, context)
         
 def patch_role(access_token: str, role_id: str, role_update: RoleUpdate):
-    """Atualiza parcialmente uma role (PATCH simulado) e levanta exceções em caso de falha."""
+    """Atualiza parcialmente uma role (PATCH simulado)."""
     context = f"atualizar parcialmente role com ID {role_id}"
     try:
         existing_role_data = get_role_by_id(access_token, role_id)
-        update_data = role_update.model_dump(exclude_unset=True)
+        update_data = role_update.dict(exclude_unset=True)
         existing_role_data.update(update_data)
 
         url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/roles-by-id/{role_id}"

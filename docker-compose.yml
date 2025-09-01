@@ -55,6 +55,8 @@ services:
       - REALM_NAME=${REALM_NAME}
       - CLIENT_ID=${CLIENT_ID}
       - CLIENT_SECRET=${CLIENT_SECRET}
+      - KEYCLOAK_USERNAME=${KEYCLOAK_USERNAME}
+      - KEYCLOAK_PASSWORD=${KEYCLOAK_PASSWORD}
     networks:
       - constrsw
     ports:
