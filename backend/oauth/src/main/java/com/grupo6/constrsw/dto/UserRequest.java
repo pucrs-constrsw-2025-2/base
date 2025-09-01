@@ -1,16 +1,23 @@
 package com.grupo6.constrsw.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "DTO para requisição de criação/atualização de usuário")
 public class UserRequest {
     
+    @Schema(description = "Nome de usuário (email)", example = "user@example.com", required = true)
     private String username;
+
+    @Schema(description = "Senha do usuário", example = "string", required = true)
     private String password;
     
     @JsonProperty("first-name")
+    @Schema(description = "Primeiro nome do usuário", example = "João")
     private String first_name;
     
     @JsonProperty("last-name")
+    @Schema(description = "Último nome do usuário", example = "Silva")
     private String last_name;
     
     public UserRequest() {}
