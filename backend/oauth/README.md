@@ -21,6 +21,14 @@ docker-compose up -d
 A API estará disponível em: `http://localhost:8082`
 O Keycloak estará disponível em: `http://localhost:8001`
 
+## Swagger
+
+A documentação da API está disponível através do Swagger.
+
+Para acessar, utilize a seguinte URL:
+
+`http://localhost:8082/swagger-ui/index.html`
+
 ## Endpoints
 
 ### Autenticação

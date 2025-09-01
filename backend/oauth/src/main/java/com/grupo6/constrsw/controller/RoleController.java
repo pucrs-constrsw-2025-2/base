@@ -23,8 +23,16 @@ import com.grupo6.constrsw.dto.RoleResponse;
 import com.grupo6.constrsw.service.KeycloakService;
 import com.grupo6.constrsw.service.PermissionService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/roles")
+@Tag(name = "Roles", description = "Endpoints para gerenciamento de roles")
 public class RoleController {
 
     @Autowired
@@ -33,13 +41,27 @@ public class RoleController {
     @Autowired
     private PermissionService permissionService;
 
+    @Operation(summary = "Cria uma nova role")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Role criada com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = RoleResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PostMapping
     public ResponseEntity<?> createRole(@RequestBody RoleRequest roleRequest,
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -62,12 +84,23 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Retorna todas as roles")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Roles retornadas com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = RoleResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @GetMapping
     public ResponseEntity<?> getAllRoles(@RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -90,13 +123,27 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Retorna uma role pelo ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Role retornada com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = RoleResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @GetMapping("/{id}")
     public ResponseEntity<?> getRoleById(@PathVariable String id,
                                         @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -122,6 +169,22 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Atualiza uma role")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Role atualizada com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRole(@PathVariable String id,
                                        @RequestBody RoleRequest roleRequest,
@@ -148,6 +211,22 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Atualiza parcialmente uma role")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Role atualizada com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateRolePartial(@PathVariable String id,
                                               @RequestBody RoleRequest roleRequest,
@@ -174,6 +253,19 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Deleta uma role")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Role deletada com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRole(@PathVariable String id,
                                        @RequestHeader("Authorization") String authorization) {
@@ -199,6 +291,22 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Atribui uma role a um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Role atribuída com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário ou role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PostMapping("/assign/{userId}/{roleName}")
     public ResponseEntity<?> assignRoleToUser(@PathVariable String userId,
                                               @PathVariable String roleName,
@@ -225,6 +333,22 @@ public class RoleController {
         }
     }
 
+    @Operation(summary = "Remove uma role de um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Role removida com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário ou role não encontrada",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @DeleteMapping("/unassign/{userId}/{roleName}")
     public ResponseEntity<?> removeRoleFromUser(@PathVariable String userId,
                                                @PathVariable String roleName,
