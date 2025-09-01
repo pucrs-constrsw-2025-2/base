@@ -12,6 +12,7 @@ scanner(
       'sonar.tests': 'test',
       'sonar.inclusions': '**',
       'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
+      'sonar.exclusions': 'test/**,**/*.spec.ts,**/*.test.ts, **/*.module.ts, **/*.bootstrap.ts',
     },
   },
   () => {
