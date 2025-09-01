@@ -24,7 +24,7 @@ import com.grupo6.constrsw.service.KeycloakService;
 import com.grupo6.constrsw.service.PermissionService;
 
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/roles")
 public class RoleController {
 
     @Autowired

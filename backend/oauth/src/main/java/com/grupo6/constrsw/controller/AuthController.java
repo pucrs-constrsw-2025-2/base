@@ -17,7 +17,6 @@ import com.grupo6.constrsw.dto.AuthResponse;
 import com.grupo6.constrsw.service.KeycloakService;
 
 @RestController
-@RequestMapping("/api")
 public class AuthController {
 
     @Autowired
