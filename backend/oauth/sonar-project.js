@@ -1,21 +1,21 @@
+require('dotenv').config();
 const scanner = require('sonarqube-scanner').default || require('sonarqube-scanner');
 
 scanner(
   {
-    serverUrl: 'http://localhost:9000',
-    token: 'squ_10fb17eded43d6696849aecfcbe8669d59ade916',
+    serverUrl: process.env.SONAR_HOST_URL,
+    token: process.env.SONAR_TOKEN,
     options: {
-      'sonar.projectKey': 'constrsw-oauth',
+      'sonar.projectKey': process.env.SONAR_PROJECT_KEY,
       'sonar.projectName': 'ConstrSW OAuth Service',
       'sonar.projectVersion': '1.0',
       'sonar.sources': 'src',
       'sonar.tests': 'test',
       'sonar.inclusions': '**',
       'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
-      'sonar.exclusions': 'test/**,**/*.spec.ts,**/*.test.ts, **/*.module.ts, **/*.bootstrap.ts',
-    },
+      'sonar.exclusions': 'test/**,**/*.spec.ts,**/*.test.ts,**/*.module.ts,**/*.bootstrap.ts',    },
   },
   () => {
-    console.log('✔ Análise SonarQube finalizada com sucesso');
+    console.log('✔ Análise SonarQube finalizada');
   }
 );

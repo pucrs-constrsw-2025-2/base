@@ -124,6 +124,28 @@ This project uses ESLint for linting and Prettier for code formatting. These too
     npm run format
     ```
 
+## 📊 SonarQube Analysis
+
+This project is configured to use SonarQube for static code analysis, helping to maintain high code quality, security, and reliability.
+
+### Prerequisites
+
+1.  **SonarQube Server**: Make sure you have a SonarQube instance running. If you are using the project's `docker-compose.yml`, the server will be available at `http://localhost:9000`.
+2.  **Environment Variables**: Create a `.env` file in the `backend/oauth` directory and add the following variables for the scanner:
+    ```ini
+    # .env
+    SONAR_TOKEN=your_sonarqube_user_token
+    SONAR_HOST_URL=http://localhost:9000
+    SONAR_PROJECT_KEY=constrsw-oauth
+    ```
+
+### Running the Analysis
+
+With the server running and the `.env` file configured, run the following command from the `backend/oauth` directory:
+
+```bash
+node sonar-project.js
+
 ## 👥 Group Members
 
 *   Mariah Freire
