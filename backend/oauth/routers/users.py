@@ -1,6 +1,6 @@
 import re
 from typing import Annotated
-import requests
+import httpx
 
 from fastapi import APIRouter, Header, Response, Body, HTTPException
 from models.user import UserCreate, UserUpdate, TokenResponse, LoginRequest
@@ -72,10 +72,11 @@ async def list_users(authorization: Annotated[str | None, Header()] = None, enab
     headers = {"Authorization": authorization, "Content-Type": "application/json"}
 
     try:
-        response = requests.get(url, headers=headers, params=params)
-        
-        if response.status_code == 200:
-            return response.json()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                return response.json()
 
         error_map = {
             401: "Access token inválido ou expirado.",
@@ -88,7 +89,7 @@ async def list_users(authorization: Annotated[str | None, Header()] = None, enab
             description=description,
             source=ERROR_SOURCE
         )
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise APIException(status_code=503, error_code="KC-CONN-ERR", description=f"Erro de comunicação com o Keycloak: {e}", source=ERROR_SOURCE)
 
 @router.get("/{user_id}", response_model=dict)
@@ -100,10 +101,11 @@ async def get_user(user_id: str, authorization: Annotated[str | None, Header()] 
     headers = {"Authorization": authorization, "Content-Type": "application/json"}
 
     try:
-        response = requests.get(url, headers=headers)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
 
-        if response.status_code == 200:
-            return response.json()
+            if response.status_code == 200:
+                return response.json()
 
         error_map = {
             401: "Access token inválido ou expirado.",
@@ -112,7 +114,7 @@ async def get_user(user_id: str, authorization: Annotated[str | None, Header()] 
         }
         description = error_map.get(response.status_code, "Erro ao buscar usuário.")
         raise APIException(status_code=response.status_code, error_code=f"KC-{response.status_code}", description=description, source=ERROR_SOURCE)
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise APIException(status_code=503, error_code="KC-CONN-ERR", description=f"Erro de comunicação com o Keycloak: {e}", source=ERROR_SOURCE)
 
 
