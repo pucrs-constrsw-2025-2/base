@@ -26,7 +26,7 @@ import com.grupo6.constrsw.service.KeycloakService;
 import com.grupo6.constrsw.service.PermissionService;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired
