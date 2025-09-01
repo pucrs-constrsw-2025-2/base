@@ -5,6 +5,8 @@ from exceptions import APIException  # Usando o nome final 'APIException'
 
 # Constante para a origem do erro, facilitando a manutenção
 ERROR_SOURCE = "KeycloakService"
+ERROR_USER_OR_PASS = "Username e/ou password inválidos"
+APPLICATION_JSON = "application/json"
 
 
 def get_keycloak_token(username: str, password: str):
@@ -35,7 +37,7 @@ def get_keycloak_token(username: str, password: str):
 
         if response.status_code != 200:
             # Tenta extrair a mensagem de erro específica do Keycloak
-            kc_error_detail = response.json().get("error_description", "Username e/ou password inválidos")
+            kc_error_detail = response.json().get("error_description", ERROR_USER_OR_PASS)
             raise APIException(
                 status_code=response.status_code,
                 error_code=f"KC-{response.status_code}", # Repassa o código de erro do Keycloak
@@ -56,21 +58,21 @@ def get_keycloak_token(username: str, password: str):
         )
 
 
-def create_keycloak_user(access_token: str, userCreate: UserCreate):
+def create_keycloak_user(access_token: str, user_create: UserCreate):
     """
     Cria um novo usuário no Keycloak.
     Retorna um dicionário com os dados do usuário em sucesso.
     Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users"
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
+    headers = {"Authorization": access_token, "Content-Type": APPLICATION_JSON}
     data = {
-        "username": userCreate.username,
-        "firstName": userCreate.first_name,
-        "lastName": userCreate.last_name,
-        "email": userCreate.email,
+        "username": user_create.username,
+        "firstName": user_create.first_name,
+        "lastName": user_create.last_name,
+        "email": user_create.email,
         "enabled": True,
-        "credentials": [cred.dict() for cred in userCreate.credentials],
+        "credentials": [cred.dict() for cred in user_create.credentials],
     }
 
     try:
@@ -92,9 +94,9 @@ def create_keycloak_user(access_token: str, userCreate: UserCreate):
                 "message": "User created successfully",
                 "user": {
                     "id": user_id,
-                    "username": userCreate.username,
-                    "firstName": userCreate.first_name,
-                    "lastName": userCreate.last_name,
+                    "username": user_create.username,
+                    "firstName": user_create.first_name,
+                    "lastName": user_create.last_name,
                     "enabled": True,
                 },
             }
@@ -129,7 +131,7 @@ def disable_keycloak_user(access_token: str, user_id: str):
     Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
+    headers = {"Authorization": access_token, "Content-Type": APPLICATION_JSON}
     data = {"enabled": False}
 
     try:
@@ -166,7 +168,7 @@ def update_keycloak_user_data(access_token: str, user_id: str, user_update: User
     Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
+    headers = {"Authorization": access_token, "Content-Type": APPLICATION_JSON}
     
     # Prepara o payload para o Keycloak, excluindo a senha
     data = user_update.model_dump(exclude_unset=True, exclude={'password'})
@@ -193,7 +195,7 @@ def update_keycloak_user_data(access_token: str, user_id: str, user_update: User
             return None  # Pode retornar None ou uma mensagem vazia
 
         # Caso o código não seja 204, trata o erro do Keycloak
-        kc_error_detail = response.json().get("error_description", "Username e/ou password inválidos")
+        kc_error_detail = response.json().get("error_description", ERROR_USER_OR_PASS)
         raise APIException(
             status_code=response.status_code,
             error_code=f"KC-{response.status_code}",
@@ -215,14 +217,14 @@ def update_keycloak_user_password(access_token: str, user_id: str, password: str
     Levanta APIException em caso de falha.
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}/reset-password"
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
+    headers = {"Authorization": access_token, "Content-Type": APPLICATION_JSON}
     data = {"type": "password", "value": password, "temporary": False}
 
     try:
         response = requests.put(url, json=data, headers=headers)
         if response.status_code != 204:
             # Tenta extrair a mensagem de erro específica do Keycloak
-            kc_error_detail = response.json().get("error_description", "Username e/ou password inválidos")
+            kc_error_detail = response.json().get("error_description", ERROR_USER_OR_PASS)
             raise APIException(
                 status_code=response.status_code,
                 error_code=f"KC-{response.status_code}", # Repassa o código de erro do Keycloak
