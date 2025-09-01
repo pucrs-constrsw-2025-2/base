@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Headers, Get, Param, Put, Delete, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Post, Body, Headers, Get, Param, Put, Delete, HttpStatus, Res, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import type { Response } from 'express';
+import { AuthToken } from 'src/common/decorators/auth-token.decorator';
 
 @ApiTags('roles')
 @ApiBearerAuth()
@@ -17,8 +18,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 409, description: 'Role já existente.' })
-  async create(@Headers('authorization') authorization: string, @Body() body: any, @Res() res: Response) {
-    const token = authorization?.split(' ')[1];
+  async create(@AuthToken() token: string, @Body() body: any, @Res() res: Response) {
     const created = await this.rolesService.createRole(token, { name: body.name, description: body.description });
     return res.status(HttpStatus.CREATED).json(created);
   }
@@ -29,8 +29,7 @@ export class RolesController {
   @ApiResponse({ status: 400, description: 'Erro na estrutura do request.' })
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
-  async getAll(@Headers('authorization') authorization: string) {
-    const token = authorization?.split(' ')[1];
+  async getAll(@AuthToken() token: string) {
     return await this.rolesService.getRoles(token);
   }
 
@@ -42,8 +41,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Role não localizada.' })
-  async get(@Headers('authorization') authorization: string, @Param('id') id: string) {
-    const token = authorization?.split(' ')[1];
+  async get(@AuthToken() token: string, @Param('id') id: string) {
     return await this.rolesService.getRoleById(token, id);
   }
 
@@ -56,8 +54,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Role não localizada.' })
-  async update(@Headers('authorization') authorization: string, @Param('id') id: string, @Body() body: any) {
-    const token = authorization?.split(' ')[1];
+  async update(@AuthToken() token: string, @Param('id') id: string, @Body() body: any) {
     await this.rolesService.updateRole(token, id, body);
     return {};
   }
@@ -70,8 +67,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Role não localizada.' })
-  async delete(@Headers('authorization') authorization: string, @Param('id') id: string) {
-    const token = authorization?.split(' ')[1];
+  async delete(@AuthToken() token: string, @Param('id') id: string) {
     await this.rolesService.deleteRole(token, id);
     return {};
   }
@@ -85,8 +81,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário ou role não localizado.' })
-  async addToUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Param('userId') userId: string) {
-    const token = authorization?.split(' ')[1];
+  async addToUser(@AuthToken() token: string, @Param('id') id: string, @Param('userId') userId: string) {
     await this.rolesService.addRoleToUser(token, userId, id);
     return {};
   }
@@ -100,8 +95,7 @@ export class RolesController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário ou role não localizado.' })
-  async removeFromUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Param('userId') userId: string) {
-    const token = authorization?.split(' ')[1];
+  async removeFromUser(@AuthToken() token: string, @Param('id') id: string, @Param('userId') userId: string) {
     await this.rolesService.removeRoleFromUser(token, userId, id);
     return {};
   }

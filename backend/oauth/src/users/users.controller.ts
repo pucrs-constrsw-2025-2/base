@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Controller, Post, Body, HttpCode, HttpStatus, Headers, Get, Query, Param, Put, Patch, Delete, Res, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Headers, Get, Query, Param, Put, Patch, Delete, Res, UseInterceptors, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
@@ -8,9 +8,9 @@ import type { Response } from 'express';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { PatchPasswordDto } from './dtos/patch-password.dto';
+import { AuthToken } from 'src/common/decorators/auth-token.decorator';
 
 @ApiTags('users')
-@ApiBearerAuth()
 @Controller('')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -44,8 +44,8 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 409, description: 'Username já existente.' })
-  async createUser(@Headers('authorization') authorization: string, @Body() body: CreateUserDto, @Res() res: Response) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async createUser(@AuthToken() token: string, @Body() body: CreateUserDto, @Res() res: Response) {
     const created = await this.usersService.createUser(token, { username: body.username, password: body.password, firstName: body['first-name'], lastName: body['last-name'] });
     return res.status(HttpStatus.CREATED).json(created);
   }
@@ -57,8 +57,8 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Erro na estrutura do request.' })
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
-  async getUsers(@Headers('authorization') authorization: string, @Query('enabled') enabled?: string) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async getUsers(@AuthToken() token: string, @Query('enabled') enabled?: string) {
     return await this.usersService.getUsers(token, enabled);
   }
 
@@ -70,8 +70,8 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
-  async getUser(@Headers('authorization') authorization: string, @Param('id') id: string) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async getUser(@AuthToken() token: string, @Param('id') id: string) {
     return await this.usersService.getUserById(token, id);
   }
 
@@ -84,8 +84,8 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
-  async updateUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Body() body: UpdateUserDto) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async updateUser(@AuthToken() token: string, @Param('id') id: string, @Body() body: UpdateUserDto) {
     await this.usersService.updateUser(token, id, { username: body.username, firstName: body['first-name'], lastName: body['last-name'], enabled: body.enabled });
     return { };
   }
@@ -99,8 +99,8 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
-  async patchPassword(@Headers('authorization') authorization: string, @Param('id') id: string, @Body() body: PatchPasswordDto) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async patchPassword(@AuthToken() token: string, @Param('id') id: string, @Body() body: PatchPasswordDto) {
     await this.usersService.patchPassword(token, id, body.password);
     return { };
   }
@@ -113,8 +113,8 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Access token inválido.' })
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
-  async disableUser(@Headers('authorization') authorization: string, @Param('id') id: string, @Res() res: Response) {
-    const token = authorization?.split(' ')[1];
+  @ApiBearerAuth()
+  async disableUser(@AuthToken() token: string, @Param('id') id: string, @Res() res: Response) {
     await this.usersService.disableUser(token, id);
     return res.status(HttpStatus.NO_CONTENT).send();
   }

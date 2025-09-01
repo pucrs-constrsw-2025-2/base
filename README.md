@@ -8,33 +8,32 @@
 - **backend/utils/sonarqube/**: Scripts e instruções para análise de qualidade de código ([Veja mais](backend/utils/sonarqube/README.md))
 
 ## Estrutura de pastas
+```
 base/
 ├── backend/
-│   ├── oauth/
+│   ├── oauth/                     # Serviço de autenticação (NestJS)
 │   │   ├── src/
 │   │   │   ├── app.module.ts
 │   │   │   ├── main.ts
-│   │   │   ├── common/
+│   │   │   ├── common/           # Código compartilhado
 │   │   │   │   ├── errors/
 │   │   │   │   └── filters/
-│   │   │   ├── roles/
+│   │   │   ├── roles/           # Módulo de gerenciamento de papéis
 │   │   │   │   ├── roles.controller.ts
 │   │   │   │   ├── roles.service.ts
 │   │   │   │   └── dtos/
-│   │   │   ├── users/
-│   │   │   │   ├── users.controller.ts
-│   │   │   │   ├── users.service.ts
-│   │   │   │   └── dtos/
-│   │   │   └── ...
-│   │   ├── test/
+│   │   │   └── users/           # Módulo de gerenciamento de usuários
+│   │   │       ├── users.controller.ts
+│   │   │       ├── users.service.ts
+│   │   │       └── dtos/
+│   │   ├── test/                # Testes automatizados
 │   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── ...
+│   │   └── package.json
 │   └── utils/
-│       ├── keycloak/
+│       ├── keycloak/            # Configuração do Keycloak
 │       │   ├── Dockerfile
-│       │   └── constrsw.json
-│       ├── sonarqube/
+│       │   └── constrsw.json    # Configuração do realm
+│       ├── sonarqube/           # Configuração do SonarQube
 │       │   ├── README.md
 │       │   ├── setup-sonar.ps1
 │       │   ├── init-sonar.sh
@@ -42,7 +41,7 @@ base/
 │       │   ├── sonar.env.example
 │       │   ├── sonar.properties
 │       │   └── .dockerignore
-│       └── postgresql/
+│       └── postgresql/          # Banco de dados (usado pelo SonarQube)
 │           ├── Dockerfile
 │           ├── databases.sql
 │           ├── init-postgres.sh
@@ -55,6 +54,7 @@ base/
 ├── KeycloakRestAPI.postman_collection.json
 ├── KeycloakRestAPI.postman_environment.json
 └── constrsw-2025-2.code-workspace
+```
 
 ---
 
@@ -86,10 +86,10 @@ docker compose up
 ---
 
 ## ℹ️ Observações sobre os serviços
-- O serviço de banco de dados está em **backend/utils/postgresql** (container: `postgresql`).
-- O serviço de autenticação está em **backend/oauth** (container: `oauth`).
-- O serviço de Keycloak está em **backend/utils/keycloak** (container: `keycloak`).
+- O serviço de autenticação está em **backend/oauth** (container: `oauth`). Este é o serviço principal que atua como gateway para o Keycloak.
+- O serviço de Keycloak está em **backend/utils/keycloak** (container: `keycloak`). Responsável pela gestão de identidade e acesso.
 - O serviço de análise de código está em **backend/utils/sonarqube** (container: `sonarqube`).
+- O serviço de banco de dados está em **backend/utils/postgresql** (container: `postgresql`). Note que este banco é utilizado exclusivamente pelo SonarQube para armazenar suas análises, não sendo utilizado pela aplicação principal.
 
 ---
 
@@ -107,7 +107,6 @@ docker compose up
 - Para detalhes sobre autenticação, usuários e papéis, acesse o [README do OAuth](backend/oauth/README.md)
 - Para instruções de análise de qualidade de código, acesse o [README do SonarQube](backend/utils/sonarqube/README.md)
 
----
 ---
 
 ## 💡
