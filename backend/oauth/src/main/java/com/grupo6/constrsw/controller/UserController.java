@@ -25,8 +25,16 @@ import com.grupo6.constrsw.dto.UserResponse;
 import com.grupo6.constrsw.service.KeycloakService;
 import com.grupo6.constrsw.service.PermissionService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/users")
+@Tag(name = "Usuários", description = "Endpoints para gerenciamento de usuários")
 public class UserController {
 
     @Autowired
@@ -35,13 +43,30 @@ public class UserController {
     @Autowired
     private PermissionService permissionService;
 
+    @Operation(summary = "Cria um novo usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "409", description = "Usuário já existe",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody UserRequest userRequest, 
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -72,13 +97,24 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Retorna todos os usuários")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuários retornados com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authorization,
                                         @RequestParam(required = false) Boolean enabled) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -101,13 +137,27 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Retorna um usuário pelo ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuário retornado com sucesso",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable String id,
                                         @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -133,6 +183,22 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Atualiza um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable String id,
                                        @RequestBody UserRequest userRequest,
@@ -140,7 +206,6 @@ public class UserController {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -166,6 +231,22 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Atualiza a senha de um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Senha atualizada com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateUserPassword(@PathVariable String id,
                                                @RequestBody PasswordUpdateRequest passwordRequest,
@@ -173,7 +254,6 @@ public class UserController {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -199,13 +279,28 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Ativa um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuário ativado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PutMapping("/{id}/enable")
     public ResponseEntity<?> enableUser(@PathVariable String id,
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -231,13 +326,25 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "Desativa um usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Usuário desativado com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Token inválido",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Acesso negado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable String id,
                                        @RequestHeader("Authorization") String authorization) {
         try {
             String accessToken = extractToken(authorization);
             
-            // Verificar se o usuário tem permissões de admin
             if (!permissionService.canAccessAdminEndpoints(accessToken)) {
                 ApiError error = new ApiError("OA-403", "Access token não concede permissão", "OAuthAPI", new ArrayList<>());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -276,3 +383,4 @@ public class UserController {
         return email != null && email.matches(emailRegex);
     }
 }
+

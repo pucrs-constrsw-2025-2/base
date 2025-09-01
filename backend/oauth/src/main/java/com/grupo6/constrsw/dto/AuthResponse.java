@@ -1,11 +1,23 @@
 package com.grupo6.constrsw.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "DTO para resposta de autenticação")
 public class AuthResponse {
     
+    @Schema(description = "Tipo do token", example = "Bearer")
     private String token_type;
+
+    @Schema(description = "Token de acesso", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
     private String access_token;
+
+    @Schema(description = "Tempo de expiração do token em segundos", example = "3600")
     private Integer expires_in;
+
+    @Schema(description = "Token de atualização", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
     private String refresh_token;
+
+    @Schema(description = "Tempo de expiração do token de atualização em segundos", example = "86400")
     private Integer refresh_expires_in;
     
     public AuthResponse() {}
