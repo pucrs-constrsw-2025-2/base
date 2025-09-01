@@ -1,12 +1,21 @@
 package com.grupo6.constrsw.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
+@Schema(description = "DTO para representar um erro da API")
 public class ApiError {
     
+    @Schema(description = "Código do erro", example = "OA-400")
     private String error_code;
+
+    @Schema(description = "Descrição do erro", example = "Erro na estrutura da chamada")
     private String error_description;
+
+    @Schema(description = "Fonte do erro", example = "OAuthAPI")
     private String error_source;
+
+    @Schema(description = "Stack de erro")
     private List<Object> error_stack;
     
     public ApiError() {}

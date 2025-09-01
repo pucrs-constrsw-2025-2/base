@@ -1,15 +1,26 @@
 package com.grupo6.constrsw.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "DTO para resposta de usuário")
 public class UserResponse {
     
+    @Schema(description = "ID do usuário", example = "f47ac10b-58cc-4372-a567-0e02b2c3d479")
     private String id;
+
+    @Schema(description = "Nome de usuário (email)", example = "user@example.com")
     private String username;
+
     @JsonProperty("firstName")
+    @Schema(description = "Primeiro nome do usuário", example = "João")
     private String first_name;
+
     @JsonProperty("lastName")
+    @Schema(description = "Último nome do usuário", example = "Silva")
     private String last_name;
+
+    @Schema(description = "Status do usuário", example = "true")
     private Boolean enabled;
     
     public UserResponse() {}

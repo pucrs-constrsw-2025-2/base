@@ -16,17 +16,38 @@ import com.grupo6.constrsw.dto.AuthRequest;
 import com.grupo6.constrsw.dto.AuthResponse;
 import com.grupo6.constrsw.service.KeycloakService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
+@Tag(name = "Autenticação", description = "Endpoints para autenticação de usuários")
 public class AuthController {
 
     @Autowired
     private KeycloakService keycloakService;
 
+    @Operation(summary = "Testa se a API está funcionando")
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("API está funcionando!");
     }
 
+    @Operation(summary = "Autentica um usuário e retorna um token de acesso")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Autenticação bem-sucedida", 
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = AuthResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "401", description = "Credenciais inválidas",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = ApiError.class)))
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@ModelAttribute AuthRequest request) {
         try {
