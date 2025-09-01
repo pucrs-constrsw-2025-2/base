@@ -163,17 +163,3 @@ services:
       - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
     env_file:
       - ./.env
-
-  oauth-coverage:
-    build:
-      context: ./backend/oauth
-      target: coverage
-    image: constrsw/oauth-coverage:latest
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - seccomp=unconfined
-    volumes:
-      - ./backend/oauth/coverage:/usr/src/app/coverage
-    environment:
-      - RUST_LOG=off

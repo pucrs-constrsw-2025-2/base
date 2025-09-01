@@ -1,0 +1,6 @@
+projectKey=oauth
+serverUrl=http://sonarqube:9000
+serverVersion=25.8.0.112029
+dashboardUrl=http://sonarqube:9000/dashboard?id=oauth
+ceTaskId=85066ee3-2bcd-41e1-93a3-4987133adc7f
+ceTaskUrl=http://sonarqube:9000/api/ce/task?id=85066ee3-2bcd-41e1-93a3-4987133adc7f
