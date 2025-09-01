@@ -36,7 +36,7 @@ describe('KeycloakAdapter', () => {
         case 'KEYCLOAK_ADMIN_USERNAME':
           return 'admin';
         case 'KEYCLOAK_ADMIN_PASSWORD':
-          return 'admin-password';
+          return process.env.KEYCLOAK_ADMIN_PASSWORD;
         case 'KEYCLOAK_ADMIN_CLIENT_ID':
           return 'admin-cli';
         default:
@@ -120,7 +120,7 @@ describe('KeycloakAdapter', () => {
 
   describe('login', () => {
     it('should return token response on successful login', async () => {
-      const loginDto = { username: 'user', password: 'pass' };
+      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
       const tokenResponse = { access_token: 'token' };
       mockHttpService.post.mockReturnValue(of({ data: tokenResponse }));
 
@@ -130,7 +130,7 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw UnauthorizedException on 401 error', async () => {
-      const loginDto = { username: 'user', password: 'pass' };
+      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
       const error = new AxiosError('Unauthorized');
       error.response = { status: 401 } as AxiosResponse;
       mockHttpService.post.mockReturnValue(throwError(() => error));
@@ -141,7 +141,7 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      const loginDto = { username: 'user', password: 'pass' };
+      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
       const error = new AxiosError('Some error');
       mockHttpService.post.mockReturnValue(throwError(() => error));
 
@@ -199,7 +199,7 @@ describe('KeycloakAdapter', () => {
   describe('createUser', () => {
     const createUserDto = {
       username: 'newuser',
-      password: 'password',
+      password: process.env.TEST_USER_PASSWORD as string,
       email: 'newuser@test.com',
       firstName: 'New',
       lastName: 'User',
@@ -367,7 +367,7 @@ describe('KeycloakAdapter', () => {
 
   describe('updatePassword', () => {
     it('should update a user password', async () => {
-      const updatePasswordDto = { password: 'new-password' };
+      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
       jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
       mockHttpService.put.mockReturnValue(of(null));
 
@@ -377,7 +377,7 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      const updatePasswordDto = { password: 'new-password' };
+      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
       jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
@@ -389,7 +389,7 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      const updatePasswordDto = { password: 'new-password' };
+      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
       jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.put.mockReturnValue(throwError(() => error));

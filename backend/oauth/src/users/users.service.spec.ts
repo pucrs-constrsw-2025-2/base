@@ -48,7 +48,7 @@ describe('UsersService', () => {
       const createUserDto: CreateUserDto = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password',
+        password: process.env.TEST_USER_PASSWORD as string,
         firstName: 'Test',
         lastName: 'User',
       };
@@ -195,7 +195,7 @@ describe('UsersService', () => {
       const userId = '1';
       const updatePasswordDto: UpdatePasswordDto = {
         type: 'password',
-        value: 'new-password',
+        value: process.env.TEST_NEW_PASSWORD as string,
         temporary: false,
       };
       (keycloakAdapter.updatePassword as jest.Mock).mockResolvedValue(undefined);

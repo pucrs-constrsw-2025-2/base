@@ -35,7 +35,7 @@ describe('AuthController', () => {
     it('should call authService.login and return the result', async () => {
       const loginDto: LoginDto = {
         username: 'testuser',
-        password: 'password',
+        password: process.env.TEST_USER_PASSWORD as string,
       };
       const expectedResult: LoginResponseDto = {
         access_token: 'some-access-token',
