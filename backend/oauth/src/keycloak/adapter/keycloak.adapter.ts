@@ -42,30 +42,21 @@ export class KeycloakAdapter implements IKeycloakAdapter {
     private readonly configService: ConfigService,
   ) {}
 
-  private getUrl(path: string): string {
-    const protocol = this.configService.get<string>(
-      'KEYCLOAK_INTERNAL_PROTOCOL',
+  // MÉTODO NOVO E CORRETO
+
+private getUrl(path: string): string {
+  const baseUrl = this.configService.get<string>('KEYCLOAK_BASE_URL');
+  
+  if (!baseUrl) {
+    this.logger.error('KEYCLOAK_BASE_URL is not configured in the .env file.');
+    throw new InternalServerErrorException(
+      'Keycloak connection configuration is invalid.',
     );
-    const host = this.configService.get<string>('KEYCLOAK_INTERNAL_HOST');
-    const port = this.configService.get<string>('KEYCLOAK_INTERNAL_API_PORT');
-
-    // Debug: Log das variáveis de ambiente
-    this.logger.debug(`KEYCLOAK_INTERNAL_PROTOCOL: ${protocol}`);
-    this.logger.debug(`KEYCLOAK_INTERNAL_HOST: ${host}`);
-    this.logger.debug(`KEYCLOAK_INTERNAL_API_PORT: ${port}`);
-
-    if (!protocol || !host || !port) {
-      this.logger.error(
-        'Keycloak connection configuration is missing or invalid.',
-      );
-      this.logger.error(`Protocol: ${protocol}, Host: ${host}, Port: ${port}`);
-      throw new InternalServerErrorException(
-        'Keycloak connection configuration is missing or invalid.',
-      );
-    }
-
-    return `${protocol}://${host}:${port}${path}`;
   }
+  
+  // Apenas anexa o caminho à URL base correta
+  return `${baseUrl}${path}`;
+}
 
   private getRealm(): string {
     const realm = this.configService.get<string>('KEYCLOAK_REALM');
