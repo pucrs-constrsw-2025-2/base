@@ -644,6 +644,11 @@ export class KeycloakAdapter implements IKeycloakAdapter {
         `Keycloak API error on deleteRole: ${axiosError.message}`,
         axiosError.stack,
       );
+      if (axiosError.response) {
+        this.logger.error(
+          `Keycloak response data: ${JSON.stringify(axiosError.response.data)}`,
+        );
+      }
       if (axiosError.response?.status === 404) {
         throw new NotFoundException(`Role with name "${name}" not found`);
       }
