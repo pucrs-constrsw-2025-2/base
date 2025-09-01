@@ -31,16 +31,22 @@ func New(cfg *config.Config, kc *keycloak.Client) *gin.Engine {
 	r.PATCH("/users/:id/password", usrH.PatchPwd)
 	r.DELETE("/users/:id", usrH.Delete)
 
-	// roles endpoints
-	r.GET("/roles", roleH.List)
-	r.GET("/roles/:id", roleH.Get)
-	r.POST("/roles", roleH.Create)
-	r.PUT("/roles/:id", roleH.Update)
-	r.PATCH("/roles/:id", roleH.Patch)
-	r.DELETE("/roles/:id", roleH.Delete)
-	r.POST("/roles/:roleName/users/:userId", roleH.AssignUserToRole)
-	// r.DELETE("/roles/:roleName/users/:userId", roleH.RemoveUserFromRole)
+	roles := r.Group("/roles")
+	{
+		roles.GET("", roleH.List)
+		roles.POST("", roleH.Create)
 
+		// --- ROTAS PARA GERENCIAR USUÁRIOS DE UMA ROLE (POR NOME) ---
+		// A adição do "/by-name/" remove o conflito com "/:id"
+		roles.POST("/by-name/:roleName/users/:userId", roleH.AssignUserToRole)
+		roles.DELETE("/by-name/:roleName/users/:userId", roleH.RemoveUserFromRole)
+
+		// --- ROTAS PARA OPERAÇÕES DIRETAS NA ROLE (POR ID) ---
+		roles.GET("/:id", roleH.Get)
+		roles.PUT("/:id", roleH.Update)
+		roles.PATCH("/:id", roleH.Patch)
+		roles.DELETE("/:id", roleH.Delete)
+	}
 
 	// role-user mapping endpoints
 	r.POST("/user-roles/:userId/:roleName", roleH.AssignToUser)
