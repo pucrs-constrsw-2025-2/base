@@ -243,3 +243,57 @@ func (h *RolesHandler) GetUserRoles(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, roles)
 }
+
+// Adicione estas duas novas funções ao final do arquivo handlers/roles.go
+
+func (h *RolesHandler) AssignUserToRole(c *gin.Context) {
+	bearer := extractBearer(c)
+	if bearer == "" {
+		c.JSON(http.StatusUnauthorized, Err("401", "missing token", "OAuthAPI", nil))
+		return
+	}
+
+	userID := c.Param("userId")
+	roleName := c.Param("roleName")
+	if userID == "" || roleName == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing user ID or role name", "OAuthAPI", nil))
+		return
+	}
+
+	err := h.svc.AssignRoleToUser(c.Request.Context(), bearer, userID, roleName)
+	if err != nil {
+		if err.Error() == "404: not found" {
+			c.JSON(http.StatusNotFound, Err("404", "user or role not found", "Keycloak", err))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Err("500", "assignment failed", "Keycloak", err))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "user assigned to role successfully"})
+}
+
+func (h *RolesHandler) RemoveUserFromRole(c *gin.Context) {
+	bearer := extractBearer(c)
+	if bearer == "" {
+		c.JSON(http.StatusUnauthorized, Err("401", "missing token", "OAuthAPI", nil))
+		return
+	}
+
+	userID := c.Param("userId")
+	roleName := c.Param("roleName")
+	if userID == "" || roleName == "" {
+		c.JSON(http.StatusBadRequest, Err("400", "missing user ID or role name", "OAuthAPI", nil))
+		return
+	}
+
+	err := h.svc.RemoveRoleFromUser(c.Request.Context(), bearer, userID, roleName)
+	if err != nil {
+		if err.Error() == "404: not found" {
+			c.JSON(http.StatusNotFound, Err("404", "user or role not found", "Keycloak", err))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Err("500", "removal failed", "Keycloak", err))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "user removed from role successfully"})
+}

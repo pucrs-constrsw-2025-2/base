@@ -33,11 +33,14 @@ func New(cfg *config.Config, kc *keycloak.Client) *gin.Engine {
 
 	// roles endpoints
 	r.GET("/roles", roleH.List)
-	r.POST("/roles", roleH.Create)
 	r.GET("/roles/:id", roleH.Get)
+	r.POST("/roles", roleH.Create)
 	r.PUT("/roles/:id", roleH.Update)
 	r.PATCH("/roles/:id", roleH.Patch)
 	r.DELETE("/roles/:id", roleH.Delete)
+	r.POST("/roles/:roleName/users/:userId", roleH.AssignUserToRole)
+	r.DELETE("/roles/:roleName/users/:userId", roleH.RemoveUserFromRole)
+
 
 	// role-user mapping endpoints
 	r.POST("/user-roles/:userId/:roleName", roleH.AssignToUser)
