@@ -486,7 +486,7 @@
                 "uid": "43963279-4ff96aee-f196-48ef-ba11-dd4d71a08fe4"
             },
             {
-                "name": "Roles - Get by Name",
+                "name": "Roles - Get by Id",
                 "id": "e1183be4-4570-4da3-a19d-a54aada99f8f",
                 "protocolProfileBehavior": {
                     "disableBodyPruning": true
