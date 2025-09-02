@@ -70,7 +70,7 @@ services:
     ports:
       - ${POSTGRESQL_EXTERNAL_PORT}:${POSTGRESQL_INTERNAL_PORT}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}"]
       start_period: 30s
       interval: 20s
       timeout: 10s
@@ -101,7 +101,11 @@ services:
       postgresql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1",
+        ]
       start_period: 120s
       interval: 30s
       timeout: 10s
@@ -124,6 +128,7 @@ services:
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+      - KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
       - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     depends_on:

@@ -44,19 +44,19 @@ export class KeycloakAdapter implements IKeycloakAdapter {
 
   // MÉTODO NOVO E CORRETO
 
-private getUrl(path: string): string {
-  const baseUrl = this.configService.get<string>('KEYCLOAK_BASE_URL');
-  
-  if (!baseUrl) {
-    this.logger.error('KEYCLOAK_BASE_URL is not configured in the .env file.');
-    throw new InternalServerErrorException(
-      'Keycloak connection configuration is invalid.',
-    );
+  private getUrl(path: string): string {
+    const baseUrl = this.configService.get<string>('KEYCLOAK_URL');
+
+    if (!baseUrl) {
+      this.logger.error('KEYCLOAK_URL is not configured in the .env file.');
+      throw new InternalServerErrorException(
+        'Keycloak connection configuration is invalid.',
+      );
+    }
+
+    // Apenas anexa o caminho à URL base correta
+    return `${baseUrl}${path}`;
   }
-  
-  // Apenas anexa o caminho à URL base correta
-  return `${baseUrl}${path}`;
-}
 
   private getRealm(): string {
     const realm = this.configService.get<string>('KEYCLOAK_REALM');
@@ -82,23 +82,27 @@ private getUrl(path: string): string {
 
   async login(loginDto: LoginDto): Promise<KeycloakTokenResponse> {
     this.logger.log(`Attempting to log in user: ${loginDto.username}`);
+
+    // Print all environment variables
+    const clientId = this.configService.get<string>('KEYCLOAK_CLIENT_ID');
+    const clientSecret = this.configService.get<string>(
+      'KEYCLOAK_CLIENT_SECRET',
+    );
+    const grantType = this.configService.get<string>('KEYCLOAK_GRANT_TYPE');
+
+    this.logger.log(`Environment variables:`);
+    this.logger.log(`KEYCLOAK_CLIENT_ID: ${clientId}`);
+    this.logger.log(`KEYCLOAK_CLIENT_SECRET: ${clientSecret}`);
+    this.logger.log(`KEYCLOAK_GRANT_TYPE: ${grantType}`);
+
     const realm = this.getRealm();
     const url = this.getUrl(`/realms/${realm}/protocol/openid-connect/token`);
     this.logger.log(`Login URL: ${url}`);
 
     const body = new URLSearchParams();
-    body.append(
-      'client_id',
-      this.configService.get<string>('KEYCLOAK_CLIENT_ID')!,
-    );
-    body.append(
-      'client_secret',
-      this.configService.get<string>('KEYCLOAK_CLIENT_SECRET')!,
-    );
-    body.append(
-      'grant_type',
-      this.configService.get<string>('KEYCLOAK_GRANT_TYPE')!,
-    );
+    body.append('client_id', clientId!);
+    body.append('client_secret', clientSecret!);
+    body.append('grant_type', grantType!);
     body.append('username', loginDto.username);
     body.append('password', loginDto.password);
 
@@ -414,7 +418,9 @@ private getUrl(path: string): string {
     const url = this.getUrl(`/realms/master/protocol/openid-connect/token`);
 
     // For master realm admin operations, use admin-cli client
-    const clientId = this.configService.get<string>('KEYCLOAK_ADMIN_CLIENT_ID')!;
+    const clientId = this.configService.get<string>(
+      'KEYCLOAK_ADMIN_CLIENT_ID',
+    )!;
     const clientSecret = this.configService.get<string>(
       'KEYCLOAK_CLIENT_SECRET',
     )!;
@@ -542,7 +548,6 @@ private getUrl(path: string): string {
     this.logger.log(`Attempting to fetch role by name: ${name}`);
     const adminToken = await this.getAdminToken();
     const realm = this.getRealm();
-    const clientId = this.getClientId();
     const url = this.getUrl(`/admin/realms/${realm}/roles/${name}`);
 
     try {
@@ -595,8 +600,10 @@ private getUrl(path: string): string {
     try {
       await firstValueFrom(
         this.httpService.put(url, rolePayload, {
-          headers: { Authorization: `Bearer ${adminToken}`,
-          'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json',
+          },
         }),
       );
       this.logger.log(`Role updated successfully: ${name}`);
