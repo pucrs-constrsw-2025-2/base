@@ -1,0 +1,739 @@
+{
+    "collection": {
+        "info": {
+            "_postman_id": "1ddbef21-14fb-40a6-9485-6c7f20fcd0c4",
+            "name": "T1 - Keycloak",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "updatedAt": "2025-08-31T23:54:16.000Z",
+            "createdAt": "2025-08-12T22:52:58.000Z",
+            "lastUpdatedBy": "43963279",
+            "uid": "43963279-1ddbef21-14fb-40a6-9485-6c7f20fcd0c4"
+        },
+        "item": [
+            {
+                "name": "\"Hello World\" test",
+                "id": "2c121efa-e38e-451a-99b8-17526fc93a9e",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/users/test\n",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "test\n"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-2c121efa-e38e-451a-99b8-17526fc93a9e"
+            },
+            {
+                "name": "Login returning Token",
+                "id": "a38a6815-13d1-4736-bdec-af7e8b296968",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\n    \"username\": \"admin@pucrs.br\",\n    \"password\": \"a12345678\"\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users/login\n",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "login\n"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-a38a6815-13d1-4736-bdec-af7e8b296968"
+            },
+            {
+                "name": "Login returning Token Copy",
+                "id": "245265a7-e4e0-488e-9f90-f03ada018d8c",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"a12345678\"\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users/login\n",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "login\n"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-245265a7-e4e0-488e-9f90-f03ada018d8c"
+            },
+            {
+                "name": "Create user",
+                "id": "da6c72ad-1d25-4863-8023-b866bb85b221",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"username\": \"johndoe\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"credentials\": [\n    {\n      \"type\": \"password\",\n      \"value\": \"MinhaSenhaSegura123\",\n      \"temporary\": false\n    }\n  ]\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-da6c72ad-1d25-4863-8023-b866bb85b221"
+            },
+            {
+                "name": "Disable a user",
+                "id": "96354dd7-072c-45ab-ac6d-65dd46983db2",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                        "mode": "urlencoded",
+                        "urlencoded": [
+                            {
+                                "key": "client_id",
+                                "value": " oauth",
+                                "type": "text"
+                            },
+                            {
+                                "key": "client_secret",
+                                "value": " wsNXUxaupU9X6jCncsn3rOEy6PDt7oJO",
+                                "type": "text"
+                            },
+                            {
+                                "key": "username",
+                                "value": " admin@pucrs.br",
+                                "type": "text"
+                            },
+                            {
+                                "key": "password",
+                                "value": " a12345678",
+                                "type": "text"
+                            },
+                            {
+                                "key": "grant_type",
+                                "value": " password",
+                                "type": "text"
+                            }
+                        ]
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users/9df24d4f-9cee-4ea4-be5f-fea0bb47fe51",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "9df24d4f-9cee-4ea4-be5f-fea0bb47fe51"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-96354dd7-072c-45ab-ac6d-65dd46983db2"
+            },
+            {
+                "name": "Get all enabled users",
+                "id": "fb5164a7-0dd1-477c-88da-987ad2d9a75a",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/users?enabled=true",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users"
+                        ],
+                        "query": [
+                            {
+                                "key": "enabled",
+                                "value": "true"
+                            }
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-fb5164a7-0dd1-477c-88da-987ad2d9a75a"
+            },
+            {
+                "name": "Get all users",
+                "id": "0b814771-ffd8-41da-84d4-ed6b6614eb30",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/users",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-0b814771-ffd8-41da-84d4-ed6b6614eb30"
+            },
+            {
+                "name": "Get user by id",
+                "id": "473d51fb-33d0-4e3a-91f3-26df989c1a4c",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/users/c3bcaddc-397a-4b26-8337-4b57e037af4a",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "c3bcaddc-397a-4b26-8337-4b57e037af4a"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-473d51fb-33d0-4e3a-91f3-26df989c1a4c"
+            },
+            {
+                "name": "Update User by id",
+                "id": "6bfbe120-b3e5-4401-87ef-b958132f808e",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\n    \"username\": \"daltonteste\",\n    \"email\": \"daltonteste@email.com\",\n    \"first_name\": \"dalton\",\n    \"last_name\": \"exemplo\",\n    \"password\": \"dalton123\"\n}\n",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users/c3bcaddc-397a-4b26-8337-4b57e037af4a",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "c3bcaddc-397a-4b26-8337-4b57e037af4a"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-6bfbe120-b3e5-4401-87ef-b958132f808e"
+            },
+            {
+                "name": "Patch User password",
+                "id": "8a74dd1b-f49f-435d-87f6-364cd1af7477",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"password\": \"sim\"\n}\n",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/users/c3bcaddc-397a-4b26-8337-4b57e037af4a",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "users",
+                            "c3bcaddc-397a-4b26-8337-4b57e037af4a"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-8a74dd1b-f49f-435d-87f6-364cd1af7477"
+            },
+            {
+                "name": "Roles - Create",
+                "id": "b7c61bd3-3148-4404-9bf1-e8ed71b59ad3",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\r\n  \"name\": \"admin\",\r\n  \"description\": \"Role de administrador do sistema\"\r\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/roles",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-b7c61bd3-3148-4404-9bf1-e8ed71b59ad3"
+            },
+            {
+                "name": "Roles - List all",
+                "id": "4ff96aee-f196-48ef-ba11-dd4d71a08fe4",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/roles",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-4ff96aee-f196-48ef-ba11-dd4d71a08fe4"
+            },
+            {
+                "name": "Roles - Get by Name",
+                "id": "e1183be4-4570-4da3-a19d-a54aada99f8f",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI0bVBhamtucGV5NEtUMFk1QWVSeFRMaW9NUUtLX2N4bWdRZmlGN0wwUDhzIn0.eyJleHAiOjE3NTUzNTYwODYsImlhdCI6MTc1NTM1NTQ4NiwianRpIjoiZmU5MzFmNzItZDA5ZC00Zjc2LTg3M2YtM2MxOTUwNmNjZmJjIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrOjgwODAvcmVhbG1zL2NvbnN0cnN3IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJicm9rZXIiLCJhY2NvdW50Il0sInN1YiI6IjJkYjk0MDdjLWJhYTItNGM1MC1iYjAxLWI5MGFjODllMWQ3MSIsInR5cCI6IkJlYXJlciIsImF6cCI6Im9hdXRoIiwic2lkIjoiMTBkNzM3N2YtY2JiZi00ZjRmLWFkZjItMjBlN2I4ODc3NTNlIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiZGVmYXVsdC1yb2xlcy1jb25zdHJ1Y2FvLXN3Iiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsIlVTRVIiXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctaWRlbnRpdHktcHJvdmlkZXJzIiwidmlldy1yZWFsbSIsIm1hbmFnZS1pZGVudGl0eS1wcm92aWRlcnMiLCJpbXBlcnNvbmF0aW9uIiwicmVhbG0tYWRtaW4iLCJjcmVhdGUtY2xpZW50IiwibWFuYWdlLXVzZXJzIiwicXVlcnktcmVhbG1zIiwidmlldy1hdXRob3JpemF0aW9uIiwicXVlcnktY2xpZW50cyIsInF1ZXJ5LXVzZXJzIiwibWFuYWdlLWV2ZW50cyIsIm1hbmFnZS1yZWFsbSIsInZpZXctZXZlbnRzIiwidmlldy11c2VycyIsInZpZXctY2xpZW50cyIsIm1hbmFnZS1hdXRob3JpemF0aW9uIiwibWFuYWdlLWNsaWVudHMiLCJxdWVyeS1ncm91cHMiXX0sImJyb2tlciI6eyJyb2xlcyI6WyJyZWFkLXRva2VuIl19LCJvYXV0aCI6eyJyb2xlcyI6WyJhZG1pbmlzdHJhdG9yIiwidW1hX3Byb3RlY3Rpb24iXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJ2aWV3LWFwcGxpY2F0aW9ucyIsInZpZXctY29uc2VudCIsInZpZXctZ3JvdXBzIiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJtYW5hZ2UtY29uc2VudCIsImRlbGV0ZS1hY2NvdW50Iiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJyb2xlcyBlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbkBwdWNycy5iciIsImdpdmVuX25hbWUiOiIiLCJmYW1pbHlfbmFtZSI6IiIsImVtYWlsIjoiYWRtaW5AcHVjcnMuYnIifQ.E6t9pAob2UhEvXe5jp5EDVyZGiFJBh-nZzwV3Kv5UlfDAv2aBuCd3Px39AxMHzTGkCzalVviG0TKOB-gcu_y932byvEmddNEF0d7MxrFrXCZmKbRkYF_AZ_lqsXy0Ex8yuz6xPVFGVCvlstqSltpqEjv4olycBva42LUuqY3_OcyS4ZA4eKW_J2wImVuc14KoFvel8tnD5unvsKMvmJiQ9vbxi0PWwLDyMuGN8uscIovDw49fOQBhOyJ5qRQijuBNuAHienVVXYWK8wp2hD-RRcgkDfx0xOYtnspaj459I2xMME_hqeIqrp-y4GqtBxq-pIsfuDs_cxAcTCWBaxCpg",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/roles/admin",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "admin"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-e1183be4-4570-4da3-a19d-a54aada99f8f"
+            },
+            {
+                "name": "Roles - Update",
+                "id": "6f9c8d40-75d4-4302-a432-e27af568de9f",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\r\n  \"name\": \"admin\",\r\n  \"description\": \"Nova descrição para a role admin\"\r\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/roles/id/e4fa9d91-2ec2-4876-80ca-618d9b12ff57",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "id",
+                            "e4fa9d91-2ec2-4876-80ca-618d9b12ff57"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-6f9c8d40-75d4-4302-a432-e27af568de9f"
+            },
+            {
+                "name": "Roles - Parcial Update",
+                "id": "a7853415-786b-40de-a482-1643e6908d41",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{ \r\n    \"description\": \"Permissões avançadas para desenvolvedores sênior e tech leads.\"\r\n} ",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/roles/02487f66-c0c1-427e-94fe-c5f3baad338b",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "02487f66-c0c1-427e-94fe-c5f3baad338b"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-a7853415-786b-40de-a482-1643e6908d41"
+            },
+            {
+                "name": "Roles - Logical delete",
+                "id": "110f1ea1-4cfe-4f60-8b16-da1e21e112dc",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                        "raw": "http://localhost:8000/roles/e4fa9d91-2ec2-4876-80ca-618d9b12ff57",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "e4fa9d91-2ec2-4876-80ca-618d9b12ff57"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-110f1ea1-4cfe-4f60-8b16-da1e21e112dc"
+            },
+            {
+                "name": "Roles - Give to user",
+                "id": "0f2ef2e3-3215-4748-bf83-a4a2c6ad878d",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\r\n  \"user_id\": \"60019465-b121-486f-9eb6-9df3b549547a\"\r\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/roles/2b7f739a-c46f-443e-8e70-688cf4aa9e29/assign",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "2b7f739a-c46f-443e-8e70-688cf4aa9e29",
+                            "assign"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-0f2ef2e3-3215-4748-bf83-a4a2c6ad878d"
+            },
+            {
+                "name": "Roles - Remove from user",
+                "id": "4873c30c-51aa-434f-989f-0f440bc74b23",
+                "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                },
+                "request": {
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [
+                            {
+                                "key": "token",
+                                "value": "{{token}}",
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                        "mode": "raw",
+                        "raw": "{\r\n  \"user_id\": \"60019465-b121-486f-9eb6-9df3b549547a\"\r\n}",
+                        "options": {
+                            "raw": {
+                                "language": "json"
+                            }
+                        }
+                    },
+                    "url": {
+                        "raw": "http://localhost:8000/roles/2b7f739a-c46f-443e-8e70-688cf4aa9e29/unassign",
+                        "protocol": "http",
+                        "host": [
+                            "localhost"
+                        ],
+                        "port": "8000",
+                        "path": [
+                            "roles",
+                            "2b7f739a-c46f-443e-8e70-688cf4aa9e29",
+                            "unassign"
+                        ]
+                    }
+                },
+                "response": [],
+                "uid": "43963279-4873c30c-51aa-434f-989f-0f440bc74b23"
+            }
+        ]
+    }
+}
