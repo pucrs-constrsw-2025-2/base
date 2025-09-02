@@ -18,18 +18,21 @@ router = APIRouter(prefix="/roles", tags=["roles"])
 # Constante para a origem do erro e helper de validação
 ERROR_SOURCE = "RoleRouter"
 
+
 def _validate_token(authorization: str | None):
     """Função auxiliar para validar o header de autorização."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
-            detail="Header de autorização 'Bearer' ausente ou mal formatado."
+            detail="Header de autorização 'Bearer' ausente ou mal formatado.",
         )
 
-# --- Endpoints ---
 
+# --- Endpoints ---
 @router.post("/", response_model=dict, status_code=201)
-async def create_role_endpoint(role: RoleCreate, authorization: Annotated[str | None, Header()] = None):
+async def create_role_endpoint(
+    role: RoleCreate, authorization: Annotated[str | None, Header()] = None
+):
     _validate_token(authorization)
     try:
         new_role = create_role(authorization, role)
@@ -48,7 +51,9 @@ async def get_roles_endpoint(authorization: Annotated[str | None, Header()] = No
 
 
 @router.get("/{role_id}", response_model=dict)
-async def get_role_endpoint(role_id: str, authorization: Annotated[str | None, Header()] = None):
+async def get_role_endpoint(
+    role_id: str, authorization: Annotated[str | None, Header()] = None
+):
     _validate_token(authorization)
     try:
         return get_role_by_id(authorization, role_id)
@@ -57,7 +62,11 @@ async def get_role_endpoint(role_id: str, authorization: Annotated[str | None, H
 
 
 @router.put("/{role_id}", status_code=204)
-async def update_role_endpoint(role_id: str, role_update: RoleUpdate, authorization: Annotated[str | None, Header()] = None):
+async def update_role_endpoint(
+    role_id: str,
+    role_update: RoleUpdate,
+    authorization: Annotated[str | None, Header()] = None,
+):
     _validate_token(authorization)
     try:
         update_role(authorization, role_id, role_update)
@@ -67,7 +76,11 @@ async def update_role_endpoint(role_id: str, role_update: RoleUpdate, authorizat
 
 
 @router.patch("/{role_id}", status_code=204)
-async def patch_role_endpoint(role_id: str, role_update: RoleUpdate, authorization: Annotated[str | None, Header()] = None):
+async def patch_role_endpoint(
+    role_id: str,
+    role_update: RoleUpdate,
+    authorization: Annotated[str | None, Header()] = None,
+):
     _validate_token(authorization)
     try:
         patch_role(authorization, role_id, role_update)
@@ -77,7 +90,9 @@ async def patch_role_endpoint(role_id: str, role_update: RoleUpdate, authorizati
 
 
 @router.delete("/{role_id}", status_code=204)
-async def delete_role_endpoint(role_id: str, authorization: Annotated[str | None, Header()] = None):
+async def delete_role_endpoint(
+    role_id: str, authorization: Annotated[str | None, Header()] = None
+):
     _validate_token(authorization)
     try:
         logical_delete_role(authorization, role_id)
@@ -87,7 +102,11 @@ async def delete_role_endpoint(role_id: str, authorization: Annotated[str | None
 
 
 @router.post("/{role_id}/assign", status_code=204)
-async def assign_role_endpoint(role_id: str, assign: UserRoleAssign, authorization: Annotated[str | None, Header()] = None):
+async def assign_role_endpoint(
+    role_id: str,
+    assign: UserRoleAssign,
+    authorization: Annotated[str | None, Header()] = None,
+):
     _validate_token(authorization)
     try:
         assign_role_to_user(authorization, role_id, assign)
@@ -97,7 +116,11 @@ async def assign_role_endpoint(role_id: str, assign: UserRoleAssign, authorizati
 
 
 @router.delete("/{role_id}/unassign", status_code=204)
-async def unassign_role_endpoint(role_id: str, assign: UserRoleAssign, authorization: Annotated[str | None, Header()] = None):
+async def unassign_role_endpoint(
+    role_id: str,
+    assign: UserRoleAssign,
+    authorization: Annotated[str | None, Header()] = None,
+):
     _validate_token(authorization)
     try:
         unassign_role_from_user(authorization, role_id, assign)

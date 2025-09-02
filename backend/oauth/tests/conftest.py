@@ -6,13 +6,14 @@ from config import KEYCLOAK_USERNAME, KEYCLOAK_PASSWORD
 # Uma instância global do cliente de teste
 client = TestClient(app)
 
+
 @pytest.fixture(scope="session")
 def auth_token():
     """
     Fixture que obtém um token de autenticação real do endpoint de login.
     Este token pode ser usado em todos os testes que requerem autenticação.
     """
-    
+
     response = client.post(
         "/users/login",
         json={

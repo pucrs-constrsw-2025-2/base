@@ -1,2 +1,12 @@
+# Ignore sensitive data
 .env
+
+# Ignore Sonar scanner work directory
 .scannerwork
+
+# Ignore Pylint
+.pylintrc
+
+# Ignore IDE config directories
+.vscode/
+.idea/

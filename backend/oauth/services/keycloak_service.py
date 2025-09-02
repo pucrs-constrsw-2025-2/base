@@ -37,12 +37,14 @@ def get_keycloak_token(username: str, password: str):
 
         if response.status_code != 200:
             # Tenta extrair a mensagem de erro específica do Keycloak
-            kc_error_detail = response.json().get("error_description", ERROR_USER_OR_PASS)
+            kc_error_detail = response.json().get(
+                "error_description", ERROR_USER_OR_PASS
+            )
             raise APIException(
                 status_code=response.status_code,
-                error_code=f"KC-{response.status_code}", # Repassa o código de erro do Keycloak
+                error_code=f"KC-{response.status_code}",  # Repassa o código de erro do Keycloak
                 description=kc_error_detail,
-                source=ERROR_SOURCE
+                source=ERROR_SOURCE,
             )
 
         # Em caso de sucesso, retorna o JSON com o token
@@ -51,7 +53,7 @@ def get_keycloak_token(username: str, password: str):
     except requests.exceptions.RequestException as e:
         # Captura erros de conexão (ex: Keycloak fora do ar)
         raise APIException(
-            status_code=503, # Service Unavailable
+            status_code=503,  # Service Unavailable
             error_code="KS-503-01",
             description=f"Erro de comunicação com o serviço de autenticação: {e}",
             source=ERROR_SOURCE,
@@ -88,7 +90,7 @@ def create_keycloak_user(access_token: str, user_create: UserCreate):
                     source=ERROR_SOURCE,
                 )
             user_id = location_header.rstrip("/").split("/")[-1]
-            
+
             # Retorna um dicionário em vez de JSONResponse
             return {
                 "message": "User created successfully",
@@ -108,7 +110,9 @@ def create_keycloak_user(access_token: str, user_create: UserCreate):
             403: "Ação não permitida. Verifique as permissões do token.",
             409: f"Conflito: Usuário ou email já existente. (Detalhe: {error_details})",
         }
-        description = error_map.get(response.status_code, f"Erro do Keycloak: {error_details}")
+        description = error_map.get(
+            response.status_code, f"Erro do Keycloak: {error_details}"
+        )
 
         raise APIException(
             status_code=response.status_code,
@@ -146,13 +150,15 @@ def disable_keycloak_user(access_token: str, user_id: str):
             403: "Ação não permitida para este usuário.",
             404: "Usuário não localizado.",
         }
-        description = error_map.get(response.status_code, "Erro ao desabilitar usuário.")
-        
+        description = error_map.get(
+            response.status_code, "Erro ao desabilitar usuário."
+        )
+
         raise APIException(
             status_code=response.status_code,
             error_code=f"KC-{response.status_code}",
             description=description,
-            source=ERROR_SOURCE
+            source=ERROR_SOURCE,
         )
     except requests.exceptions.RequestException as e:
         raise APIException(
@@ -161,7 +167,8 @@ def disable_keycloak_user(access_token: str, user_id: str):
             description=f"Erro de comunicação com o serviço de autenticação: {e}",
             source=ERROR_SOURCE,
         )
-        
+
+
 def update_keycloak_user_data(access_token: str, user_id: str, user_update: UserUpdate):
     """
     Atualiza dados de um usuário no Keycloak (PUT/PATCH).
@@ -169,27 +176,31 @@ def update_keycloak_user_data(access_token: str, user_id: str, user_update: User
     """
     url = f"{KEYCLOAK_URL}/admin/realms/{REALM_NAME}/users/{user_id}"
     headers = {"Authorization": access_token, "Content-Type": APPLICATION_JSON}
-    
+
     # Prepara o payload para o Keycloak, excluindo a senha
-    data = user_update.model_dump(exclude_unset=True, exclude={'password'})
-    
+    data = user_update.model_dump(exclude_unset=True, exclude={"password"})
+
     # Adiciona os campos extras como enabled e credentials
     data["enabled"] = True
-    
+
     # Se a senha foi informada, adiciona ela ao campo 'credentials'
     if user_update.password:
-        data["credentials"] = [{"type": "password", "value": user_update.password, "temporary": False}]
-        
-    if 'first_name' in data:
-        data['firstName'] = data.pop('first_name')
-    if 'last_name' in data:
-        data['lastName'] = data.pop('last_name')
-    
+        data["credentials"] = [
+            {"type": "password", "value": user_update.password, "temporary": False}
+        ]
+
+    if "first_name" in data:
+        data["firstName"] = data.pop("first_name")
+    if "last_name" in data:
+        data["lastName"] = data.pop("last_name")
+
     try:
         # Envia a requisição PUT para atualizar o usuário
         response = requests.put(url, json=data, headers=headers)
-        print("ERROR RESPONSE:", response.text)  # Log do corpo da resposta para depuração
-        
+        print(
+            "ERROR RESPONSE:", response.text
+        )  # Log do corpo da resposta para depuração
+
         if response.status_code == 204:
             # Status 204: Sucesso, mas sem conteúdo para retornar
             return None  # Pode retornar None ou uma mensagem vazia
@@ -200,9 +211,9 @@ def update_keycloak_user_data(access_token: str, user_id: str, user_update: User
             status_code=response.status_code,
             error_code=f"KC-{response.status_code}",
             description=kc_error_detail,
-            source=ERROR_SOURCE
+            source=ERROR_SOURCE,
         )
-        
+
     except requests.exceptions.RequestException as e:
         # Em caso de erro de comunicação, lança a exceção 503
         raise APIException(
@@ -211,6 +222,8 @@ def update_keycloak_user_data(access_token: str, user_id: str, user_update: User
             description=f"Erro de comunicação com o serviço de autenticação: {e}",
             source=ERROR_SOURCE,
         )
+
+
 def update_keycloak_user_password(access_token: str, user_id: str, password: str):
     """
     Atualiza a senha de um usuário no Keycloak.
@@ -224,15 +237,17 @@ def update_keycloak_user_password(access_token: str, user_id: str, password: str
         response = requests.put(url, json=data, headers=headers)
         if response.status_code != 204:
             # Tenta extrair a mensagem de erro específica do Keycloak
-            kc_error_detail = response.json().get("error_description", ERROR_USER_OR_PASS)
+            kc_error_detail = response.json().get(
+                "error_description", ERROR_USER_OR_PASS
+            )
             raise APIException(
                 status_code=response.status_code,
-                error_code=f"KC-{response.status_code}", # Repassa o código de erro do Keycloak
+                error_code=f"KC-{response.status_code}",  # Repassa o código de erro do Keycloak
                 description=kc_error_detail,
-                source=ERROR_SOURCE
+                source=ERROR_SOURCE,
             )
         return None
-            
+
     except requests.exceptions.RequestException as e:
         raise APIException(
             status_code=503,

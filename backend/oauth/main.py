@@ -5,6 +5,7 @@ from exceptions import APIException
 
 app = FastAPI()
 
+
 @app.exception_handler(APIException)
 async def service_exception_handler(request: Request, exc: APIException):
     """
@@ -25,6 +26,7 @@ async def service_exception_handler(request: Request, exc: APIException):
             ],
         },
     )
+
 
 app.include_router(roles.router)
 app.include_router(users.router)
