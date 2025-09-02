@@ -17,11 +17,20 @@ const getUsersEndpoint = () =>
 
 // POST /login
 router.post('/login', async (req: Request, res: Response) => {
-  const { client_id, username, password, grant_type } = req.body;
+  const { client_id, client_secret, username, password, grant_type } = req.body;
 
   try {
-    const response = await axios.post(getTokenEndpoint(), null, {
-      params: { client_id, username, password, grant_type },
+    // Envia os parâmetros no corpo como application/x-www-form-urlencoded
+    const params = new URLSearchParams();
+    if (client_id) params.append('client_id', client_id);
+    // se o client_secret vier no body, usa ele; caso contrário, usa a variável de ambiente
+    const secret = client_secret || process.env.KEYCLOAK_CLIENT_SECRET;
+    if (secret) params.append('client_secret', secret);
+    if (username) params.append('username', username);
+    if (password) params.append('password', password);
+    if (grant_type) params.append('grant_type', grant_type);
+
+    const response = await axios.post(getTokenEndpoint(), params.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
 
