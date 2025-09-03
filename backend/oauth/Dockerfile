@@ -3,13 +3,10 @@ FROM rust:1.82 AS builder
 WORKDIR /usr/src/app
 
 # Copy manifest + lock (FALTAVA Cargo.lock)
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
 
 # Dummy src to cache deps
 RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Pre-fetch dependencies (opcional)
-RUN cargo fetch --locked
 
 # Copy sources and tests
 COPY src ./src
@@ -19,7 +16,7 @@ COPY tests ./tests
 # RUN cargo test --locked --no-run
 
 # Executa testes (falha interrompe build)
-RUN cargo test --locked --all -- --test-threads=1
+RUN cargo test --all -- --test-threads=1
 
 # Build release
 RUN cargo build --release
