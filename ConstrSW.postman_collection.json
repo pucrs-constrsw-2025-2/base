@@ -1,11 +1,10 @@
 {
 	"info": {
-		"_postman_id": "016c84f3-d2ef-4e23-8dc9-60d0c4b1c7c3",
+		"_postman_id": "05dc53e1-43d7-48f0-8ef6-1b17b16a724e",
 		"name": "ConstrSW",
 		"description": "Collection completa com todos os endpoints dos serviços do projeto ConstrSW 2025-1",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "71443",
-		"_collection_link": "https://team-eduardo-arruda.postman.co/workspace/9ab85f73-7358-4ad7-a164-28380cbe0819/collection/71443-016c84f3-d2ef-4e23-8dc9-60d0c4b1c7c3?action=share&source=collection_link&creator=71443"
+		"_exporter_id": "40424675"
 	},
 	"item": [
 		{
@@ -18,13 +17,13 @@
 							"name": "Authentication",
 							"item": [
 								{
-									"name": "Login",
+									"name": "Login admin",
 									"event": [
 										{
 											"listen": "test",
 											"script": {
 												"exec": [
-													"var jsonData = pm.response.text();\r",
+													"var jsonData = pm.response.json();\r",
 													"pm.environment.set(\"access_token\", jsonData.access_token);\r",
 													"pm.environment.set(\"refresh_token\", jsonData.refresh_token);"
 												],
@@ -67,9 +66,9 @@
 											]
 										},
 										"url": {
-											"raw": "{{oauth_url}}/login",
+											"raw": "{{gateway_url}}/login",
 											"host": [
-												"{{oauth_url}}"
+												"{{gateway_url}}"
 											],
 											"path": [
 												"login"
@@ -103,6 +102,72 @@
 											]
 										},
 										"description": "Renovar token de acesso usando refresh token"
+									},
+									"response": []
+								},
+								{
+									"name": "Login user",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"var jsonData = pm.response.json();\r",
+													"pm.environment.set(\"access_token\", jsonData.access_token);\r",
+													"pm.environment.set(\"refresh_token\", jsonData.refresh_token);"
+												],
+												"type": "text/javascript",
+												"packages": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/x-www-form-urlencoded"
+											}
+										],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "client_id",
+													"value": "oauth",
+													"type": "text"
+												},
+												{
+													"key": "username",
+													"value": "testuser@example.com",
+													"type": "text"
+												},
+												{
+													"key": "password",
+													"value": "123",
+													"type": "text"
+												},
+												{
+													"key": "grant_type",
+													"value": "password",
+													"type": "text"
+												},
+												{
+													"key": "client_secret",
+													"value": "wsNXUxaupU9X6jCncsn3rOEy6PDt7oJO",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{gateway_url}}/login",
+											"host": [
+												"{{gateway_url}}"
+											],
+											"path": [
+												"login"
+											]
+										}
 									},
 									"response": []
 								}
@@ -165,12 +230,12 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"username\": \"novo.usuario\",\n  \"password\": \"senha123\",\n  \"first-name\": \"João\",\n  \"last-name\": \"Silva\",\n  \"email\": \"joao.silva@email.com\"\n}"
+													"raw": "{\n    \"username\": \"testuser\",\n    \"enabled\": true,\n    \"firstName\": \"Test\",\n    \"lastName\": \"User\",\n    \"email\": \"testuser@example.com\",\n    \"credentials\": [\n        {\n            \"type\": \"password\",\n            \"value\": \"password\",\n            \"temporary\": false\n        }\n    ]\n}"
 												},
 												"url": {
-													"raw": "{{oauth_url}}/users",
+													"raw": "{{gateway_url}}/users",
 													"host": [
-														"{{oauth_url}}"
+														"{{gateway_url}}"
 													],
 													"path": [
 														"users"
@@ -184,25 +249,14 @@
 											"name": "List Users",
 											"request": {
 												"method": "GET",
-												"header": [
-													{
-														"key": "Authorization",
-														"value": "Bearer {{access_token}}"
-													}
-												],
+												"header": [],
 												"url": {
-													"raw": "{{oauth_url}}/users?enabled=true",
+													"raw": "{{gateway_url}}/users",
 													"host": [
-														"{{oauth_url}}"
+														"{{gateway_url}}"
 													],
 													"path": [
 														"users"
-													],
-													"query": [
-														{
-															"key": "enabled",
-															"value": "true"
-														}
 													]
 												},
 												"description": "Listar todos os usuários (opcionalmente filtrar por status)"
@@ -220,13 +274,13 @@
 													}
 												],
 												"url": {
-													"raw": "{{oauth_url}}/users/{{user_id}}",
+													"raw": "{{gateway_url}}/users/",
 													"host": [
-														"{{oauth_url}}"
+														"{{gateway_url}}"
 													],
 													"path": [
 														"users",
-														"{{user_id}}"
+														""
 													]
 												},
 												"description": "Buscar usuário por ID"
@@ -281,16 +335,16 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"password\": \"nova_senha123\"\n}"
+													"raw": "{\n  \"credentials\": [\n    { \"type\": \"password\", \"value\": \"novaSenha123\", \"temporary\": false }\n  ]\n}"
 												},
 												"url": {
-													"raw": "{{oauth_url}}/users/{{user_id}}",
+													"raw": "{{gateway_url}}/users/44663720-b49a-44a2-8bb5-7cd45ade3552",
 													"host": [
-														"{{oauth_url}}"
+														"{{gateway_url}}"
 													],
 													"path": [
 														"users",
-														"{{user_id}}"
+														"44663720-b49a-44a2-8bb5-7cd45ade3552"
 													]
 												},
 												"description": "Alterar senha do usuário"
@@ -308,13 +362,13 @@
 													}
 												],
 												"url": {
-													"raw": "{{oauth_url}}/users/{{user_id}}",
+													"raw": "{{gateway_url}}/users/7521c71f-9e2f-4f75-9e75-42af564866b0",
 													"host": [
-														"{{oauth_url}}"
+														"{{gateway_url}}"
 													],
 													"path": [
 														"users",
-														"{{user_id}}"
+														"7521c71f-9e2f-4f75-9e75-42af564866b0"
 													]
 												},
 												"description": "Desabilitar usuário (exclusão lógica)"
@@ -20521,6 +20575,16 @@
 			]
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
 	"event": [
 		{
 			"listen": "prerequest",
@@ -20539,12 +20603,6 @@
 					""
 				]
 			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8080"
 		}
 	]
 }
