@@ -29,6 +29,8 @@ services:
       - KC_METRICS_ENABLED=${KC_METRICS_ENABLED}
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_HOSTNAME=${KEYCLOAK_INTERNAL_HOST}
+      - KC_HTTP_PORT=${KEYCLOAK_INTERNAL_CONSOLE_PORT}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
       - ./backend/utils/keycloak:/opt/keycloak/data/import     
@@ -113,26 +115,26 @@ services:
       retries: 10
     restart: always
 
-  # oauth-api:
-  #   container_name: oauth-api
-  #   build:
-  #     context: ./backend/oauth # Diretório que contém o Dockerfile da API
-  #     dockerfile: Dockerfile
-  #   image: constrsw/oauth-api
-  #   command: uvicorn oauth_api.main:app --host 0.0.0.0 --port 8000 --reload
-  #   ports:
-  #     - "8000:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
-  #   networks:
-  #     - constrsw
-  #   volumes:
-  #     # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
-  #     - ./backend/oauth:/app 
-  #   depends_on:
-  #     keycloak:
-  #       condition: service_healthy
-  #     postgresql:
-  #       condition: service_healthy
-  #   restart: always
-  #   # Garanta que você tenha um arquivo .env na pasta backend/oauth
-  #   env_file:
-  #     - ./backend/oauth/.env 
+  oauth-api:
+    container_name: oauth-api
+    build:
+      context: ./backend/oauth # Diretório que contém o Dockerfile da API
+      dockerfile: Dockerfile
+    image: constrsw/oauth-api
+    command: uvicorn oauth_api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
+    networks:
+      - constrsw
+    volumes:
+      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
+      - ./backend/oauth:/app 
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    restart: always
+    # Garanta que você tenha um arquivo .env na pasta backend/oauth
+    env_file:
+      - ./backend/oauth/.env 
