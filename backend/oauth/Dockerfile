@@ -1,12 +1,22 @@
+FROM openjdk:21-jdk-slim AS build
+
+WORKDIR /app
+
+# Copiar os arquivos do projeto para o container
+COPY . .
+
+# Instalar o Maven e construir o JAR
+RUN apt-get update && \
+    apt-get install -y maven && \
+    mvn clean package -DskipTests
+
 FROM openjdk:21-jdk-slim
 
 WORKDIR /app
 
-# Copiar o arquivo JAR da aplicação
-COPY target/constrsw-0.0.1-SNAPSHOT.jar app.jar
+# Copiar o JAR gerado da etapa de build
+COPY --from=build /app/target/constrsw-0.0.1-SNAPSHOT.jar app.jar
 
-# Expor a porta da aplicação
 EXPOSE 8082
 
-# Comando para executar a aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]
