@@ -1,5 +1,5 @@
 # Stage 1: Build - Instala as dependências de produção com Poetry
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Define '/app' como o diretório de trabalho DENTRO do contêiner.
 WORKDIR /app

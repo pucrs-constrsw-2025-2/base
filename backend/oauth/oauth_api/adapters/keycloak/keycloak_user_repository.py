@@ -12,6 +12,9 @@ from .keycloak_client import KeycloakAdminClient
 
 
 class KeycloakUserRepository(IUserRepository):
+    # Define a constant for the API endpoint
+    _USERS_ENDPOINT = "/users"
+
     def __init__(self, client: KeycloakAdminClient):
         self.client = client
 
@@ -26,7 +29,8 @@ class KeycloakUserRepository(IUserRepository):
 
     async def find_by_id(self, user_id: str) -> Optional[User]:
         try:
-            kc_user = await self.client.get(f"/users/{user_id}")
+            # Use the constant in an f-string
+            kc_user = await self.client.get(f"{self._USERS_ENDPOINT}/{user_id}")
             return self._to_domain(kc_user)
         except KeycloakAPIError as e:
             if e.status_code == 404:
@@ -35,7 +39,8 @@ class KeycloakUserRepository(IUserRepository):
 
     async def find_by_email(self, email: str) -> Optional[User]:
         params = {"email": email, "exact": "true"}
-        kc_users = await self.client.get("/users", params=params)
+        # Use the constant directly
+        kc_users = await self.client.get(self._USERS_ENDPOINT, params=params)
         if not kc_users:
             return None
         return self._to_domain(kc_users[0])
@@ -43,7 +48,7 @@ class KeycloakUserRepository(IUserRepository):
     async def find_all(self, enabled: Optional[bool] = None) -> List[User]:
         # Passo 1: Busca a lista completa de usuários do Keycloak,
         # já que o filtro enabled=true não é suportado por eles.
-        kc_users = await self.client.get("/users")
+        kc_users = await self.client.get(self._USERS_ENDPOINT)
 
         # Converte a resposta do Keycloak para a nossa lista de objetos de domínio User.
         all_users = [self._to_domain(user) for user in kc_users]
@@ -70,7 +75,7 @@ class KeycloakUserRepository(IUserRepository):
             ],
         }
         try:
-            response = await self.client.post("/users", json=kc_payload)
+            response = await self.client.post(self._USERS_ENDPOINT, json=kc_payload)
             user_location = response.headers.get("location")
             if not user_location:
                 raise KeycloakAPIError(500, "Header 'Location' não encontrado.")
@@ -90,14 +95,14 @@ class KeycloakUserRepository(IUserRepository):
             "firstName": user_data.get("first_name", existing_user.first_name),
             "lastName": user_data.get("last_name", existing_user.last_name),
         }
-        await self.client.put(f"/users/{user_id}", json=kc_payload)
+        await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}", json=kc_payload)
         return await self.find_by_id(user_id)
 
     async def reset_password(self, user_id: str, new_password: str) -> None:
         await self.find_by_id(user_id)
         payload = {"type": "password", "value": new_password, "temporary": False}
-        await self.client.put(f"/users/{user_id}/reset-password", json=payload)
+        await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}/reset-password", json=payload)
 
     async def disable(self, user_id: str) -> None:
         await self.find_by_id(user_id)
-        await self.client.put(f"/users/{user_id}", json={"enabled": False})
+        await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}", json={"enabled": False})

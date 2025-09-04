@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from oauth_api.core.exceptions import BaseAPIException
 
 
-async def api_exception_handler(_: Request, exc: BaseAPIException):
+def api_exception_handler(_: Request, exc: BaseAPIException):
     return JSONResponse(
         status_code=exc.status_code,
         content={
