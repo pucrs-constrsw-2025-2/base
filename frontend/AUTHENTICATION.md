@@ -1,6 +1,6 @@
 # Estratégia de Persistência e Evolução do Access Token em SPA Angular + Keycloak
 
-Este documento descreve duas abordagens progressivas para lidar com **tokens de acesso (access tokens)** em um frontend **Angular** com **Angular Material**, consumindo uma **REST API OAuth** implementada como gateway sobre o **Keycloak**.
+Este documento descreve duas abordagens progressivas para lidar com **tokens de acesso (access tokens)** em um frontend **Ract** com **Materials UI**, consumindo uma **REST API OAuth** implementada como gateway sobre o **Keycloak**.
 
 ---
 
