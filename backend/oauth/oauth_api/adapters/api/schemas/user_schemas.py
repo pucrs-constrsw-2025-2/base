@@ -1,6 +1,17 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ---------------------------------------------------------------------------
+# Constantes para Exemplos
+# ---------------------------------------------------------------------------
+
+EXAMPLE_USER_EMAIL = "joao.silva@email.com"
+EXAMPLE_USER_FIRST_NAME = "João"
+EXAMPLE_USER_LAST_NAME = "Silva"
+EXAMPLE_USER_PASSWORD = "strongPassword123"
+EXAMPLE_USER_NEW_PASSWORD = "newStrongPassword123"
+EXAMPLE_USER_ID = "a0b3827f-4912-4cfc-a2b8-a6d15e2a865b"
+
+# ---------------------------------------------------------------------------
 # Schemas Base para Reutilização
 # ---------------------------------------------------------------------------
 
@@ -10,8 +21,8 @@ class UserBase(BaseModel):
 
     # Usamos 'alias' para mapear o camelCase do JSON para o snake_case do Python.
     # Isso torna a API robusta a diferentes convenções de nomenclatura.
-    first_name: str = Field(..., example="João", alias="firstName")
-    last_name: str = Field(..., example="Silva", alias="lastName")
+    first_name: str = Field(..., example=EXAMPLE_USER_FIRST_NAME, alias="firstName")
+    last_name: str = Field(..., example=EXAMPLE_USER_LAST_NAME, alias="lastName")
 
     # Configuração para permitir o uso de aliases na (de)serialização
     model_config = ConfigDict(populate_by_name=True)
@@ -25,17 +36,17 @@ class UserBase(BaseModel):
 class UserCreateRequest(UserBase):
     """Schema para a criação de um usuário. Herda de UserBase e adiciona os campos necessários."""
 
-    username: EmailStr = Field(..., example="joao.silva@email.com")
-    password: str = Field(..., min_length=8, example="strongPassword123")
+    username: EmailStr = Field(..., example=EXAMPLE_USER_EMAIL)
+    password: str = Field(..., min_length=8, example=EXAMPLE_USER_PASSWORD)
 
     model_config = ConfigDict(
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "username": "joao.silva@email.com",
-                "password": "strongPassword123",
-                "firstName": "João",
-                "lastName": "Silva",
+                "username": EXAMPLE_USER_EMAIL,
+                "password": EXAMPLE_USER_PASSWORD,
+                "firstName": EXAMPLE_USER_FIRST_NAME,
+                "lastName": EXAMPLE_USER_LAST_NAME,
             }
         },
     )
@@ -61,10 +72,12 @@ class UserUpdateRequest(UserBase):
 class PasswordUpdateRequest(BaseModel):
     """Schema específico para a atualização de senha."""
 
-    password: str = Field(..., min_length=8, example="newStrongPassword123")
+
+
+    password: str = Field(..., min_length=8, example=EXAMPLE_USER_NEW_PASSWORD)
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"password": "newStrongPassword123"}}
+        json_schema_extra={"example": {"password": EXAMPLE_USER_NEW_PASSWORD}}
     )
 
 
@@ -79,8 +92,8 @@ class UserResponse(UserBase):
     Herda de UserBase e adiciona campos seguros para exibição.
     """
 
-    id: str = Field(..., example="a0b3827f-4912-4cfc-a2b8-a6d15e2a865b")
-    username: EmailStr = Field(..., example="joao.silva@email.com")
+    id: str = Field(..., example=EXAMPLE_USER_ID)
+    username: EmailStr = Field(..., example=EXAMPLE_USER_EMAIL)
     enabled: bool = Field(..., example=True)
 
     # A configuração model_config permite definir um exemplo completo
@@ -89,10 +102,10 @@ class UserResponse(UserBase):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "id": "a0b3827f-4912-4cfc-a2b8-a6d15e2a865b",
-                "username": "joao.silva@email.com",
-                "firstName": "João",
-                "lastName": "Silva",
+                "id": EXAMPLE_USER_ID,
+                "username": EXAMPLE_USER_EMAIL,
+                "firstName": EXAMPLE_USER_FIRST_NAME,
+                "lastName": EXAMPLE_USER_LAST_NAME,
                 "enabled": True,
             }
         },

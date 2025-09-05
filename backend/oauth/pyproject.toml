@@ -53,6 +53,6 @@ ignore_missing_imports = true
 run = 'uvicorn oauth_api.main:app --reload'
 lint = 'ruff check .'
 format = 'ruff check . --fix ; ruff format .'
-test = 'pytest --cov=oauth_api -vv'
-post_test = 'coverage html'
+test = 'pytest --cov=oauth_api --cov-report=xml:coverage.xml -vv'
+post_test = 'coverage xml'
 security= 'bandit -r oauth_api/'

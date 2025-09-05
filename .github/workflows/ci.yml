@@ -12,7 +12,23 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      run: pip install poetry
+
+    - name: Install dependencies
+      working-directory: ./backend/oauth
+      run: poetry install
+
+    - name: Run tests and generate coverage report
+      working-directory: ./backend/oauth
+      run: poetry run task test
+
     - name: SonarQube Scan
       uses: sonarqube-quality-gate-action@master
       env:
@@ -25,3 +41,4 @@ jobs:
           -Dsonar.sources=.
           -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.python.coverage.reportPaths=backend/oauth/coverage.xml

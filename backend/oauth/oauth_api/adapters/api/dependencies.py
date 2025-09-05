@@ -35,38 +35,27 @@ async def get_jwks() -> dict[str, Any]:
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> dict[str, Any]:
+    """
+    Decodifica e valida o token JWT de forma segura.
+
+    Esta função busca o JWKS (JSON Web Key Set) do Keycloak e utiliza a lista
+    de chaves para que a biblioteca 'jose' possa selecionar a chave correta
+    baseada no 'kid' do cabeçalho do token e então verificar sua assinatura
+    e claims. Este método evita a vulnerabilidade de usar um cabeçalho
+    não verificado para guiar o processo de validação.
+    """
     try:
         jwks = await get_jwks()
-        unverified_header = jwt.get_unverified_header(token)
-        if unverified_header.get("alg") != settings.KEYCLOAK_TOKEN_ALGORITHM:
-            raise InvalidTokenError(description="Algoritmo do token é inválido.")
-
-        rsa_key = {}
-        for key in jwks["keys"]:
-            if key["kid"] == unverified_header["kid"]:
-                rsa_key = {
-                    "kty": key["kty"],
-                    "kid": key["kid"],
-                    "use": key["use"],
-                    "n": key["n"],
-                    "e": key["e"],
-                }
-
-        if not rsa_key:
-            raise InvalidTokenError(
-                description="Chave pública (kid) não encontrada no JWKS."
-            )
-
         payload = jwt.decode(
             token,
-            rsa_key,
+            jwks["keys"],  
             algorithms=[settings.KEYCLOAK_TOKEN_ALGORITHM],
             audience=settings.KEYCLOAK_CLIENT_ID,
             issuer=f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}",
         )
         return payload
     except JWTError as e:
-        raise InvalidTokenError(description=f"Erro na validação do token: {e}") from e
+        raise InvalidTokenError(description=f"Token inválido ou expirado: {e}") from e
 
 
 # --- Singletons para os clientes/repositórios ---
