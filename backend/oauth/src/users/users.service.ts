@@ -45,6 +45,39 @@ export class UsersService {
     );
   }
 
+  async refreshToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new CustomHttpException(
+        'OA-400',
+        'Refresh token is required',
+        'OAuthAPI',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const tokenUrl = `${this.keycloakBase}/realms/${this.realm}/protocol/openid-connect/token`;
+    const body = qs.stringify({
+      refresh_token: refreshToken,
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      grant_type: 'refresh_token',
+    });
+
+    const resp = await axios.post(tokenUrl, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    if (resp.status === 200) return resp.data;
+
+    throw new CustomHttpException(
+      `OA-${resp.status}`,
+      resp.data?.error_description ?? 'Refresh token failed',
+      'KeycloakAPI',
+      resp.status,
+      [resp.data]
+    );
+  }
+
   private authHeaders(accessToken: string) {
     return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
   }

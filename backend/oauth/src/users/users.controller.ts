@@ -36,6 +36,23 @@ export class UsersController {
     };
   }
 
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Renova o access_token usando refresh_token' })
+  @ApiBody({ schema: { properties: { refresh_token: { type: 'string' } } } })
+  @ApiResponse({ status: 200, description: 'Novo access_token gerado.' })
+  @ApiResponse({ status: 400, description: 'Refresh token inválido.' })
+  async refresh(@Body('refresh_token') refreshToken: string) {
+    const token = await this.usersService.refreshToken(refreshToken);
+    return {
+      token_type: token.token_type,
+      access_token: token.access_token,
+      expires_in: token.expires_in,
+      refresh_token: token.refresh_token,
+      refresh_expires_in: token.refresh_expires_in,
+    };
+  }
+
   @Post('users')
   @ApiOperation({ summary: 'Cria um novo usuário' })
   @ApiBody({ type: CreateUserDto })
