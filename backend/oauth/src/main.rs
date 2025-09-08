@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, Result};
+use reqwest::Client;
 use std::env;
 use dotenv::dotenv;
 
@@ -15,16 +16,59 @@ async fn hello() -> impl Responder {
 }
 
 #[post("/login")]
-async fn login(web::Form(form): web::Form<LoginReq>) -> impl Responder {
-    println!("Login request: {:?}", form);
-    HttpResponse::Ok().body("Login successful")
+async fn login(web::Form(form): web::Form<LoginReq>) -> Result<impl Responder> {
+    println!("Login attempt for user: {}", form.username);
+
+    let keycloak_url = match (
+        env::var("KEYCLOAK_INTERNAL_PROTOCOL"),
+        env::var("KEYCLOAK_INTERNAL_HOST"),
+        env::var("KEYCLOAK_INTERNAL_API_PORT"),
+    ) {
+        (Ok(protocol), Ok(host), Ok(port)) => Ok(format!("{}://{}:{}", protocol, host, port)),
+        _ => Err(actix_web::error::ErrorInternalServerError("Keycloak URL configuration is missing")),
+    }?;
+
+    let realm = env::var("KEYCLOAK_REALM")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_REALM"))?;
+    let client_id = env::var("KEYCLOAK_CLIENT_ID")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_ID"))?;
+    let client_secret = env::var("KEYCLOAK_CLIENT_SECRET")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_CLIENT_SECRET"))?;
+    let grant_type = env::var("KEYCLOAK_GRANT_TYPE")
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Missing KEYCLOAK_GRANT_TYPE"))?;
+
+    let url = format!("{}/realms/{}/protocol/openid-connect/token", keycloak_url, realm);
+
+    let keycloak_request = LoginReqKeycloak {
+        client_id,
+        client_secret,
+        username: form.username,
+        password: form.password,
+        grant_type,
+    };
+
+    let client = Client::new();
+
+    let response = client.post(&url).form(&keycloak_request).send().await
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to connect to Keycloak"))?;
+
+    if response.status().is_success() {
+        let keycloak_response = response.json::<LoginResKeycloak>().await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse Keycloak response"))?;
+        Ok(HttpResponse::Ok().json(keycloak_response))
+    } else {
+        let status = response.status();
+        let error_body = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
+        
+        println!("Keycloak error response: status={}, body={}", status, error_body);
+
+        Ok(HttpResponse::build(status).body(error_body))
+    }
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
-    let env_path = "../.env";
-    dotenv::from_filename(env_path).ok();
+    dotenv::dotenv().ok();
 
     let port = env::var("OAUTH_EXTERNAL_API_PORT").expect("Missing OAUTH_EXTERNAL_API_PORT");
     let host = env::var("OAUTH_INTERNAL_HOST").expect("Missing OAUTH_INTERNAL_HOST");
