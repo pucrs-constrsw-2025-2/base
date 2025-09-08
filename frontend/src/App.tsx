@@ -30,8 +30,7 @@ export default function App() {
 
   const handleLogin = async (username: string, password: string) => {
     try {
-      // A URL usa o proxy configurado no vite.config.ts
-      const response = await axios.post('/api/auth/login', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
         username,
         password,
       });
