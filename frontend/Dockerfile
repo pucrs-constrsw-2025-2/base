@@ -4,11 +4,17 @@ FROM node:18-alpine AS builder
 # Definir diretório de trabalho
 WORKDIR /app
 
+# Declarar argumentos de build
+ARG VITE_API_URL
+ARG VITE_KEYCLOAK_URL
+ARG VITE_KEYCLOAK_REALM
+ARG VITE_KEYCLOAK_CLIENT_ID
+
 # Copiar arquivos de dependências
 COPY package*.json ./
 
 # Instalar dependências (incluindo devDependencies para o build)
-RUN npm ci --silent
+RUN npm install
 
 # Copiar código fonte
 COPY . .

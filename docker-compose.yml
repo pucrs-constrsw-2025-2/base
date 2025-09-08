@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   constrsw:
 
@@ -26,17 +24,17 @@ services:
       dockerfile: Dockerfile
     image: constrsw/keycloak
     environment:
-      - KC_HEALTH_ENABLED=${KC_HEALTH_ENABLED}
-      - KC_METRICS_ENABLED=${KC_METRICS_ENABLED}
-      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_HEALTH_ENABLED=${KC_HEALTH_ENABLED:-true}
+      - KC_METRICS_ENABLED=${KC_METRICS_ENABLED:-true}
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
       - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
-      - ${KEYCLOAK_EXTERNAL_CONSOLE_PORT}:${KEYCLOAK_INTERNAL_CONSOLE_PORT}
+      - ${KEYCLOAK_EXTERNAL_CONSOLE_PORT:-8080}:${KEYCLOAK_INTERNAL_CONSOLE_PORT:-8080}
     command: start-dev --import-realm
     restart: always
     healthcheck:
@@ -52,25 +50,25 @@ services:
       context: ./backend/utils/postgresql/
       dockerfile: Dockerfile
       args:
-        POSTGRESQL_HOST_AUTH_METHOD: ${POSTGRESQL_HOST_AUTH_METHOD}
-        POSTGRESQL_DATA: ${POSTGRESQL_DATA}
-        POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
-        POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+        POSTGRESQL_HOST_AUTH_METHOD: ${POSTGRESQL_HOST_AUTH_METHOD:-trust}
+        POSTGRESQL_DATA: ${POSTGRESQL_DATA:-/var/lib/postgresql/data}
+        POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME:-postgres}
+        POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD:-postgres123}
     image: constrsw/postgresql
     environment:
-      - POSTGRESQL_INTERNAL_HOST=${POSTGRESQL_INTERNAL_HOST}
-      - POSTGRESQL_INTERNAL_PORT=${POSTGRESQL_INTERNAL_PORT}
-      - POSTGRES_USER=${POSTGRESQL_USERNAME}
-      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD}
-      - POSTGRESQL_DB=${POSTGRESQL_DB}
+      - POSTGRESQL_INTERNAL_HOST=${POSTGRESQL_INTERNAL_HOST:-postgresql}
+      - POSTGRESQL_INTERNAL_PORT=${POSTGRESQL_INTERNAL_PORT:-5432}
+      - POSTGRES_USER=${POSTGRESQL_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD:-postgres123}
+      - POSTGRESQL_DB=${POSTGRESQL_DB:-constrsw}
     volumes:
-      - constrsw-postgresql-data:${POSTGRESQL_DATA}
+      - constrsw-postgresql-data:${POSTGRESQL_DATA:-/var/lib/postgresql/data}
     networks:
       - constrsw
     ports:
-      - ${POSTGRESQL_EXTERNAL_PORT}:${POSTGRESQL_INTERNAL_PORT}
+      - ${POSTGRESQL_EXTERNAL_PORT:-5432}:${POSTGRESQL_INTERNAL_PORT:-5432}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME:-postgres}"]
       start_period: 30s
       interval: 20s
       timeout: 10s
@@ -81,14 +79,14 @@ services:
     container_name: sonarqube
     image: sonarqube:latest
     environment:
-      - SONAR_WEB_HOST=${SONAR_WEB_HOST}
-      - SONAR_WEB_PORT=${SONAR_WEB_PORT}
-      - SONAR_WEB_CONTEXT=${SONAR_WEB_CONTEXT}
-      - SONAR_JDBC_URL=jdbc:postgresql://${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/sonar
-      - SONAR_JDBC_USERNAME=${POSTGRESQL_USERNAME}
-      - SONAR_JDBC_PASSWORD=${POSTGRESQL_PASSWORD}
-      - SONARQUBE_USER=${SONARQUBE_USER}
-      - SONARQUBE_PASSWORD=${SONARQUBE_PASSWORD}
+      - SONAR_WEB_HOST=${SONAR_WEB_HOST:-0.0.0.0}
+      - SONAR_WEB_PORT=${SONAR_WEB_PORT:-9000}
+      - SONAR_WEB_CONTEXT=${SONAR_WEB_CONTEXT:-/}
+      - SONAR_JDBC_URL=jdbc:postgresql://${POSTGRESQL_INTERNAL_HOST:-postgresql}:${POSTGRESQL_INTERNAL_PORT:-5432}/sonar
+      - SONAR_JDBC_USERNAME=${POSTGRESQL_USERNAME:-postgres}
+      - SONAR_JDBC_PASSWORD=${POSTGRESQL_PASSWORD:-postgres123}
+      - SONARQUBE_USER=${SONARQUBE_USER:-admin}
+      - SONARQUBE_PASSWORD=${SONARQUBE_PASSWORD:-admin123}
     volumes:
       - constrsw-sonarqube-data:/opt/sonarqube/data
       - constrsw-sonarqube-extensions:/opt/sonarqube/extensions
@@ -104,7 +102,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1",
+          "curl -f ${SONARQUBE_INTERNAL_PROTOCOL:-http}://${SONARQUBE_INTERNAL_HOST:-sonarqube}:${SONARQUBE_INTERNAL_PORT:-9000}/api/system/status || exit 1",
         ]
       start_period: 120s
       interval: 30s
@@ -123,14 +121,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL}://${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE}
+      - KEYCLOAK_URL=${KEYCLOAK_INTERNAL_PROTOCOL:-http}://${KEYCLOAK_INTERNAL_HOST:-keycloak}:${KEYCLOAK_INTERNAL_API_PORT:-8080}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-constrsw}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-constrsw-frontend}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-your-client-secret-here}
+      - KEYCLOAK_GRANT_TYPE=${KEYCLOAK_GRANT_TYPE:-authorization_code}
       - KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
-      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
     depends_on:
       keycloak:
         condition: service_healthy
@@ -145,16 +143,18 @@ services:
     build:
       context: ./frontend/
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+        - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL:-http://localhost:8080}
+        - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM:-constrsw}
+        - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID:-constrsw-frontend}
+    env_file:
+      - ./frontend/.env
     image: constrsw/frontend
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
-      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
     networks:
       - constrsw
     ports:
-      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+      - ${FRONTEND_EXTERNAL_PORT:-3001}:${FRONTEND_INTERNAL_PORT:-80}
     depends_on:
       keycloak:
         condition: service_healthy
