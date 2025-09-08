@@ -31,7 +31,7 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - constrsw-keycloak-data:/opt/keycloak/data
-      - ./backend/utils/keycloak:/opt/keycloak/data/import     
+      - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
@@ -139,3 +139,23 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  
+  oauth:
+    container_name: oauth
+    build:
+      context: backend/oauth
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    environment:
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
+      - OAUTH_EXTERNAL_API_PORT=${OAUTH_EXTERNAL_API_PORT}
+      - KEYCLOAK_URL=${KEYCLOAK_URL}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+    networks:
+      - constrsw
+    ports:
+      - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
+    
