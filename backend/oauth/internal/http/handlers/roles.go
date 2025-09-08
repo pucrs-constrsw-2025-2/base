@@ -164,7 +164,7 @@ func (h *RolesHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Err("500", "delete failed", "Keycloak", err))
 		return
 	}
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, gin.H{"message": "role deleted successfully"})
 }
 
 func (h *RolesHandler) AssignToUser(c *gin.Context) {

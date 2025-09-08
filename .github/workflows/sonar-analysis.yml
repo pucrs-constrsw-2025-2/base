@@ -3,7 +3,7 @@ name: SonarQube Analysis
 on:
   push:
     branches:
-      - '**'
+      - 'grupo4'
   workflow_dispatch:
 
 jobs:
@@ -29,14 +29,13 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
       # Adicionado passo para baixar dependências explicitamente
       - name: Install Dependencies
         working-directory: ./backend/oauth
         run: go mod download
 
       - name: Run Tests and Generate Coverage
-        working-directory: ./backend/oauth
+        working-directory: ./backend/oauth/tests
         # CORREÇÃO: Variáveis de ambiente agora correspondem ao config.go
         env:
           OAUTH_PORT: 8181
