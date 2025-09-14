@@ -14,6 +14,7 @@ import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner@2.0.3';
+import { jwtDecode } from 'jwt-decode';
 
 type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';
 
@@ -28,24 +29,33 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (username: string, password: string) => {
+  const handleLogin = async (username, password) => {
     try {
+      // 1. FAZ A CHAMADA PARA SUA API (isso você já tinha)
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
         username,
         password,
       });
 
-      // TODO: Armazenar o access_token de forma segura (e.g., localStorage ou cookie)
-      // const { access_token } = response.data;
+      // 2. EXTRAI O TOKEN DA RESPOSTA DO BACKEND
+      const { access_token } = response.data;
 
-      // Simulação de dados do usuário após o login bem-sucedido
-      // O ideal é que o backend retorne os dados do usuário ou que haja outro endpoint para buscá-los
-      const user: User = {
-        name: username, 
-        role: 'Professor', // TODO: Decodificar o token para obter o papel real do usuário
-        avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+      // 3. SALVA O TOKEN NO NAVEGADOR PARA USO FUTURO
+      localStorage.setItem('authToken', access_token);
+
+      // 4. DECODIFICA O TOKEN PARA OBTER OS DADOS REAIS DO USUÁRIO
+      const decodedToken = jwtDecode(access_token);
+
+      // 5. CRIA O OBJETO DE USUÁRIO COM OS DADOS REAIS
+      // A simulação foi removida e substituída por dados do token
+      const user = {
+        name: decodedToken.name || decodedToken.preferred_username,
+        // Exemplo de como pegar o papel (role). Ajuste se necessário.
+        role: decodedToken.realm_access?.roles.includes('admin') ? 'Administrador' : 'Professor', 
+        avatar: 'URL_DO_SEU_AVATAR_PADRAO'
       };
 
+      // 6. ATUALIZA O ESTADO DA APLICAÇÃO
       setCurrentUser(user);
       setIsLoggedIn(true);
       toast.success(`Bem-vindo, ${user.name}!`);
@@ -58,7 +68,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    // TODO: Limpar o token de acesso armazenado
+    // LIMPA O TOKEN DO NAVEGADOR AO SAIR
+    localStorage.removeItem('authToken'); 
+    
     setIsLoggedIn(false);
     setCurrentUser(null);
     navigate('/');
