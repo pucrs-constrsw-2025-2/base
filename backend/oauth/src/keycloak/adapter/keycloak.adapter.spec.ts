@@ -132,7 +132,10 @@ describe('KeycloakAdapter', () => {
 
   describe('login', () => {
     it('should return token response on successful login', async () => {
-      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
+      const loginDto = {
+        username: 'user',
+        password: process.env.TEST_USER_PASSWORD as string,
+      };
       const tokenResponse = { access_token: 'token' };
       mockHttpService.post.mockReturnValue(of({ data: tokenResponse }));
 
@@ -142,7 +145,10 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw UnauthorizedException on 401 error', async () => {
-      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
+      const loginDto = {
+        username: 'user',
+        password: process.env.TEST_USER_PASSWORD as string,
+      };
       const error = new AxiosError('Unauthorized');
       error.response = { status: 401 } as AxiosResponse;
       mockHttpService.post.mockReturnValue(throwError(() => error));
@@ -153,7 +159,10 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      const loginDto = { username: 'user', password: process.env.TEST_USER_PASSWORD as string };
+      const loginDto = {
+        username: 'user',
+        password: process.env.TEST_USER_PASSWORD as string,
+      };
       const error = new AxiosError('Some error');
       mockHttpService.post.mockReturnValue(throwError(() => error));
 
@@ -186,8 +195,13 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should fetch a new token if cached token is expired', async () => {
-      const expiredTokenResponse = { access_token: 'expired-token', expires_in: 0 };
-      mockHttpService.post.mockReturnValueOnce(of({ data: expiredTokenResponse }));
+      const expiredTokenResponse = {
+        access_token: 'expired-token',
+        expires_in: 0,
+      };
+      mockHttpService.post.mockReturnValueOnce(
+        of({ data: expiredTokenResponse }),
+      );
       await (adapter as any).getAdminToken();
 
       const newTokenResponse = { access_token: 'new-token', expires_in: 300 };
@@ -219,7 +233,9 @@ describe('KeycloakAdapter', () => {
     const newUserDto = { id: '123', ...createUserDto };
 
     it('should create a user and return the new user object', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.post.mockReturnValue(
         of({ headers: { location: 'users/123' } } as AxiosResponse<void>),
       );
@@ -233,7 +249,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw ConflictException on 409 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Conflict');
       error.response = { status: 409 } as AxiosResponse;
       mockHttpService.post.mockReturnValue(throwError(() => error));
@@ -244,7 +262,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.post.mockReturnValue(throwError(() => error));
 
@@ -257,7 +277,9 @@ describe('KeycloakAdapter', () => {
   describe('findAllUsers', () => {
     it('should return an array of users', async () => {
       const users = [{ id: '1' }, { id: '2' }];
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.get.mockReturnValue(of({ data: users }));
 
       const result = await adapter.findAllUsers();
@@ -267,7 +289,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
@@ -280,7 +304,9 @@ describe('KeycloakAdapter', () => {
   describe('findUserById', () => {
     it('should return a user object', async () => {
       const user = { id: '1' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.get.mockReturnValue(of({ data: user }));
 
       const result = await adapter.findUserById('1');
@@ -290,16 +316,22 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
-      await expect(adapter.findUserById('1')).rejects.toThrow(NotFoundException);
+      await expect(adapter.findUserById('1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
@@ -312,7 +344,9 @@ describe('KeycloakAdapter', () => {
   describe('updateUser', () => {
     it('should update a user', async () => {
       const updateUserDto = { firstName: 'Updated' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       jest.spyOn(adapter, 'findUserById').mockResolvedValue({ id: '1' } as any);
       mockHttpService.put.mockReturnValue(of(null));
 
@@ -323,7 +357,9 @@ describe('KeycloakAdapter', () => {
 
     it('should throw NotFoundException on 404 error', async () => {
       const updateUserDto = { firstName: 'Updated' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       jest.spyOn(adapter, 'findUserById').mockResolvedValue({ id: '1' } as any);
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
@@ -336,7 +372,9 @@ describe('KeycloakAdapter', () => {
 
     it('should throw InternalServerErrorException on other errors', async () => {
       const updateUserDto = { firstName: 'Updated' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       jest.spyOn(adapter, 'findUserById').mockResolvedValue({ id: '1' } as any);
       const error = new AxiosError('Some error');
       mockHttpService.put.mockReturnValue(throwError(() => error));
@@ -349,7 +387,9 @@ describe('KeycloakAdapter', () => {
 
   describe('deleteUser', () => {
     it('should delete a user', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.delete.mockReturnValue(of(null));
 
       await adapter.deleteUser('1');
@@ -358,7 +398,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.delete.mockReturnValue(throwError(() => error));
@@ -367,7 +409,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.delete.mockReturnValue(throwError(() => error));
 
@@ -379,8 +423,12 @@ describe('KeycloakAdapter', () => {
 
   describe('updatePassword', () => {
     it('should update a user password', async () => {
-      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      const updatePasswordDto = {
+        password: process.env.TEST_NEW_PASSWORD as string,
+      };
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.put.mockReturnValue(of(null));
 
       await adapter.updatePassword('1', updatePasswordDto);
@@ -389,26 +437,34 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      const updatePasswordDto = {
+        password: process.env.TEST_NEW_PASSWORD as string,
+      };
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.put.mockReturnValue(throwError(() => error));
 
-      await expect(adapter.updatePassword('1', updatePasswordDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        adapter.updatePassword('1', updatePasswordDto),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      const updatePasswordDto = { password: process.env.TEST_NEW_PASSWORD as string };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      const updatePasswordDto = {
+        password: process.env.TEST_NEW_PASSWORD as string,
+      };
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.put.mockReturnValue(throwError(() => error));
 
-      await expect(adapter.updatePassword('1', updatePasswordDto)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        adapter.updatePassword('1', updatePasswordDto),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -455,7 +511,9 @@ describe('KeycloakAdapter', () => {
     const newRole = { id: '123', name: 'new-role' };
 
     it('should create a role', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.post.mockReturnValue(of(null));
       jest.spyOn(adapter, 'findRoleByName').mockResolvedValue(newRole as any);
 
@@ -466,7 +524,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw ConflictException on 409 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Conflict');
       error.response = { status: 409 } as AxiosResponse;
       mockHttpService.post.mockReturnValue(throwError(() => error));
@@ -477,7 +537,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.post.mockReturnValue(throwError(() => error));
 
@@ -490,7 +552,9 @@ describe('KeycloakAdapter', () => {
   describe('findAllRoles', () => {
     it('should return an array of roles', async () => {
       const roles = [{ id: '1' }, { id: '2' }];
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.get.mockReturnValue(of({ data: roles }));
 
       const result = await adapter.findAllRoles();
@@ -500,7 +564,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
@@ -513,7 +579,9 @@ describe('KeycloakAdapter', () => {
   describe('findRoleByName', () => {
     it('should return a role object', async () => {
       const role = { id: '1', name: 'role' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.get.mockReturnValue(of({ data: role }));
 
       const result = await adapter.findRoleByName('role');
@@ -523,7 +591,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.get.mockReturnValue(throwError(() => error));
@@ -534,7 +604,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
@@ -547,8 +619,12 @@ describe('KeycloakAdapter', () => {
   describe('updateRole', () => {
     it('should update a role', async () => {
       const updateRoleDto = { name: 'updated-role' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1' } as any);
       mockHttpService.put.mockReturnValue(of(null));
 
       await adapter.updateRole('role', updateRoleDto);
@@ -558,8 +634,12 @@ describe('KeycloakAdapter', () => {
 
     it('should throw NotFoundException on 404 error', async () => {
       const updateRoleDto = { name: 'updated-role' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1' } as any);
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.put.mockReturnValue(throwError(() => error));
@@ -571,8 +651,12 @@ describe('KeycloakAdapter', () => {
 
     it('should throw InternalServerErrorException on other errors', async () => {
       const updateRoleDto = { name: 'updated-role' };
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1' } as any);
       const error = new AxiosError('Some error');
       mockHttpService.put.mockReturnValue(throwError(() => error));
 
@@ -584,7 +668,9 @@ describe('KeycloakAdapter', () => {
 
   describe('deleteRole', () => {
     it('should delete a role', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.delete.mockReturnValue(of(null));
 
       await adapter.deleteRole('role');
@@ -593,16 +679,22 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.delete.mockReturnValue(throwError(() => error));
 
-      await expect(adapter.deleteRole('role')).rejects.toThrow(NotFoundException);
+      await expect(adapter.deleteRole('role')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.delete.mockReturnValue(throwError(() => error));
 
@@ -614,8 +706,12 @@ describe('KeycloakAdapter', () => {
 
   describe('assignRoleToUser', () => {
     it('should assign a role to a user', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       mockHttpService.post.mockReturnValue(of(null));
 
       const result = await adapter.assignRoleToUser('role', '1');
@@ -625,8 +721,12 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.post.mockReturnValue(throwError(() => error));
@@ -637,8 +737,12 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       const error = new AxiosError('Some error');
       mockHttpService.post.mockReturnValue(throwError(() => error));
 
@@ -650,19 +754,29 @@ describe('KeycloakAdapter', () => {
 
   describe('removeRoleFromUser', () => {
     it('should remove a role from a user', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       mockHttpService.delete.mockReturnValue(of(null));
 
       const result = await adapter.removeRoleFromUser('role', '1');
 
-      expect(result).toEqual({ message: 'Role removed from user successfully' });
+      expect(result).toEqual({
+        message: 'Role removed from user successfully',
+      });
       expect(httpService.delete).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.delete.mockReturnValue(throwError(() => error));
@@ -673,8 +787,12 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      jest.spyOn(adapter, 'findRoleByName').mockResolvedValue({ id: '1', name: 'role' } as any);
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter, 'findRoleByName')
+        .mockResolvedValue({ id: '1', name: 'role' } as any);
       const error = new AxiosError('Some error');
       mockHttpService.delete.mockReturnValue(throwError(() => error));
 
@@ -687,8 +805,12 @@ describe('KeycloakAdapter', () => {
   describe('findRolesByUserId', () => {
     it('should return an array of roles for a user', async () => {
       const roles = [{ id: '1' }, { id: '2' }];
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
-      mockHttpService.get.mockReturnValue(of({ data: { realmMappings: roles } }));
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
+      mockHttpService.get.mockReturnValue(
+        of({ data: { realmMappings: roles } }),
+      );
 
       const result = await adapter.findRolesByUserId('1');
 
@@ -697,7 +819,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should return an empty array if no roles are mapped', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       mockHttpService.get.mockReturnValue(of({ data: {} }));
 
       const result = await adapter.findRolesByUserId('1');
@@ -706,7 +830,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw NotFoundException on 404 error', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Not Found');
       error.response = { status: 404 } as AxiosResponse;
       mockHttpService.get.mockReturnValue(throwError(() => error));
@@ -717,7 +843,9 @@ describe('KeycloakAdapter', () => {
     });
 
     it('should throw InternalServerErrorException on other errors', async () => {
-      jest.spyOn(adapter as any, 'getAdminToken').mockResolvedValue('admin-token');
+      jest
+        .spyOn(adapter as any, 'getAdminToken')
+        .mockResolvedValue('admin-token');
       const error = new AxiosError('Some error');
       mockHttpService.get.mockReturnValue(throwError(() => error));
 
