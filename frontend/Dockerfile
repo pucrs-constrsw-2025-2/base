@@ -1,32 +1,16 @@
-# Estágio 1: Build da Aplicação
-# Usando a versão LTS mais recente do Node.js (22.x) com base Alpine
-FROM node:22-alpine AS builder
-
-# Define o diretório de trabalho
+# Estágio de build
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Copia os arquivos de gerenciamento de pacotes
-COPY package.json package-lock.json ./
-
-# Instala as dependências
+COPY package.json ./
 RUN npm install
-
-# Copia o restante do código-fonte
 COPY . .
-
-# Compila a aplicação para produção
 RUN npm run build
 
-# Estágio 2: Servidor de Produção
-# Usando a versão stable mais recente do Nginx com base Alpine
-FROM nginx:1.24-alpine
-
-# Copia os arquivos estáticos gerados no estágio de build
-COPY --from=builder /app/build /usr/share/nginx/html
-
-
-# Expõe a porta 80
+# Estágio de produção com nginx
+FROM nginx:1.28.0-alpine
+WORKDIR /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build /app/build/ /usr/share/nginx/html/
 EXPOSE 80
-
-# Comando para iniciar o Nginx
 CMD ["nginx", "-g", "daemon off;"]
