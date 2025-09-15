@@ -12,6 +12,7 @@ import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 type Screen = 'home' | 'teachers' | 'students' | 'buildings' | 'subjects' | 'classes' | 'lessons' | 'resources' | 'reservations';
 
@@ -29,26 +30,41 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
 
   const handleLogin = (username: string, password: string) => {
-    // Simulação de login - determina papel baseado no usuário
-    let role: UserRole = 'Aluno'; // padrão
-    
-    if (username.toLowerCase().includes('admin')) {
-      role = 'Administrador';
-    } else if (username.toLowerCase().includes('coord')) {
-      role = 'Coordenador';
-    } else if (username.toLowerCase().includes('prof')) {
-      role = 'Professor';
-    }
+    axios.post('http://localhost:8000/login',
+      new URLSearchParams({
+        username: username,
+        password: password
+      }),
+      { headers: { 'content-type': 'application/x-www-form-urlencoded' } }
+    )
+      .then(response => {
+        if (response.status == 201) {
+          console.log('Entrou')
+          // Simulação de login - determina papel baseado no usuário
+          let role: UserRole = 'Aluno'; // padrão
 
-    const user: User = {
-      name: username,
-      role: role,
-      avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    };
+          if (username.toLowerCase().includes('admin')) {
+            role = 'Administrador';
+          } else if (username.toLowerCase().includes('coord')) {
+            role = 'Coordenador';
+          } else if (username.toLowerCase().includes('prof')) {
+            role = 'Professor';
+          }
+          const user: User = {
+            name: username,
+            role: role,
+            avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+          };
 
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-    toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+          toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
+        }
+
+      })
+      .catch(error => {
+        console.error(error)
+      })
   };
 
   const handleLogout = () => {

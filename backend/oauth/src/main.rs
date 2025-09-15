@@ -1,4 +1,5 @@
 use actix_web::{App, HttpServer};
+use actix_cors::Cors;
 use dotenv::dotenv;
 use std::env;
 
@@ -110,7 +111,9 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let spec = openapi.clone();
+        let cors = Cors::permissive();
         App::new()
+            .wrap(cors)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", spec)
