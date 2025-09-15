@@ -1,3 +1,4 @@
+// App.tsx
 import { useState } from 'react';
 import { LoginScreen } from './components/LoginScreen';
 import { MainLayout } from './components/MainLayout';
@@ -11,55 +12,21 @@ import { LessonsScreen } from './components/screens/LessonsScreen';
 import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner';
+import { useAuth } from './contexts/AuthContext';
 
 type Screen = 'home' | 'teachers' | 'students' | 'buildings' | 'subjects' | 'classes' | 'lessons' | 'resources' | 'reservations';
 
-type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';
-
-interface User {
-  name: string;
-  role: UserRole;
-  avatar: string;
-}
-
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { isLoggedIn, user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-
-  const handleLogin = (username: string, password: string) => {
-    // Simulação de login - determina papel baseado no usuário
-    let role: UserRole = 'Aluno'; // padrão
-    
-    if (username.toLowerCase().includes('admin')) {
-      role = 'Administrador';
-    } else if (username.toLowerCase().includes('coord')) {
-      role = 'Coordenador';
-    } else if (username.toLowerCase().includes('prof')) {
-      role = 'Professor';
-    }
-
-    const user: User = {
-      name: username,
-      role: role,
-      avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    };
-
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-    toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    setCurrentScreen('home');
-    toast.info('Você foi desconectado');
-  };
 
   const handleNavigation = (screen: string) => {
     setCurrentScreen(screen as Screen);
+  };
+  
+  const handleLogout = () => {
+    logout();
+    setCurrentScreen('home');
   };
 
   const renderCurrentScreen = () => {
@@ -87,10 +54,10 @@ export default function App() {
     }
   };
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || !user) {
     return (
       <>
-        <LoginScreen onLogin={handleLogin} />
+        <LoginScreen />
         <Toaster />
       </>
     );
@@ -99,7 +66,7 @@ export default function App() {
   return (
     <>
       <MainLayout
-        currentUser={currentUser}
+        currentUser={user}
         onLogout={handleLogout}
         onNavigate={handleNavigation}
       >

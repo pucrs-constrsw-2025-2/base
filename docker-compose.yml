@@ -121,7 +121,7 @@ services:
     image: constrsw/oauth-api
     command: uvicorn oauth_api.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "8000:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
+      - "8080:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
     networks:
       - constrsw
     volumes:
