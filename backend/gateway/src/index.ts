@@ -4,9 +4,20 @@ import Keycloak from 'keycloak-connect';
 import publicRouter from './routes/public';
 import secureRouter from './routes/secure';
 import keycloakRouter from './routes/keycloak';
+import cors from 'cors';
 
 const app = express();
 const memoryStore = new session.MemoryStore();
+
+// Allow CORS for local dev and docker setup
+app.use(cors({
+  origin: [
+    'http://localhost:5173', // vite dev
+    'http://localhost:3000', // alternative dev
+    'http://localhost', // dockerized nginx default
+  ],
+  credentials: true,
+}));
 
 app.use(session({
   secret: 'gateway-secret',

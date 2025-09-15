@@ -22,13 +22,16 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     // Envia os parâmetros no corpo como application/x-www-form-urlencoded
     const params = new URLSearchParams();
-    if (client_id) params.append('client_id', client_id);
+    const envClientId = process.env.KEYCLOAK_CLIENT_ID;
+    const finalClientId = client_id || envClientId;
+    if (finalClientId) params.append('client_id', finalClientId);
     // se o client_secret vier no body, usa ele; caso contrário, usa a variável de ambiente
     const secret = client_secret || process.env.KEYCLOAK_CLIENT_SECRET;
     if (secret) params.append('client_secret', secret);
     if (username) params.append('username', username);
     if (password) params.append('password', password);
-    if (grant_type) params.append('grant_type', grant_type);
+    // default to password grant if not provided
+    params.append('grant_type', grant_type || 'password');
 
     const response = await axios.post(getTokenEndpoint(), params.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

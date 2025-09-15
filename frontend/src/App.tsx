@@ -12,6 +12,7 @@ import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
+import { login as loginApi, parseJwt } from './services/auth';
 
 type Screen = 'home' | 'teachers' | 'students' | 'buildings' | 'subjects' | 'classes' | 'lessons' | 'resources' | 'reservations';
 
@@ -28,27 +29,51 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
 
-  const handleLogin = (username: string, password: string) => {
-    // Simulação de login - determina papel baseado no usuário
-    let role: UserRole = 'Aluno'; // padrão
-    
-    if (username.toLowerCase().includes('admin')) {
-      role = 'Administrador';
-    } else if (username.toLowerCase().includes('coord')) {
-      role = 'Coordenador';
-    } else if (username.toLowerCase().includes('prof')) {
-      role = 'Professor';
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      const tokenResponse = await loginApi(username, password);
+      const decoded: any = parseJwt(tokenResponse.access_token) || {};
+      // Mapear roles a partir de realm_access e resource_access (clientes como 'oauth')
+      const realmRoles: string[] = decoded?.realm_access?.roles || [];
+      const resourceAccess = decoded?.resource_access || {};
+      const clientRoles: string[] = Object.values(resourceAccess)
+        .flatMap((r: any) => (r?.roles ? r.roles : []));
+      // Normalizar para lower-case
+      const allRoles = new Set(
+        [...realmRoles, ...clientRoles].map((r: any) => String(r).toLowerCase())
+      );
+
+      let role: UserRole = 'Aluno';
+      if (allRoles.has('administrator') || allRoles.has('admin') || allRoles.has('adminstrador') || allRoles.has('administração') || allRoles.has('administração')) {
+        role = 'Administrador';
+      } else if (allRoles.has('coordinator') || allRoles.has('coordenador')) {
+        role = 'Coordenador';
+      } else if (allRoles.has('professor')) {
+        role = 'Professor';
+      } else if (allRoles.has('student') || allRoles.has('aluno')) {
+        role = 'Aluno';
+      }
+
+      const user: User = {
+        name: decoded?.preferred_username || username,
+        role,
+        avatar:
+          'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+      };
+
+      // Armazenar tokens para futuras chamadas autenticadas
+      localStorage.setItem('access_token', tokenResponse.access_token);
+      if (tokenResponse.refresh_token) {
+        localStorage.setItem('refresh_token', tokenResponse.refresh_token);
+      }
+
+      setCurrentUser(user);
+      setIsLoggedIn(true);
+      toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Falha no login. Verifique suas credenciais.');
     }
-
-    const user: User = {
-      name: username,
-      role: role,
-      avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    };
-
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-    toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
   };
 
   const handleLogout = () => {
