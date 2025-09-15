@@ -133,8 +133,7 @@ services:
     ports:
       - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
     depends_on:
-      keycloak:
-        condition: service_healthy
+      - oauth
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
