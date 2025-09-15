@@ -1,23 +1,37 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useLogin } from '../auth/useLogin';
+import { useAuth } from '../auth/useAuth';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
-interface LoginScreenProps {
-  onLogin: (username: string, password: string) => void;
-}
-
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen() {
+  const { login, loading, error } = useLogin();
+  const { isAuthenticated } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (username && password) {
-      onLogin(username, password);
+    if (!username || !password) return;
+    try {
+      await login(username, password);
+      // redirecionar após sucesso
+      window.location.href = '/';
+    } catch {
+      /* erro já setado no hook */
     }
-  };
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div style={{ maxWidth: 360, margin: '4rem auto' }}>
+        <p>Você já está autenticado.</p>
+        <a href="/">Ir para Home</a>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -39,6 +53,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -50,10 +65,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
-            <Button type="submit" className="w-full">
-              Entrar
+            {error && <div style={{ color: 'red', fontSize: 14 }}>{error}</div>}
+            <Button type="submit" className="w-full" disabled={loading || !username || !password}>
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
             <div className="text-center">
               <button
@@ -70,3 +87,5 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     </div>
   );
 }
+
+export default LoginScreen;
