@@ -2,6 +2,8 @@ package com.grupo6.constrsw.controller;
 
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Autenticação", description = "Endpoints para autenticação de usuários")
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     private KeycloakService keycloakService;
 
@@ -50,6 +54,7 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(@ModelAttribute AuthRequest request) {
+        logger.info("Requisição de login recebida para o usuário: {}", request.getUsername());
         try {
             if (request.getUsername() == null || request.getUsername().trim().isEmpty() ||
                 request.getPassword() == null || request.getPassword().trim().isEmpty()) {
@@ -63,6 +68,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (RuntimeException e) {
+            logger.error("Erro durante a autenticação: ", e);
             if (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized")) {
                 ApiError error = new ApiError("OA-401", "Username e/ou password inválidos", 
                     "OAuthAPI", new ArrayList<>());
