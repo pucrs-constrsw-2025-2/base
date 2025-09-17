@@ -28,13 +28,13 @@ import com.grupo6.constrsw.dto.UserResponse;
 @Service
 public class KeycloakService {
 
-    @Value("${keycloak.external.protocol}")
+    @Value("${keycloak.internal.protocol}")
     private String protocol;
 
-    @Value("${keycloak.external.host}")
+    @Value("${keycloak.internal.host}")
     private String host;
 
-    @Value("${keycloak.external.api.port}")
+    @Value("${keycloak.internal.api.port}")
     private String port;
 
     @Value("${keycloak.realm}")
