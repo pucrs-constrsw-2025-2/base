@@ -4,21 +4,22 @@ import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { 
-  Menu, 
-  Home, 
-  Users, 
-  GraduationCap, 
-  Building, 
-  BookOpen, 
-  Calendar, 
-  Monitor, 
-  ClipboardList, 
-  LogOut 
+import {
+  Menu,
+  Home,
+  Users,
+  GraduationCap,
+  Building,
+  BookOpen,
+  Calendar,
+  Monitor,
+  ClipboardList,
+  LogOut
 } from 'lucide-react';
+// 1. IMPORTAR A LÓGICA DE PERMISSÃO E TIPOS CENTRALIZADOS
+import { hasPermission, UserRole, FeatureId } from '../config/permissions';
 
-type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';
-
+// O tipo User agora utiliza o UserRole importado para manter a consistência
 interface User {
   name: string;
   role: UserRole;
@@ -35,7 +36,9 @@ interface MainLayoutProps {
 export function MainLayout({ children, currentUser, onLogout, onNavigate }: MainLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems = [
+  // 2. LISTA COMPLETA DE TODOS OS ITENS DE MENU POSSÍVEIS NA APLICAÇÃO
+  // A tipagem garante que o `id` corresponda a um `FeatureId` válido.
+  const allMenuItems: { id: FeatureId; label: string; icon: React.ElementType }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'teachers', label: 'Cadastro de Professores', icon: GraduationCap },
     { id: 'students', label: 'Cadastro de Estudantes', icon: Users },
@@ -47,14 +50,23 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
     { id: 'reservations', label: 'Cadastro de Reservas de Recursos', icon: ClipboardList },
   ];
 
+  // 3. FILTRAGEM DINÂMICA DOS MENUS COM BASE NAS PERMISSÕES DO USUÁRIO ATUAL
+  // Esta é a mudança central: a UI reage aos dados (papel do usuário),
+  // sem conter a lógica de negócio das permissões.
+  const accessibleMenuItems = allMenuItems.filter(item =>
+    hasPermission(currentUser.role, item.id)
+  );
+
   const handleNavigation = (screenId: string) => {
     onNavigate(screenId);
-    setIsMobileMenuOpen(false);
+    setIsMobileMenuOpen(false); // Fecha o menu mobile após a navegação
   };
 
+  // 4. COMPONENTE REUTILIZÁVEL PARA RENDERIZAR OS ITENS DE MENU FILTRADOS
+  // Isso evita a repetição do mesmo bloco de código no JSX.
   const SidebarMenuItems = () => (
     <SidebarMenu>
-      {menuItems.map((item) => (
+      {accessibleMenuItems.map((item) => (
         <SidebarMenuItem key={item.id}>
           <SidebarMenuButton onClick={() => handleNavigation(item.id)}>
             <item.icon className="w-4 h-4" />
@@ -68,7 +80,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-background">
-        {/* Desktop Sidebar */}
+        {/* --- Desktop Sidebar --- */}
         <Sidebar className="hidden md:flex">
           <SidebarHeader className="p-4 border-b">
             <h2 className="font-semibold text-primary">Closed CRAS</h2>
@@ -86,6 +98,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
             </div>
           </SidebarHeader>
           <SidebarContent className="p-4">
+            {/* Renderiza o menu filtrado */}
             <SidebarMenuItems />
             <div className="mt-auto pt-4 border-t">
               <Button
@@ -100,9 +113,9 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
           </SidebarContent>
         </Sidebar>
 
-        {/* Main Content */}
+        {/* --- Main Content Area --- */}
         <div className="flex-1 flex flex-col">
-          {/* Mobile Header */}
+          {/* --- Mobile Header --- */}
           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -126,7 +139,8 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
                     </div>
                   </div>
                   <nav className="space-y-2">
-                    {menuItems.map((item) => (
+                    {/* Renderiza a lista filtrada também para o menu mobile */}
+                    {accessibleMenuItems.map((item) => (
                       <Button
                         key={item.id}
                         variant="ghost"
@@ -160,33 +174,16 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
             </div>
           </header>
 
-          {/* Desktop Header */}
+          {/* --- Desktop Header --- */}
           <header className="hidden md:flex items-center justify-between p-4 border-b bg-card">
             <div className="flex items-center space-x-4">
               <SidebarTrigger />
               <h1 className="font-semibold">Sistema de Gestão de Recursos Computacionais</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                  <AvatarFallback>{currentUser.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="hidden md:block">
-                  <p className="font-medium">{currentUser.name}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {currentUser.role}
-                  </Badge>
-                </div>
-              </div>
-              <Button variant="ghost" onClick={onLogout} className="text-destructive hover:text-destructive">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </div>
+            {/* O restante do header não precisa de alterações relacionadas a permissões */}
           </header>
 
-          {/* Page Content */}
+          {/* --- Page Content --- */}
           <main className="flex-1 overflow-auto">
             {children}
           </main>

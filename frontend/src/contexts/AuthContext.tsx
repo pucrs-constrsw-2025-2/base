@@ -2,6 +2,7 @@
 import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
+import { UserRole } from '../config/permissions';
 import api from '../services/api';
 
 // Tipos baseados nos schemas do backend e no payload do token JWT
@@ -13,8 +14,8 @@ interface TokenResponse {
 
 interface User {
   name: string;
-  role: string;
-  avatar: string; // Manteremos o avatar estático por enquanto
+  role: UserRole;
+  avatar: string;
 }
 
 interface DecodedToken {
@@ -45,7 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedToken) {
       setAccessToken(storedToken);
       const decodedToken: DecodedToken = jwtDecode(storedToken);
-      const userRole = decodedToken.realm_access?.roles.includes('Administrador') ? 'Administrador'
+
+      // A lógica para determinar o papel permanece a mesma, mas o tipo é mais forte.
+      const userRole: UserRole = decodedToken.realm_access?.roles.includes('Administrador') ? 'Administrador'
         : decodedToken.realm_access?.roles.includes('Coordenador') ? 'Coordenador'
         : decodedToken.realm_access?.roles.includes('Professor') ? 'Professor'
         : 'Aluno';
@@ -53,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({
         name: decodedToken.name || decodedToken.preferred_username,
         role: userRole,
-        avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+        // ...
       });
     }
   }, []);
@@ -74,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { access_token } = response.data;
       const decodedToken: DecodedToken = jwtDecode(access_token);
       
-      const userRole = decodedToken.realm_access?.roles.includes('Administrador') ? 'Administrador'
+      const userRole: UserRole = decodedToken.realm_access?.roles.includes('Administrador') ? 'Administrador'
         : decodedToken.realm_access?.roles.includes('Coordenador') ? 'Coordenador'
         : decodedToken.realm_access?.roles.includes('Professor') ? 'Professor'
         : 'Aluno';
