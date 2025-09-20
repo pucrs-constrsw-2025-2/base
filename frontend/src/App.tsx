@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LoginScreen } from './components/LoginScreen';
 import { MainLayout } from './components/MainLayout';
 import { Home } from './components/screens/Home';
@@ -11,47 +11,43 @@ import { LessonsScreen } from './components/screens/LessonsScreen';
 import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
+import { DebugPanel } from './components/DebugPanel';
 import { toast } from 'sonner';
+import { authService } from './services';
+import { User } from './types';
+import './utils/testConnection'; // Auto-teste de conectividade
 
 type Screen = 'home' | 'teachers' | 'students' | 'buildings' | 'subjects' | 'classes' | 'lessons' | 'resources' | 'reservations';
-
-type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';
-
-interface User {
-  name: string;
-  role: UserRole;
-  avatar: string;
-}
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogin = (username: string, password: string) => {
-    // Simulação de login - determina papel baseado no usuário
-    let role: UserRole = 'Aluno'; // padrão
-    
-    if (username.toLowerCase().includes('admin')) {
-      role = 'Administrador';
-    } else if (username.toLowerCase().includes('coord')) {
-      role = 'Coordenador';
-    } else if (username.toLowerCase().includes('prof')) {
-      role = 'Professor';
-    }
-
-    const user: User = {
-      name: username,
-      role: role,
-      avatar: 'https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwYXZhdGFyfGVufDF8fHx8MTc1Njc2ODA0MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+  // Verificar se já existe autenticação ao carregar a aplicação
+  useEffect(() => {
+    const checkAuthentication = () => {
+      if (authService.isAuthenticated()) {
+        const user = authService.getStoredUser();
+        if (user) {
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+        }
+      }
+      setIsLoading(false);
     };
 
+    checkAuthentication();
+  }, []);
+
+  const handleLogin = (user: User) => {
     setCurrentUser(user);
     setIsLoggedIn(true);
-    toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setIsLoggedIn(false);
     setCurrentUser(null);
     setCurrentScreen('home');
@@ -87,10 +83,23 @@ export default function App() {
     }
   };
 
+  // Mostrar loading enquanto verifica autenticação
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <>
         <LoginScreen onLogin={handleLogin} />
+        <DebugPanel />
         <Toaster />
       </>
     );
@@ -99,12 +108,13 @@ export default function App() {
   return (
     <>
       <MainLayout
-        currentUser={currentUser}
+        currentUser={currentUser!}
         onLogout={handleLogout}
         onNavigate={handleNavigation}
       >
         {renderCurrentScreen()}
       </MainLayout>
+      <DebugPanel />
       <Toaster />
     </>
   );

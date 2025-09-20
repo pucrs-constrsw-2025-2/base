@@ -3,19 +3,65 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { authService } from '../services';
+import { User } from '../types';
+import { toast } from 'sonner';
 
 interface LoginScreenProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (user: User) => void;
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username && password) {
-      onLogin(username, password);
+    
+    if (!username || !password) {
+      toast.error('Por favor, preencha todos os campos');
+      return;
+    }
+
+    setIsLoading(true);
+    console.log('🔄 Iniciando login...', { username, backend_url: 'http://localhost:8082' });
+
+    try {
+      // Fazer login com o backend
+      console.log('📡 Fazendo requisição para /login...');
+      const authResponse = await authService.login(username, password);
+      console.log('✅ Login bem-sucedido!', {
+        token_type: authResponse.token_type,
+        expires_in: authResponse.expires_in,
+        token_preview: authResponse.access_token.substring(0, 50) + '...'
+      });
+      
+      // Obter dados do usuário
+      const user = authService.getCurrentUser(username);
+      console.log('👤 Dados do usuário:', user);
+      
+      // Verificar se token foi salvo
+      const savedToken = localStorage.getItem('access_token');
+      console.log('💾 Token salvo no localStorage:', savedToken ? 'SIM ✅' : 'NÃO ❌');
+      
+      // Chamar callback de sucesso
+      onLogin(user);
+      
+      toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
+      console.log('🎉 Login finalizado com sucesso!');
+      
+    } catch (error: any) {
+      console.error('❌ Erro no login:', error);
+      console.error('📋 Detalhes do erro:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      toast.error(error.message || 'Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,8 +98,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              Entrar
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
             <div className="text-center">
               <button
