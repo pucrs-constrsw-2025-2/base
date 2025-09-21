@@ -9,6 +9,9 @@ volumes:
   # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
   constrsw-postgresql-data:
     external: true
+  # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
+  constrsw-mongodb-data:
+    external: true
   # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
   constrsw-sonarqube-data:
     external: true
@@ -27,6 +30,7 @@ services:
     environment:
       - KC_HEALTH_ENABLED=${KC_HEALTH_ENABLED}
       - KC_METRICS_ENABLED=${KC_METRICS_ENABLED}
+      - KC_HTTP_MANAGEMENT_PORT=${KC_HTTP_MANAGEMENT_PORT}
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
@@ -36,14 +40,15 @@ services:
       - constrsw
     ports:
       - ${KEYCLOAK_EXTERNAL_CONSOLE_PORT}:${KEYCLOAK_INTERNAL_CONSOLE_PORT}
+      - ${KEYCLOAK_EXTERNAL_METRICS_PORT}:${KEYCLOAK_INTERNAL_METRICS_PORT}
     command: start-dev --import-realm
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_API_PORT}/health" ]
-      start_period: 300s
+      test: [ "CMD-SHELL", "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_METRICS_PORT}/health" ]
+      start_period: 50s
       interval: 10s
       timeout: 10s
-      retries: 50
+      retries: 10
 
   fastapi:
     container_name: fastapi
@@ -90,14 +95,38 @@ services:
       - ${POSTGRESQL_EXTERNAL_PORT}:${POSTGRESQL_INTERNAL_PORT}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}" ]
-      start_period: 30s
-      interval: 20s
+      start_period: 20s
+      interval: 10s
       timeout: 10s
       retries: 10
     restart: always
-    # psql postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}
-    # psql -h ${POSTGRESQL_INTERNAL_HOST} -p ${POSTGRESQL_INTERNAL_PORT} -U ${POSTGRESQL_USERNAME} -d ${POSTGRESQL_DB}
 
+  # MongoDB
+  mongodb:
+    container_name: mongodb
+    build:
+      context: ./backend/utils/mongodb/
+      dockerfile: Dockerfile
+    image: constrsw/mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    volumes:
+      # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
+      - constrsw-mongodb-data:/data/mongodb
+    networks:
+      - constrsw
+    ports:
+      - ${MONGODB_EXTERNAL_PORT}:${MONGODB_INTERNAL_PORT}
+    healthcheck:
+      test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${MONGODB_DB} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      start_period: 30s
+      interval: 20s
+      timeout: 10s
+      retries: 20
+    restart: always
+
+  # SonarQube
   sonarqube:
     container_name: sonarqube
     image: sonarqube:latest
@@ -124,7 +153,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1" ]
-      start_period: 120s
+      start_period: 30s
       interval: 30s
       timeout: 10s
       retries: 10
@@ -151,7 +180,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:80 || exit 1" ]
       start_period: 30s
       interval: 30s
       timeout: 10s
