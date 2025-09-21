@@ -11,11 +11,9 @@ import { LessonsScreen } from './components/screens/LessonsScreen';
 import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
-import { DebugPanel } from './components/DebugPanel';
 import { toast } from 'sonner';
 import { authService } from './services';
 import { User } from './types';
-import './utils/testConnection'; // Auto-teste de conectividade
 
 type Screen = 'home' | 'teachers' | 'students' | 'buildings' | 'subjects' | 'classes' | 'lessons' | 'resources' | 'reservations';
 
@@ -99,7 +97,6 @@ export default function App() {
     return (
       <>
         <LoginScreen onLogin={handleLogin} />
-        <DebugPanel />
         <Toaster />
       </>
     );
@@ -114,7 +111,6 @@ export default function App() {
       >
         {renderCurrentScreen()}
       </MainLayout>
-      <DebugPanel />
       <Toaster />
     </>
   );
