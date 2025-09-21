@@ -142,6 +142,20 @@ export default function App() {
       // Set Axios header immediately
       setAuthHeader(res.access_token);
 
+      // Build and set user immediately to avoid a null window before useEffect runs
+      const claims = safeDecodeJwt(res.access_token) || {};
+      const name =
+        claims.name ||
+        claims.preferred_username ||
+        claims.username ||
+        'Usuário';
+      const roleClaim = (claims.role || claims.roles?.[0] || 'Professor') as UserRole;
+      setCurrentUser({
+        name,
+        role: roleClaim,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
+      });
+
       const nextAuth: AuthState = {
         accessToken: res.access_token,
         refreshToken: res.refresh_token,
@@ -220,9 +234,21 @@ export default function App() {
     );
   }
 
+  // While computing current user from token, render a lightweight fallback
+  if (isLoggedIn && !currentUser) {
+    return (
+      <>
+        <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+          Carregando...
+        </div>
+        <Toaster richColors position="top-right" />
+      </>
+    );
+  }
+
   return (
     <>
-      <MainLayout currentUser={currentUser} onLogout={handleLogout} onNavigate={handleNavigation}>
+      <MainLayout currentUser={currentUser!} onLogout={handleLogout} onNavigate={handleNavigation}>
         {screenEl}
       </MainLayout>
       <Toaster richColors position="top-right" />

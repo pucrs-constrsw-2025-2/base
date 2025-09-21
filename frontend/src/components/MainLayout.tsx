@@ -4,17 +4,17 @@ import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { 
-  Menu, 
-  Home, 
-  Users, 
-  GraduationCap, 
-  Building, 
-  BookOpen, 
-  Calendar, 
-  Monitor, 
-  ClipboardList, 
-  LogOut 
+import {
+  Menu,
+  Home,
+  Users,
+  GraduationCap,
+  Building,
+  BookOpen,
+  Calendar,
+  Monitor,
+  ClipboardList,
+  LogOut
 } from 'lucide-react';
 
 type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';
@@ -25,17 +25,31 @@ interface User {
   avatar: string;
 }
 
+type Screen =
+  | 'home'
+  | 'teachers'
+  | 'students'
+  | 'buildings'
+  | 'subjects'
+  | 'classes'
+  | 'lessons'
+  | 'resources'
+  | 'reservations';
+
 interface MainLayoutProps {
   children: React.ReactNode;
   currentUser: User;
   onLogout: () => void;
-  onNavigate: (screen: string) => void;
+  onNavigate: (screen: Screen) => void;
 }
 
 export function MainLayout({ children, currentUser, onLogout, onNavigate }: MainLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems = [
+  // Defensive fallback to avoid null runtime errors if currentUser is momentarily undefined
+  const safeUser: User = currentUser ?? { name: '', role: 'Professor', avatar: '' } as User;
+
+  const menuItems: { id: Screen; label: string; icon: any }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'teachers', label: 'Cadastro de Professores', icon: GraduationCap },
     { id: 'students', label: 'Cadastro de Estudantes', icon: Users },
@@ -47,7 +61,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
     { id: 'reservations', label: 'Cadastro de Reservas de Recursos', icon: ClipboardList },
   ];
 
-  const handleNavigation = (screenId: string) => {
+  const handleNavigation = (screenId: Screen) => {
     onNavigate(screenId);
     setIsMobileMenuOpen(false);
   };
@@ -74,13 +88,13 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
             <h2 className="font-semibold text-primary">Closed CRAS</h2>
             <div className="flex items-center space-x-3 mt-3">
               <Avatar className="w-10 h-10">
-                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
+                <AvatarFallback>{safeUser.name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser.name}</p>
+                <p className="text-sm font-medium truncate">{safeUser.name}</p>
                 <Badge variant="secondary" className="text-xs">
-                  {currentUser.role}
+                  {safeUser.role}
                 </Badge>
               </div>
             </div>
@@ -115,13 +129,13 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
                   <h2 className="font-semibold text-primary mb-4">Closed CRAS</h2>
                   <div className="flex items-center space-x-3 mb-6">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                      <AvatarFallback>{currentUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
+                      <AvatarFallback>{safeUser.name.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{currentUser.name}</p>
+                      <p className="font-medium truncate">{safeUser.name}</p>
                       <Badge variant="secondary" className="text-xs">
-                        {currentUser.role}
+                        {safeUser.role}
                       </Badge>
                     </div>
                   </div>
@@ -154,8 +168,8 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
             <h1 className="font-semibold">Closed CRAS</h1>
             <div className="flex items-center space-x-2">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                <AvatarFallback className="text-xs">{currentUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
+                <AvatarFallback className="text-xs">{safeUser.name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>
           </header>
@@ -169,13 +183,13 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                  <AvatarFallback>{currentUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
+                  <AvatarFallback>{safeUser.name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block">
-                  <p className="font-medium">{currentUser.name}</p>
+                  <p className="font-medium">{safeUser.name}</p>
                   <Badge variant="secondary" className="text-xs">
-                    {currentUser.role}
+                    {safeUser.role}
                   </Badge>
                 </div>
               </div>

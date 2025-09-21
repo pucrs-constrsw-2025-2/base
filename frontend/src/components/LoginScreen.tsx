@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 
 interface LoginScreenProps {
   onLogin: (username: string, password: string) => void;
+  loading?: boolean;
+  error?: string;
 }
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen({ onLogin, loading, error }: LoginScreenProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -52,7 +54,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
+            {error && (
+              <p className="text-sm text-red-600" role="alert">{error}</p>
+            )}
+            <Button type="submit" className="w-full" disabled={!!loading}>
               Entrar
             </Button>
             <div className="text-center">
