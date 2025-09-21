@@ -12,11 +12,11 @@ public class UserRequest {
     @Schema(description = "Senha do usuário", example = "string", required = true)
     private String password;
     
-    @JsonProperty("first-name")
+    @JsonProperty("firstName")
     @Schema(description = "Primeiro nome do usuário", example = "João")
     private String first_name;
     
-    @JsonProperty("last-name")
+    @JsonProperty("lastName")
     @Schema(description = "Último nome do usuário", example = "Silva")
     private String last_name;
     

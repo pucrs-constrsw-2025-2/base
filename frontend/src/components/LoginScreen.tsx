@@ -25,19 +25,21 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }
 
     setIsLoading(true);
-    console.log('🔄 Iniciando login...', { username, backend_url: 'http://localhost:8082' });
+    console.log('🔄 Iniciando login...', { username });
 
     try {
       // Fazer login com o backend
       console.log('📡 Fazendo requisição para /login...');
       const authResponse = await authService.login(username, password);
+      
       console.log('✅ Login bem-sucedido!', {
         token_type: authResponse.token_type,
         expires_in: authResponse.expires_in,
         token_preview: authResponse.access_token.substring(0, 50) + '...'
       });
       
-      // Obter dados do usuário
+      // Só obter dados do usuário SE o login foi bem-sucedido
+      console.log('👤 Login validado pela API - criando dados do usuário...');
       const user = authService.getCurrentUser(username);
       console.log('👤 Dados do usuário:', user);
       

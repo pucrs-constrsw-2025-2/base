@@ -7,23 +7,20 @@ class AuthService {
    * Realiza login do usuário
    */
   async login(username: string, password: string): Promise<AuthResponse> {
-    console.log('🔐 AuthService.login chamado');
+    console.log('🔐 AuthService.login chamado com:', { username, password: '***' });
     
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
 
-    console.log('📝 FormData criado:', { username });
+    console.log('📝 FormData criado - Username:', username);
+    console.log('📡 Vai fazer requisição para /login...');
 
     try {
-      console.log('📡 Fazendo requisição POST /login...');
+      console.log('📡 ANTES da requisição POST /login...');
       const response = await apiClient.postFormData<AuthResponse>('/login', formData);
-      console.log('✅ Resposta recebida:', {
-        token_type: response.token_type,
-        expires_in: response.expires_in,
-        has_access_token: !!response.access_token,
-        has_refresh_token: !!response.refresh_token
-      });
+      console.log('📡 DEPOIS da requisição - Resposta recebida!');
+      console.log('✅ Resposta completa:', response);
       
       // Salvar tokens no localStorage
       console.log('💾 Salvando tokens...');

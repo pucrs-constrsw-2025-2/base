@@ -18,11 +18,11 @@ public class PermissionService {
     private KeycloakService keycloakService;
 
     /**
-     * Verifica se o usuário tem o role ADMIN
+     * Verifica se o usuário tem permissions administrativas
      */
     public boolean hasAdminRole(String accessToken) {
         try {
-            logger.info("=== DEBUG: Verificando role ADMIN ===");
+            logger.info("=== DEBUG: Verificando permissions administrativas ===");
             logger.info("Token recebido: {}", accessToken != null ? (accessToken.length() > 50 ? accessToken.substring(0, 50) + "..." : accessToken) : "NULL");
             
             // Decodificar o token JWT para verificar os roles
@@ -49,24 +49,52 @@ public class PermissionService {
                 return true; // Admin do master realm tem privilégios administrativos
             }
             
-            // Verificar se é token do realm constrsw com role ADMIN
+            // Verificar realm_access roles (USER, ADMIN, etc.)
             Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
             if (realmAccess != null) {
                 List<String> roles = (List<String>) realmAccess.get("roles");
-                logger.info("Roles encontrados: {}", roles);
-                if (roles != null && roles.contains("ADMIN")) {
-                    logger.info("Role ADMIN encontrado no realm constrsw!");
+                logger.info("Realm roles encontrados: {}", roles);
+                if (roles != null && (roles.contains("ADMIN") || roles.contains("USER"))) {
+                    logger.info("Role válido encontrado no realm constrsw!");
                     return true;
-                } else {
-                    logger.info("Role ADMIN NÃO encontrado no realm constrsw");
                 }
-            } else {
-                logger.error("realm_access não encontrado no token");
             }
 
+            // Verificar resource_access roles (oauth.administrator, realm-management.*, etc.)
+            Map<String, Object> resourceAccess = (Map<String, Object>) claims.get("resource_access");
+            if (resourceAccess != null) {
+                logger.info("Verificando resource_access...");
+                
+                // Verificar role 'administrator' no client 'oauth'
+                Map<String, Object> oauthAccess = (Map<String, Object>) resourceAccess.get("oauth");
+                if (oauthAccess != null) {
+                    List<String> oauthRoles = (List<String>) oauthAccess.get("roles");
+                    logger.info("OAuth roles: {}", oauthRoles);
+                    if (oauthRoles != null && oauthRoles.contains("administrator")) {
+                        logger.info("Role 'administrator' encontrado no client oauth!");
+                        return true;
+                    }
+                }
+                
+                // Verificar roles administrativas no realm-management
+                Map<String, Object> realmMgmtAccess = (Map<String, Object>) resourceAccess.get("realm-management");
+                if (realmMgmtAccess != null) {
+                    List<String> realmMgmtRoles = (List<String>) realmMgmtAccess.get("roles");
+                    logger.info("Realm-management roles: {}", realmMgmtRoles);
+                    if (realmMgmtRoles != null && (
+                        realmMgmtRoles.contains("realm-admin") || 
+                        realmMgmtRoles.contains("manage-users") ||
+                        realmMgmtRoles.contains("manage-clients"))) {
+                        logger.info("Role administrativo encontrado no realm-management!");
+                        return true;
+                    }
+                }
+            }
+
+            logger.info("Nenhuma permission administrativa encontrada");
             return false;
         } catch (Exception e) {
-            logger.error("Erro ao verificar role ADMIN: ", e);
+            logger.error("Erro ao verificar roles administrativos: ", e);
             return false;
         }
     }

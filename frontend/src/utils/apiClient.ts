@@ -1,7 +1,21 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 // Configuração base da API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082';
+// Detecta se está no GitHub Codespaces ou local
+const isCodespaces = window.location.hostname.includes('app.github.dev');
+
+let API_BASE_URL: string;
+
+if (isCodespaces) {
+  // GitHub Codespaces: usa proxy nginx para evitar Mixed Content
+  API_BASE_URL = '/api';
+} else {
+  // Local: usa variável de ambiente ou fallback para localhost
+  API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082';
+}
+
+console.log('🔍 Ambiente detectado:', isCodespaces ? 'GitHub Codespaces' : 'Local');
+console.log('🔧 ApiClient configurado com URL:', API_BASE_URL);
 
 // Classe para gerenciar o cliente HTTP
 class ApiClient {
