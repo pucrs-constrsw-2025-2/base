@@ -169,12 +169,12 @@ services:
     build:
       context: ./frontend/
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+        - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+        - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
+        - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
     image: constrsw/frontend
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
-      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
     networks:
       - constrsw
     ports:

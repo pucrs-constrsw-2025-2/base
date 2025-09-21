@@ -1,6 +1,11 @@
 package router
 
 import (
+	"os"
+	"strings"
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/your-org/oauth/internal/adapters/keycloak"
 	"github.com/your-org/oauth/internal/config"
@@ -13,6 +18,24 @@ import (
 
 func New(cfg *config.Config, kc *keycloak.Client) *gin.Engine {
 	r := gin.Default()
+
+	// .env, por exemplo: "http://localhost:3000,http://outro.site"
+	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOriginsEnv == "" {
+		allowedOriginsEnv = "http://localhost:3000"
+	}
+
+	allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+
+	r.Use(cors.New(cors.Config{
+		// 4. Use o slice de origens que foi lido do ambiente
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "PATCH", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	authSvc := services.NewAuthService(kc)
 	usrSvc := services.NewUsersService(kc)

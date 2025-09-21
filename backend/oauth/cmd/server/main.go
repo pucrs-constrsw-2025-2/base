@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-
 	"github.com/your-org/oauth/internal/adapters/keycloak"
 	"github.com/your-org/oauth/internal/config"
 	"github.com/your-org/oauth/internal/http/router"

@@ -1,5 +1,17 @@
 # Estágio de build
 FROM node:20-alpine AS build
+
+ARG VITE_API_URL
+ARG VITE_KEYCLOAK_URL
+ARG VITE_KEYCLOAK_REALM
+ARG VITE_KEYCLOAK_CLIENT_ID
+
+# Expõe os argumentos como variáveis de ambiente para o processo de build
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+ENV VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
+ENV VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+
 WORKDIR /app
 COPY package.json ./
 RUN npm install

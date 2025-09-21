@@ -17,8 +17,7 @@ export function LoginScreen() {
     if (!username || !password) return;
     try {
       await login(username, password);
-      // redirecionar após sucesso
-      window.location.href = '/';
+      // O redirecionamento será feito pelo App.tsx
     } catch {
       /* erro já setado no hook */
     }

@@ -6,7 +6,7 @@ export interface TokenResponse {
   refresh_expires_in: number;
 }
 
-const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+const BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
 
 export async function loginRequest(username: string, password: string): Promise<TokenResponse> {
   const res = await fetch(`${BASE_URL}/login`, {
