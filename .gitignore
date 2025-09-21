@@ -10,3 +10,6 @@
 # Ignore IDE config directories
 .vscode/
 .idea/
+
+# Frontend
+node_modules/
