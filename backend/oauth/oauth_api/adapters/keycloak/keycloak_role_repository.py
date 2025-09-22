@@ -1,3 +1,5 @@
+# Onde: oauth_api/adapters/db/keycloak_role_repository.py
+
 from typing import Any, Dict, List
 
 from oauth_api.core.domain.role import Role
@@ -12,17 +14,22 @@ class KeycloakRoleRepository(IRoleRepository):
         self.client = client
 
     def _to_domain(self, kc_role: Dict) -> Role:
+        """Converte a representação do Keycloak para o modelo de domínio."""
+        # Extrai o atributo 'enabled'. Padrão é 'True' se não existir.
+        attributes = kc_role.get("attributes", {})
+        enabled_str = attributes.get("enabled", ["true"])[0]
+        enabled = enabled_str.lower() == "true"
+
         return Role(
             id=kc_role.get("id", ""),
             name=kc_role.get("name", ""),
             description=kc_role.get("description"),
+            enabled=enabled,
         )
 
-    # NOVO: Método find_by_id implementado
     async def find_by_id(self, role_id: str) -> Role | None:
         """Busca um role pelo seu ID único."""
         try:
-            # A API Admin do Keycloak usa o endpoint 'roles-by-id' para buscar por ID
             kc_role = await self.client.get(f"/roles-by-id/{role_id}")
             return self._to_domain(kc_role)
         except KeycloakAPIError as e:
@@ -40,16 +47,21 @@ class KeycloakRoleRepository(IRoleRepository):
             raise
 
     async def find_all(self) -> List[Role]:
+        """Busca todos os roles e filtra pelos que estão ativos."""
         kc_roles = await self.client.get("/roles")
-        return [self._to_domain(role) for role in kc_roles]
+        all_roles = [self._to_domain(role) for role in kc_roles]
+        # Retorna apenas os roles que estão marcados como 'enabled'
+        return [role for role in all_roles if role.enabled]
 
     async def create(self, role_data: Any) -> Role:
-        # A API do Keycloak espera um payload JSON simples para criar um role
+        """Cria um novo role com o atributo 'enabled'."""
         kc_payload = {
             "name": role_data["name"],
-            "description": role_data.get(
-                "description"
-            ),  # .get() é mais seguro para campos opcionais
+            "description": role_data.get("description"),
+            "attributes": {
+                # Armazena o estado 'enabled' como um atributo string
+                "enabled": [str(role_data.get("enabled", True)).lower()]
+            },
         }
         await self.client.post("/roles", json=kc_payload)
 
@@ -61,26 +73,24 @@ class KeycloakRoleRepository(IRoleRepository):
         return created_role
 
     async def update(self, role_id: str, role_data: dict[str, Any]) -> Role:
-        """
-        Atualiza os dados de um role no Keycloak (implementa a lógica de PATCH).
-        """
+        """Atualiza os dados de um role, incluindo o atributo 'enabled'."""
         try:
-            # 1. Buscar o estado atual do role
             role_to_update = await self.find_by_id(role_id)
             if not role_to_update:
                 raise NotFoundError(f"Role com ID '{role_id}' não encontrado.")
 
-            # 2. Mesclar os dados existentes com os novos dados parciais
-            # O Pydantic nos ajuda a fazer isso de forma segura
             updated_role_data = role_to_update.model_copy(update=role_data)
-
-            # O payload para o Keycloak é um dicionário simples
+            
+            # Prepara o payload para o Keycloak
             kc_payload = updated_role_data.model_dump(include={"name", "description"})
+            
+            # Adiciona/Atualiza o atributo 'enabled'
+            kc_payload["attributes"] = {
+                "enabled": [str(updated_role_data.enabled).lower()]
+            }
 
-            # 3. Enviar o objeto completo para o Keycloak
             await self.client.put(f"/roles-by-id/{role_id}", json=kc_payload)
 
-            # Retorna o objeto de domínio atualizado
             return updated_role_data
         except Exception as e:
             raise KeycloakAPIError(
@@ -88,17 +98,27 @@ class KeycloakRoleRepository(IRoleRepository):
             )
 
     async def delete(self, role_id: str) -> bool:
-        # O ideal é usar o ID do role para a exclusão
-        await self.client.delete(f"/roles-by-id/{role_id}")
-        return True
+        """
+        Realiza a deleção lógica do role, definindo 'enabled' como False.
+        """
+        try:
+            # Em vez de deletar, atualizamos o atributo para 'false'
+            await self.update(role_id, {"enabled": False})
+            return True
+        except KeycloakAPIError as e:
+            # Se o erro for 404, o role já não existe.
+            if e.status_code == 404:
+                return False
+            raise
+        except Exception:
+            return False
 
-    # RENOMEADO: de add_to_user para add_roles_to_user
+
     async def add_roles_to_user(self, user_id: str, roles: List[Role]) -> None:
         kc_roles = [{"id": role.id, "name": role.name} for role in roles]
         await self.client.post(f"/users/{user_id}/role-mappings/realm", json=kc_roles)
 
-    # RENOMEADO: de remove_from_user para remove_roles_from_user
+
     async def remove_roles_from_user(self, user_id: str, roles: List[Role]) -> None:
         kc_roles = [{"id": role.id, "name": role.name} for role in roles]
-        # O método HTTP para remover mappings é DELETE
         await self.client.delete(f"/users/{user_id}/role-mappings/realm", json=kc_roles)
