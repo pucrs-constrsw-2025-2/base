@@ -41,15 +41,9 @@ export default function App() {
         if (response.status == 201) {
           console.log('Entrou')
           // Simulação de login - determina papel baseado no usuário
-          let role: UserRole = 'Aluno'; // padrão
+          let role: UserRole = 'Administrador'; // padrão
 
-          if (username.toLowerCase().includes('admin')) {
-            role = 'Administrador';
-          } else if (username.toLowerCase().includes('coord')) {
-            role = 'Coordenador';
-          } else if (username.toLowerCase().includes('prof')) {
-            role = 'Professor';
-          }
+          
           const user: User = {
             name: username,
             role: role,
@@ -59,10 +53,13 @@ export default function App() {
           setCurrentUser(user);
           setIsLoggedIn(true);
           toast.success(`Bem-vindo, ${user.name}! (${user.role})`);
+        } else {
+          alert("Login incorreto");
         }
 
       })
       .catch(error => {
+        alert("Login incorreto");
         console.error(error)
       })
   };
