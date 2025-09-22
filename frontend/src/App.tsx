@@ -1,4 +1,3 @@
-// App.tsx
 import { useState, useEffect, useMemo } from 'react';
 
 import { LoginScreen } from './components/LoginScreen';
@@ -104,13 +103,19 @@ export default function App() {
       return;
     }
     const claims = safeDecodeJwt(auth.accessToken) || {};
-    // Adapt these keys to your backend claims!
     const name =
       claims.name ||
       claims.preferred_username ||
       claims.username ||
       'Usuário';
-    const roleClaim = (claims.role || claims.roles?.[0] || 'Professor') as UserRole;
+    const roleMap: [string, UserRole][] = [
+      ['administrator', 'Administrador'],
+      ['coordinator', 'Coordenador'],
+      ['professor', 'Professor'],
+    ];
+    const roles: string[] = claims.realm_access?.roles ?? [];
+    const found = roleMap.find(([key]) => roles.includes(key));
+    const roleClaim = (found ? found[1] : 'Aluno') as UserRole;
     setCurrentUser({
       name,
       role: roleClaim,
@@ -118,7 +123,7 @@ export default function App() {
     });
   }, [auth.accessToken]);
 
-  // Auto-logout when token expires (simple version)
+  // Auto-logout when token expires
   useEffect(() => {
     if (!auth.expiresAt) return;
     const ms = Math.max(0, auth.expiresAt - Date.now());
@@ -169,7 +174,7 @@ export default function App() {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
 
       toast.success('Login realizado com sucesso!');
-      // Optional: redirect to a default screen after login
+
       setCurrentScreen('home');
     } catch (e) {
       console.error(e);
