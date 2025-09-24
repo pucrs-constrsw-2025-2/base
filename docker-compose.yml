@@ -79,29 +79,29 @@ services:
     restart: always
     
   # MongoDB
-  mongodb:
-    container_name: mongodb
-    build:
-      context: ./backend/utils/mongodb/
-      dockerfile: Dockerfile
-    image: constrsw/mongodb
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
-    volumes:
-      # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
-      - constrsw-mongodb-data:/data/mongodb
-    networks:
-      - constrsw
-    ports:
-      - ${MONGODB_EXTERNAL_PORT}:${MONGODB_INTERNAL_PORT}
-    healthcheck:
-      test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${MONGODB_DB} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
-      start_period: 30s
-      interval: 20s
-      timeout: 10s
-      retries: 20
-    restart: always
+  # mongodb:
+  #   container_name: mongodb
+  #   build:
+  #     context: ./backend/utils/mongodb/
+  #     dockerfile: Dockerfile
+  #   image: constrsw/mongodb
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+  #     - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+  #   volumes:
+  #     # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
+  #     - constrsw-mongodb-data:/data/mongodb
+  #   networks:
+  #     - constrsw
+  #   ports:
+  #     - ${MONGODB_EXTERNAL_PORT}:${MONGODB_INTERNAL_PORT}
+  #   healthcheck:
+  #     test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${MONGODB_DB} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+  #     start_period: 30s
+  #     interval: 20s
+  #     timeout: 10s
+  #     retries: 20
+  #   restart: always
 
    # SonarQube
   sonarqube:
