@@ -27,6 +27,11 @@ class IRoleRepository(ABC):
     async def find_by_name(self, name: str) -> Role | None:
         """Busca um role pelo seu nome."""
         raise NotImplementedError
+    
+    @abstractmethod
+    async def find_roles_by_user_id(self, user_id: str) -> list[Role]:
+        """Busca todos os roles associados a um usuário específico."""
+        raise NotImplementedError
 
     @abstractmethod
     async def update(self, role_id: str, update_data: dict) -> Role | None:

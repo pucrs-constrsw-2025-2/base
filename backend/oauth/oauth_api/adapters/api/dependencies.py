@@ -80,4 +80,6 @@ def get_user_service() -> UserService:
 
 
 def get_role_service() -> RoleService:
-    return RoleService(role_repository=role_repository)
+    return RoleService(
+        role_repository=role_repository, user_repository=user_repository
+    )

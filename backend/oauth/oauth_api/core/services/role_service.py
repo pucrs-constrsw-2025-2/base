@@ -1,13 +1,20 @@
+from typing import Optional
 from oauth_api.core.domain.role import Role
 from oauth_api.core.exceptions import ConflictAlreadyExistsError, NotFoundError
 from oauth_api.core.ports.role_repository import IRoleRepository
+from oauth_api.core.ports.user_repository import IUserRepository # Importar
 
 
 class RoleService:
     """Serviço contendo a lógica de negócio para roles."""
 
-    def __init__(self, role_repository: IRoleRepository):
+    def __init__(
+        self,
+        role_repository: IRoleRepository,
+        user_repository: IUserRepository, # Injetar o repositório de usuários
+    ):
         self.role_repository = role_repository
+        self.user_repository = user_repository
 
     async def create_role(self, role_data: dict) -> Role:
         """Cria um novo role, garantindo que o nome não seja duplicado."""
@@ -18,9 +25,11 @@ class RoleService:
             )
         return await self.role_repository.create(role_data)
 
-    async def get_all_roles(self) -> list[Role]:
-        """Retorna uma lista de todos os roles."""
-        return await self.role_repository.find_all()
+    async def get_all_roles(self, enabled: Optional[bool] = None) -> list[Role]:
+        """
+        Retorna uma lista de todos os roles, com filtro opcional por status.
+        """
+        return await self.role_repository.find_all(enabled=enabled)
 
     async def get_role_by_id(self, role_id: str) -> Role:
         """Busca um role pelo ID. Lança exceção se não encontrado."""
@@ -31,7 +40,7 @@ class RoleService:
 
     async def update_role(self, role_id: str, update_data: dict) -> Role:
         """Atualiza completamente um role."""
-        await self.get_role_by_id(role_id)  # Garante que o role existe
+        await self.get_role_by_id(role_id)
         updated_role = await self.role_repository.update(role_id, update_data)
         if not updated_role:
             raise NotFoundError(
@@ -41,13 +50,12 @@ class RoleService:
 
     async def partial_update_role(self, role_id: str, update_data: dict) -> Role:
         """Atualiza parcialmente um role."""
-        await self.get_role_by_id(role_id)  # Garante que o role existe
-        # Remove chaves com valor None para não sobrescrever campos existentes
+        await self.get_role_by_id(role_id)
         update_payload = {k: v for k, v in update_data.items() if v is not None}
         if not update_payload:
             return await self.get_role_by_id(
                 role_id
-            )  # Se nada for enviado, retorna o role atual
+            )
 
         updated_role = await self.role_repository.update(role_id, update_payload)
         if not updated_role:
@@ -57,15 +65,32 @@ class RoleService:
         return updated_role
 
     async def delete_role(self, role_id: str) -> None:
-        """Deleta um role."""
-        await self.get_role_by_id(role_id)  # Garante que o role existe
+        """
+        Deleta (logicamente) um role. Antes de desativar o role,
+        remove sua associação de todos os usuários que o possuem.
+        """
+        # 1. Garante que o role existe e obtém seus dados
+        role_to_delete = await self.get_role_by_id(role_id)
+
+        # 2. Encontra todos os usuários que possuem este role
+        users_with_role = await self.user_repository.find_users_by_role_name(
+            role_to_delete.name
+        )
+
+        # 3. Remove o role de cada um desses usuários
+        for user in users_with_role:
+            await self.role_repository.remove_roles_from_user(
+                user.id, [role_to_delete]
+            )
+
+        # 4. Procede com a deleção lógica do role
         success = await self.role_repository.delete(role_id)
         if not success:
             raise NotFoundError(f"Não foi possível deletar o role com ID '{role_id}'.")
 
+
     async def assign_roles_to_user(self, user_id: str, role_ids: list[str]) -> None:
         """Atribui um ou mais roles a um usuário."""
-        # A implementação do repositório de usuário deveria verificar se o user_id existe
         roles_to_assign = []
         for role_id in role_ids:
             role = await self.get_role_by_id(role_id)

@@ -1,6 +1,7 @@
 # Onde: oauth_api/adapters/db/keycloak_role_repository.py
 
-from typing import Any, Dict, List
+import asyncio
+from typing import Any, Dict, List, Optional
 
 from oauth_api.core.domain.role import Role
 from oauth_api.core.exceptions import KeycloakAPIError, NotFoundError
@@ -15,7 +16,6 @@ class KeycloakRoleRepository(IRoleRepository):
 
     def _to_domain(self, kc_role: Dict) -> Role:
         """Converte a representação do Keycloak para o modelo de domínio."""
-        # Extrai o atributo 'enabled'. Padrão é 'True' se não existir.
         attributes = kc_role.get("attributes", {})
         enabled_str = attributes.get("enabled", ["true"])[0]
         enabled = enabled_str.lower() == "true"
@@ -46,12 +46,47 @@ class KeycloakRoleRepository(IRoleRepository):
                 return None
             raise
 
-    async def find_all(self) -> List[Role]:
-        """Busca todos os roles e filtra pelos que estão ativos."""
-        kc_roles = await self.client.get("/roles")
-        all_roles = [self._to_domain(role) for role in kc_roles]
-        # Retorna apenas os roles que estão marcados como 'enabled'
-        return [role for role in all_roles if role.enabled]
+    async def find_all(self, enabled: Optional[bool] = None) -> List[Role]:
+        """
+        Busca todos os roles e seus detalhes completos para garantir que o status
+        'enabled' esteja correto. Permite filtrar por esse status.
+        """
+        # 1. Busca a lista de papéis (representação simplificada)
+        kc_roles_list = await self.client.get("/roles")
+
+        # 2. Cria uma lista de tarefas para buscar os detalhes de cada papel em paralelo
+        tasks = [self.find_by_name(role.get("name", "")) for role in kc_roles_list if role.get("name")]
+        
+        # 3. Executa todas as buscas em paralelo e aguarda os resultados
+        detailed_roles_results = await asyncio.gather(*tasks)
+
+        # 4. Filtra quaisquer resultados None (caso um papel tenha sido removido entre as chamadas)
+        all_roles = [role for role in detailed_roles_results if role is not None]
+
+        # 5. Aplica o filtro 'enabled' se ele foi fornecido
+        if enabled is None:
+            return all_roles
+
+        return [role for role in all_roles if role.enabled == enabled]
+    
+    async def find_roles_by_user_id(self, user_id: str) -> list[Role]:
+        """Busca os roles de um usuário no Keycloak."""
+        try:
+            # O endpoint role-mappings/realm retorna os roles de realm atribuídos ao usuário
+            kc_roles = await self.client.get(f"/users/{user_id}/role-mappings/realm")
+            
+            # Precisamos buscar os detalhes de cada role para obter o atributo 'enabled'
+            detailed_roles = []
+            for role_mapping in kc_roles:
+                role_details = await self.find_by_name(role_mapping["name"])
+                if role_details and role_details.enabled:
+                    detailed_roles.append(role_details)
+
+            return detailed_roles
+        except KeycloakAPIError as e:
+            if e.status_code == 404:
+                raise NotFoundError(f"Usuário com ID '{user_id}' não encontrado.") from e
+            raise
 
     async def create(self, role_data: Any) -> Role:
         """Cria um novo role com o atributo 'enabled'."""
@@ -59,7 +94,6 @@ class KeycloakRoleRepository(IRoleRepository):
             "name": role_data["name"],
             "description": role_data.get("description"),
             "attributes": {
-                # Armazena o estado 'enabled' como um atributo string
                 "enabled": [str(role_data.get("enabled", True)).lower()]
             },
         }
@@ -81,10 +115,8 @@ class KeycloakRoleRepository(IRoleRepository):
 
             updated_role_data = role_to_update.model_copy(update=role_data)
             
-            # Prepara o payload para o Keycloak
             kc_payload = updated_role_data.model_dump(include={"name", "description"})
             
-            # Adiciona/Atualiza o atributo 'enabled'
             kc_payload["attributes"] = {
                 "enabled": [str(updated_role_data.enabled).lower()]
             }
@@ -102,11 +134,9 @@ class KeycloakRoleRepository(IRoleRepository):
         Realiza a deleção lógica do role, definindo 'enabled' como False.
         """
         try:
-            # Em vez de deletar, atualizamos o atributo para 'false'
             await self.update(role_id, {"enabled": False})
             return True
         except KeycloakAPIError as e:
-            # Se o erro for 404, o role já não existe.
             if e.status_code == 404:
                 return False
             raise

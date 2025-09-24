@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Response, status
 
 # Supondo que você tenha essas dependências configuradas
@@ -38,12 +39,21 @@ async def create_role(
     "",
     response_model=list[RoleResponse],
     summary="Listar todos os roles",
-    description="Retorna uma lista com todos os roles cadastrados no sistema.",
+    description="Retorna uma lista com todos os roles cadastrados, com a opção de filtrar por status (enabled).",
     response_description="Uma lista contendo todos os roles.",
 )
-async def get_all_roles(role_service: RoleService = Depends(get_role_service)):
-    """Recupera os dados de todos os roles cadastrados."""
-    return await role_service.get_all_roles()
+async def get_all_roles(
+    enabled: Optional[bool] = None,
+    role_service: RoleService = Depends(get_role_service)
+):
+    """
+    Recupera os dados de todos os roles cadastrados.
+    
+    - Se `enabled=true`, retorna apenas os roles ativos.
+    - Se `enabled=false`, retorna apenas os roles inativos.
+    - Se o parâmetro for omitido, retorna todos os roles.
+    """
+    return await role_service.get_all_roles(enabled=enabled)
 
 
 @router.get(

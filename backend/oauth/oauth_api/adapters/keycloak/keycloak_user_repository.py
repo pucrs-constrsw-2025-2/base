@@ -14,6 +14,8 @@ from .keycloak_client import KeycloakAdminClient
 class KeycloakUserRepository(IUserRepository):
     # Define a constant for the API endpoint
     _USERS_ENDPOINT = "/users"
+    _ROLES_ENDPOINT = "/roles"
+
 
     def __init__(self, client: KeycloakAdminClient):
         self.client = client
@@ -29,7 +31,6 @@ class KeycloakUserRepository(IUserRepository):
 
     async def find_by_id(self, user_id: str) -> Optional[User]:
         try:
-            # Use the constant in an f-string
             kc_user = await self.client.get(f"{self._USERS_ENDPOINT}/{user_id}")
             return self._to_domain(kc_user)
         except KeycloakAPIError as e:
@@ -39,29 +40,32 @@ class KeycloakUserRepository(IUserRepository):
 
     async def find_by_email(self, email: str) -> Optional[User]:
         params = {"email": email, "exact": "true"}
-        # Use the constant directly
         kc_users = await self.client.get(self._USERS_ENDPOINT, params=params)
         if not kc_users:
             return None
         return self._to_domain(kc_users[0])
 
     async def find_all(self, enabled: Optional[bool] = None) -> List[User]:
-        # Passo 1: Busca a lista completa de usuários do Keycloak,
-        # já que o filtro enabled=true não é suportado por eles.
         kc_users = await self.client.get(self._USERS_ENDPOINT)
-
-        # Converte a resposta do Keycloak para a nossa lista de objetos de domínio User.
         all_users = [self._to_domain(user) for user in kc_users]
 
-        # Passo 2: Se o filtro 'enabled' não foi passado, retorna a lista completa.
         if enabled is None:
             return all_users
 
-        # Passo 3: Se o filtro foi passado (True ou False),
-        # a filtragem é feita aqui, na memória da nossa aplicação.
         filtered_users = [user for user in all_users if user.enabled == enabled]
-
         return filtered_users
+    
+    async def find_users_by_role_name(self, role_name: str) -> List[User]:
+        """Busca usuários associados a um role específico no Keycloak."""
+        try:
+            # Este endpoint retorna uma lista de representações de usuários
+            kc_users = await self.client.get(f"{self._ROLES_ENDPOINT}/{role_name}/users")
+            return [self._to_domain(user) for user in kc_users]
+        except KeycloakAPIError as e:
+            # Se o role não for encontrado, retorna uma lista vazia
+            if e.status_code == 404:
+                return []
+            raise
 
     async def create(self, user_data: dict) -> User:
         kc_payload = {
@@ -86,17 +90,26 @@ class KeycloakUserRepository(IUserRepository):
                 raise ConflictAlreadyExistsError() from e
             raise
 
-    async def update(self, user_id: str, user_data: dict) -> User:
-        existing_user = await self.find_by_id(user_id)
-        if not existing_user:
-            raise NotFoundError()
+    async def update(self, user_id: str, user_data: dict) -> None:
+        await self.find_by_id(user_id)
 
-        kc_payload = {
-            "firstName": user_data.get("first_name", existing_user.first_name),
-            "lastName": user_data.get("last_name", existing_user.last_name),
+        keycloak_field_map = {
+            "username": "username",
+            "first_name": "firstName",
+            "last_name": "lastName",
+            "enabled": "enabled",
         }
-        await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}", json=kc_payload)
-        return await self.find_by_id(user_id)
+
+        kc_payload = {}
+        for domain_field, kc_field in keycloak_field_map.items():
+            if domain_field in user_data:
+                kc_payload[kc_field] = user_data[domain_field]
+        
+        if "username" in kc_payload:
+            kc_payload["email"] = kc_payload["username"]
+
+        if kc_payload:
+            await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}", json=kc_payload)
 
     async def reset_password(self, user_id: str, new_password: str) -> None:
         await self.find_by_id(user_id)

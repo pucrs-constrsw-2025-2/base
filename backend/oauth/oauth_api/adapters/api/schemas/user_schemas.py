@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ---------------------------------------------------------------------------
@@ -21,8 +22,8 @@ class UserBase(BaseModel):
 
     # Usamos 'alias' para mapear o camelCase do JSON para o snake_case do Python.
     # Isso torna a API robusta a diferentes convenções de nomenclatura.
-    first_name: str = Field(..., example=EXAMPLE_USER_FIRST_NAME, alias="firstName")
-    last_name: str = Field(..., example=EXAMPLE_USER_LAST_NAME, alias="lastName")
+    first_name: Optional[str] = Field(None, example=EXAMPLE_USER_FIRST_NAME, alias="firstName")
+    last_name: Optional[str] = Field(None, example=EXAMPLE_USER_LAST_NAME, alias="lastName")
 
     # Configuração para permitir o uso de aliases na (de)serialização
     model_config = ConfigDict(populate_by_name=True)
@@ -36,6 +37,8 @@ class UserBase(BaseModel):
 class UserCreateRequest(UserBase):
     """Schema para a criação de um usuário. Herda de UserBase e adiciona os campos necessários."""
 
+    first_name: str = Field(..., example=EXAMPLE_USER_FIRST_NAME, alias="firstName")
+    last_name: str = Field(..., example=EXAMPLE_USER_LAST_NAME, alias="lastName")
     username: EmailStr = Field(..., example=EXAMPLE_USER_EMAIL)
     password: str = Field(..., min_length=8, example=EXAMPLE_USER_PASSWORD)
 
@@ -55,15 +58,20 @@ class UserCreateRequest(UserBase):
 class UserUpdateRequest(UserBase):
     """
     Schema para a atualização de um usuário.
-    Herda os campos de UserBase que podem ser atualizados.
+    Herda os campos de UserBase e permite a atualização de qualquer campo do usuário.
+    Todos os campos são opcionais.
     """
+    username: Optional[EmailStr] = Field(None, example=EXAMPLE_USER_EMAIL)
+    enabled: Optional[bool] = Field(None, example=True)
 
     model_config = ConfigDict(
         populate_by_name=True,
         json_schema_extra={
             "example": {
+                "username": "jose.santos@email.com",
                 "firstName": "José",
                 "lastName": "Santos",
+                "enabled": True,
             }
         },
     )
@@ -86,14 +94,14 @@ class PasswordUpdateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     """
     Schema para a resposta pública de um usuário.
-    Herda de UserBase e adiciona campos seguros para exibição.
     """
-
     id: str = Field(..., example=EXAMPLE_USER_ID)
     username: EmailStr = Field(..., example=EXAMPLE_USER_EMAIL)
+    first_name: str = Field(..., example=EXAMPLE_USER_FIRST_NAME, alias="firstName")
+    last_name: str = Field(..., example=EXAMPLE_USER_LAST_NAME, alias="lastName")
     enabled: bool = Field(..., example=True)
 
     # A configuração model_config permite definir um exemplo completo

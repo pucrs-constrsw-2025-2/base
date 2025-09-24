@@ -5,7 +5,8 @@ from oauth_api.adapters.api.dependencies import (
     get_role_service,
     get_user_service,
 )
-from oauth_api.adapters.api.schemas.role_schemas import UserRolesRequest
+# Importar o RoleResponse
+from oauth_api.adapters.api.schemas.role_schemas import RoleResponse, UserRolesRequest
 from oauth_api.adapters.api.schemas.user_schemas import (
     PasswordUpdateRequest,
     UserCreateRequest,
@@ -69,12 +70,28 @@ async def get_user_by_id(
     return await user_service.find_by_id(user_id)
 
 
+@router.get(
+    "/{user_id}/roles",
+    response_model=list[RoleResponse],
+    summary="Listar roles de um usuário",
+    description="Retorna uma lista com todos os roles associados a um usuário específico.",
+    response_description="Uma lista contendo os roles do usuário.",
+    dependencies=[Depends(get_current_user)],
+)
+async def get_user_roles(
+    user_id: str,
+    user_service: UserService = Depends(get_user_service),
+):
+    """Busca e retorna todos os roles de um usuário específico."""
+    return await user_service.get_user_roles(user_id)
+
+
 @router.put(
     "/{user_id}",
-    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
     summary="Atualizar um usuário (completo)",
-    description="Atualiza todas as informações de um usuário existente. Todos os campos devem ser fornecidos. Requer autenticação.",
-    response_description="Os dados do usuário após a atualização.",
+    description="Atualiza as informações de um usuário existente. Todos os campos devem ser fornecidos. Requer autenticação.",
+    response_description="Nenhum conteúdo retornado em caso de sucesso.",
     dependencies=[Depends(get_current_user)],
 )
 async def update_user(
@@ -83,10 +100,11 @@ async def update_user(
     user_service: UserService = Depends(get_user_service),
     _: dict = Depends(get_current_user),
 ):
-    """Atualiza as informações de um usuário e retorna o objeto atualizado."""
-    return await user_service.update_user(
+    """Atualiza as informações de um usuário."""
+    await user_service.update_user(
         user_id, user_data.model_dump(exclude_unset=True)
     )
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @router.patch(

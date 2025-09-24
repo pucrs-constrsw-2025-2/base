@@ -16,6 +16,10 @@ class IUserRepository(ABC):
     @abstractmethod
     async def find_all(self, enabled: Optional[bool] = None) -> List[User]:
         raise NotImplementedError
+    
+    @abstractmethod
+    async def find_users_by_role_name(self, role_name: str) -> List[User]:
+        raise NotImplementedError
 
     @abstractmethod
     async def create(self, user_data: dict) -> User:
