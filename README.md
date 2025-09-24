@@ -1,154 +1,134 @@
-# 🚀 Closed CRAS - OAuth Backend 🚀
+# Closed CRAS 2025-2
 
-Welcome to the backend of the **Closed CRAS** application! This project is a powerful and secure REST API that acts as a gateway to the Keycloak REST API, simplifying user and role management.
+Sistema de Gestão de Recursos Computacionais desenvolvido para a disciplina de Construção de Software - PUCRS 2025-2.
 
-## ✨ Features
+## 📋 Sobre o Projeto
 
-*   🔐 **User Authentication**: Secure user authentication with JWT (JSON Web Tokens).
-*   👥 **User Management**: Full CRUD operations for users.
-*   🎭 **Role Management**: Full CRUD operations for roles.
-*   🔑 **Keycloak Integration**: Seamless integration with Keycloak for robust identity and access management.
-*   🛡️ **Role-Based Access Control (RBAC)**: Secure your endpoints with a flexible role-based access control system.
-*   🏗️ **Scalable Architecture**: Built with a modular architecture that is easy to maintain and scale.
+O Closed CRAS é um sistema completo para gerenciamento de recursos computacionais de uma universidade, incluindo:
 
-## 🛠️ Technologies Used
+- **Frontend**: Interface web desenvolvida em React + TypeScript
+- **Backend**: API REST com autenticação OAuth2/Keycloak
+- **Banco de Dados**: PostgreSQL
+- **Análise de Código**: SonarQube
+- **Autenticação**: Keycloak
 
-*   **Framework**: [NestJS](https://nestjs.com/) (v11) 🐈
-*   **Language**: [TypeScript](https://www.typescriptlang.org/) (v5) 🔷
-*   **Authentication**: [Keycloak](https://www.keycloak.org/) 🔑
-*   **Containerization**: [Docker](https://www.docker.com/) 🐳
-*   **API Client**: [Postman](https://www.postman.com/) 📮
-*   **Testing**: [Jest](https://jestjs.io/) 🃏
-*   **Linting**: [ESLint](https://eslint.org/) 🧹
-*   **Formatting**: [Prettier](https://prettier.io/) 💅
+## 🚀 Tecnologias Utilizadas
 
-## 🏛️ Architecture
+### Frontend
+- React 18.3.1 + TypeScript
+- Vite + Tailwind CSS
+- shadcn/ui + Radix UI
+- React Hook Form + Sonner
 
-The application follows a modular architecture, with each feature encapsulated in its own module. This promotes separation of concerns and makes the codebase easier to maintain and scale.
+### Backend
+- Java Spring Boot
+- PostgreSQL
+- Keycloak (OAuth2/OpenID Connect)
+- SonarQube
 
-### Core Modules
+## 🛠️ Instalação e Execução
 
-*   **`AppModule`**: The root module of the application.
-*   **`AuthModule`**: Handles user authentication, including login and token validation.
-*   **`UsersModule`**: Manages user-related operations (CRUD).
-*   **`RolesModule`**: Manages role-related operations (CRUD).
-*   **`KeycloakModule`**: Provides the integration with Keycloak through a `KeycloakAdapter`, which abstracts the communication with the Keycloak API.
+### Pré-requisitos
 
-### Key Components
+- Docker e Docker Compose
+- Node.js 18+ (para desenvolvimento local do frontend)
+- Java 17+ (para desenvolvimento local do backend)
 
-*   **`KeycloakAdapter`**: A custom adapter that encapsulates all the logic for interacting with the Keycloak Admin API, including user and role management, and token validation.
-*   **`AuthGuard`**: A global guard that protects all endpoints by default, requiring a valid JWT for access. Public routes can be decorated with `@Public()` to bypass this guard.
-*   **`HttpExceptionFilter`**: A global filter that catches `HttpException` and formats the error response in a consistent way.
+### Execução com Docker (Recomendado)
 
-## 🚀 Getting Started
-
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
-### Prerequisites
-
-*   [Node.js](https://nodejs.org/en/) (v18 or higher)
-*   [npm](https://www.npmjs.com/)
-*   [Docker](https://www.docker.com/)
-
-### Installation
-
-1.  Clone the repository:
-    ```bash
-    git clone <repository-url>
-    ```
-2.  Navigate to the backend directory:
-    ```bash
-    cd backend/oauth
-    ```
-3.  Install the dependencies:
-    ```bash
-    npm install
-    ```
-
-### Running the Application
-
-#### With Docker
-
-The easiest way to get the application running is by using Docker. This will also start a Keycloak instance and a PostgreSQL database.
-
-1.  Make sure you have Docker installed and running.
-2.  Run the following command from the root of the project:
-    ```bash
-    docker-compose up
-    ```
-
-#### Without Docker
-
-1.  Make sure you have a running instance of [Keycloak](https://www.keycloak.org/).
-2.  Create a `.env` file in the `backend/oauth` directory with the necessary environment variables for connecting to Keycloak.
-3.  Start the application in development mode:
-    ```bash
-    npm run start:dev
-    ```
-
-The application will be running on `http://localhost:3000` by default.
-
-## 📮 API Documentation
-
-This project includes a Postman collection that you can use to test the API.
-
-1.  Open Postman.
-2.  Import the `ConstrSW.postman_collection.json` file located in the root of the project.
-3.  Import the `ConstrSW.postman_environment.json` file to set up the environment variables.
-
-## ✅ Running the Tests
-
-This project uses Jest for unit and integration testing. The tests are located alongside the source files, with the `.spec.ts` extension.
-
-*   **Run all tests**:
-    ```bash
-    npm test
-    ```
-*   **Run tests with coverage report**:
-    ```bash
-    npm run test:cov
-    ```
-
-The project has a high test coverage, ensuring the code is reliable and maintainable.
-
-## 💅 Linting and Formatting
-
-This project uses ESLint for linting and Prettier for code formatting. These tools help to maintain a consistent code style and to avoid common errors.
-
-*   **Run the linter**:
-    ```bash
-    npm run lint
-    ```
-*   **Format the code**:
-    ```bash
-    npm run format
-    ```
-
-## 📊 SonarQube Analysis
-
-This project is configured to use SonarQube for static code analysis, helping to maintain high code quality, security, and reliability.
-
-### Prerequisites
-
-1.  **SonarQube Server**: Make sure you have a SonarQube instance running. If you are using the project's `docker-compose.yml`, the server will be available at `http://localhost:9000`.
-2.  **Environment Variables**: Create a `.env` file in the `backend/oauth` directory and add the following variables for the scanner:
-    ```ini
-    # .env
-    SONAR_TOKEN=your_sonarqube_user_token
-    SONAR_HOST_URL=http://localhost:9000
-    SONAR_PROJECT_KEY=constrsw-oauth
-    ```
-
-### Running the Analysis
-
-With the server running and the `.env` file configured, run the following command from the `backend/oauth` directory:
-
+1. **Clone o repositório**:
 ```bash
-node sonar-project.js
+git clone <repository-url>
+cd constrsw-2025-2
+```
 
-## 👥 Group Members
+2. **Configure as variáveis de ambiente**:
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
 
-*   Mariah Freire
-*   Eduardo Wolf
-*   Urien Nolasco
-*   Brenda Brizzola
+# Edite as variáveis conforme necessário
+nano .env
+```
+
+3. **Execute o sistema completo**:
+```bash
+# Linux/Mac
+./build-frontend.sh
+
+# Windows PowerShell
+.\build-frontend.ps1
+
+# Ou manualmente
+docker-compose up -d
+```
+
+4. **Acesse os serviços**:
+- **Frontend**: http://localhost:3000
+- **Keycloak**: http://localhost:8001
+- **SonarQube**: http://localhost:9000
+- **PostgreSQL**: localhost:5432
+
+### Desenvolvimento Local
+
+#### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+#### Backend
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+## 🔐 Autenticação
+
+O sistema utiliza Keycloak para autenticação. Credenciais padrão:
+
+- **Admin Keycloak**: admin / a12345678
+- **Usuários de teste**: Ver documentação do frontend
+
+## 📁 Estrutura do Projeto
+
+```
+constrsw-2025-2/
+├── frontend/              # Aplicação React
+│   ├── src/
+│   ├── Dockerfile
+│   └── README.md
+├── backend/               # API REST
+│   ├── oauth/
+│   └── utils/
+├── docker-compose.yml     # Orquestração dos serviços
+├── .env                   # Variáveis de ambiente
+└── README.md             # Este arquivo
+```
+
+## 📚 Documentação
+
+- [Frontend README](./frontend/README.md) - Documentação detalhada do frontend
+- [Autenticação](./frontend/AUTHENTICATION.md) - Estratégias de autenticação
+- [Postman Collections](./ConstrSW.postman_collection.json) - API endpoints
+
+## 🤝 Contribuição
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
+## 👥 Equipe
+
+Desenvolvido para a disciplina de Construção de Software - PUCRS 2025-2.
+
+---
+
+**Última atualização**: Janeiro 2025
