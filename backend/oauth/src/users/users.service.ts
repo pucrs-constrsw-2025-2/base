@@ -176,36 +176,23 @@ export class UsersService {
 
   async updateUser(accessToken: string, id: string, data: any) {
     const url = `${this.keycloakBase}/admin/realms/${this.realm}/users/${id}`;
-    const payload = {
-      username: data.username,
-      email: data.username,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      enabled: data.enabled,
-    };
-    const resp = await axios.put(url, payload, { headers: this.authHeaders(accessToken), validateStatus: () => true });
-    if (resp.status === 204) return;
-    throw new CustomHttpException(
-      String(resp.status),
-      resp.data ?? 'error from keycloak',
-      'OAuthAPI',
-      resp.status,
-      [resp.data]
-    );
+    const resp = await axios.put(url, data, { headers: this.authHeaders(accessToken), validateStatus: () => true });
+    if (resp.status === 204) {
+      const updatedUser = await this.getUserById(accessToken, id);
+      return updatedUser;
+    }
+    if (resp.status === 404) throw new CustomHttpException('OA-404', 'User not found', 'OAuthAPI', HttpStatus.NOT_FOUND);
+    throw new CustomHttpException(`OA-${resp.status}`, resp.data?.error_description ?? 'Error updating user', 'OAuthAPI', resp.status);
   }
 
   async patchPassword(accessToken: string, id: string, password: string) {
     const url = `${this.keycloakBase}/admin/realms/${this.realm}/users/${id}/reset-password`;
-    const body = { type: 'password', value: password, temporary: false };
-    const resp = await axios.put(url, body, { headers: this.authHeaders(accessToken), validateStatus: () => true });
-    if (resp.status === 204) return;
-    throw new CustomHttpException(
-      String(resp.status),
-      resp.data ?? 'error from keycloak',
-      'OAuthAPI',
-      resp.status,
-      [resp.data]
-    );
+    const resp = await axios.put(url, { type: 'password', value: password, temporary: false }, { headers: this.authHeaders(accessToken), validateStatus: () => true });
+    if (resp.status === 204) {
+      return { id, password }; // Return the updated password object
+    }
+    if (resp.status === 404) throw new CustomHttpException('OA-404', 'User not found', 'OAuthAPI', HttpStatus.NOT_FOUND);
+    throw new CustomHttpException(`OA-${resp.status}`, resp.data?.error_description ?? 'Error updating password', 'OAuthAPI', resp.status);
   }
 
   async disableUser(accessToken: string, id: string) {
@@ -220,5 +207,15 @@ export class UsersService {
       resp.status,
       [resp.data]
     );
+  }
+
+  async getUserRoles(accessToken: string, userId: string) {
+    const url = `${this.keycloakBase}/admin/realms/${this.realm}/users/${userId}/role-mappings/realm`;
+    const resp = await axios.get(url, { headers: this.authHeaders(accessToken), validateStatus: () => true });
+    if (resp.status === 200) {
+      return resp.data;
+    }
+    if (resp.status === 404) throw new CustomHttpException('OA-404', 'User not found', 'OAuthAPI', HttpStatus.NOT_FOUND);
+    throw new CustomHttpException(`OA-${resp.status}`, resp.data?.error_description ?? 'Error fetching user roles', 'OAuthAPI', resp.status);
   }
 }

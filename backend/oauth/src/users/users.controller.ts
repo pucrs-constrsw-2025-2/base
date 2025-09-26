@@ -103,8 +103,8 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   @ApiBearerAuth()
   async updateUser(@AuthToken() token: string, @Param('id') id: string, @Body() body: UpdateUserDto) {
-    await this.usersService.updateUser(token, id, { username: body.username, firstName: body['first-name'], lastName: body['last-name'], enabled: body.enabled });
-    return { };
+    const updatedUser = await this.usersService.updateUser(token, id, { username: body.username, firstName: body['first-name'], lastName: body['last-name'], enabled: body.enabled });
+    return updatedUser;
   }
 
   @Patch('users/:id')
@@ -118,8 +118,8 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
   @ApiBearerAuth()
   async patchPassword(@AuthToken() token: string, @Param('id') id: string, @Body() body: PatchPasswordDto) {
-    await this.usersService.patchPassword(token, id, body.password);
-    return { };
+    const updatedPassword = await this.usersService.patchPassword(token, id, body.password);
+    return updatedPassword;
   }
 
   @Delete('users/:id')
@@ -134,5 +134,18 @@ export class UsersController {
   async disableUser(@AuthToken() token: string, @Param('id') id: string, @Res() res: Response) {
     await this.usersService.disableUser(token, id);
     return res.status(HttpStatus.NO_CONTENT).send();
+  }
+
+  @Get('users/:id/roles')
+  @ApiOperation({ summary: 'Obtém as roles de um usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Roles do usuário obtidas com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Erro na estrutura da chamada.' })
+  @ApiResponse({ status: 401, description: 'Access token inválido.' })
+  @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
+  @ApiResponse({ status: 404, description: 'Usuário não localizado.' })
+  @ApiBearerAuth()
+  async getUserRoles(@AuthToken() token: string, @Param('id') id: string) {
+    return await this.usersService.getUserRoles(token, id);
   }
 }
