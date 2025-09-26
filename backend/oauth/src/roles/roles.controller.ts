@@ -55,8 +55,8 @@ export class RolesController {
   @ApiResponse({ status: 403, description: 'Access token não concede permissão.' })
   @ApiResponse({ status: 404, description: 'Role não localizada.' })
   async update(@AuthToken() token: string, @Param('id') id: string, @Body() body: any) {
-    await this.rolesService.updateRole(token, id, body);
-    return {};
+    const updatedRole = await this.rolesService.updateRole(token, id, body);
+    return updatedRole;
   }
 
   @Delete(':id')

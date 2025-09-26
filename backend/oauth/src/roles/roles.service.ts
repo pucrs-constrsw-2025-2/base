@@ -35,7 +35,10 @@ export class RolesService {
   async updateRole(accessToken: string, id: string, data: any) {
     const url = `${this.keycloakBase}/admin/realms/${this.realm}/roles-by-id/${id}`;
     const resp = await axios.put(url, data, { headers: this.authHeaders(accessToken), validateStatus: () => true });
-    if (resp.status === 204) return;
+    if (resp.status === 204) {
+      const updatedRole = await this.getRoleById(accessToken, id);
+      return updatedRole;
+    }
     if (resp.status === 404) throw new HttpException({ error_code: '404', error_description: 'not found', error_source: 'OAuthAPI' }, HttpStatus.NOT_FOUND);
     throw new HttpException({ error_code: String(resp.status), error_description: resp.data ?? 'error from keycloak', error_source: 'OAuthAPI' }, resp.status);
   }
