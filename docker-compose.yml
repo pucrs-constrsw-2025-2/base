@@ -1,4 +1,3 @@
-
 networks:
     constrsw:
 
@@ -108,8 +107,7 @@ services:
       timeout: 10s
       retries: 20
     restart: always
-
-   # SonarQube
+    
   sonarqube:
     container_name: sonarqube
     image: sonarqube:latest
