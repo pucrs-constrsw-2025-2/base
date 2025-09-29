@@ -38,7 +38,11 @@ async def login(username: Annotated[str, Form()], password: Annotated[str, Form(
             return response.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code in (400, 401):
-                raise e
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Credenciais inválidas. Verifique o usuário e a senha.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             raise
 
 
@@ -64,9 +68,11 @@ async def refresh_token(refresh_token: Annotated[str, Form()]):
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            # Se o refresh token for inválido/expirado, Keycloak retorna 400
             if e.response.status_code == 400:
-                raise e
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Refresh token inválido ou expirado.",
+                )
             raise
 
 
@@ -82,7 +88,6 @@ async def validate_token(token: Annotated[str, Depends(oauth2_scheme)]):
     junto ao provedor de identidade (Keycloak).
     """
     async with httpx.AsyncClient() as client:
-        # O endpoint de instrospecção do OpenID Connect é geralmente no mesmo path do token + /introspect
         keycloak_introspect_url = f"{settings.keycloak_token_url}/introspect"
         try:
             response = await client.post(
@@ -103,7 +108,6 @@ async def validate_token(token: Annotated[str, Depends(oauth2_scheme)]):
             return introspection_result
 
         except httpx.HTTPStatusError:
-            # Se o Keycloak retornar um erro (ex: 401, 404), o token é inválido.
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido ou expirado.",
