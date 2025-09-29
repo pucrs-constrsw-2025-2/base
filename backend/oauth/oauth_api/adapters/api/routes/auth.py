@@ -1,9 +1,10 @@
-from typing import Annotated
+# auth.py
+from typing import Annotated, Any
 
 import httpx
-from fastapi import APIRouter, Form, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-
+from oauth_api.adapters.api.schemas.auth_schemas import IntrospectResponse
 from oauth_api.adapters.api.schemas.user_schemas import TokenResponse
 from oauth_api.config import settings
 
@@ -11,7 +12,6 @@ router = APIRouter(tags=["Authentication"])
 
 # Dependência para extrair o token do header Authorization
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
 
 @router.post(
     "/login",
@@ -68,3 +68,44 @@ async def refresh_token(refresh_token: Annotated[str, Form()]):
             if e.response.status_code == 400:
                 raise e
             raise
+
+
+@router.post(
+    "/validate",
+    response_model=IntrospectResponse,
+    summary="Validação de Access Token",
+    status_code=status.HTTP_200_OK,
+)
+async def validate_token(token: Annotated[str, Depends(oauth2_scheme)]):
+    """
+    Valida um access_token, verificando sua autenticidade e se não está expirado
+    junto ao provedor de identidade (Keycloak).
+    """
+    async with httpx.AsyncClient() as client:
+        # O endpoint de instrospecção do OpenID Connect é geralmente no mesmo path do token + /introspect
+        keycloak_introspect_url = f"{settings.keycloak_token_url}/introspect"
+        try:
+            response = await client.post(
+                keycloak_introspect_url,
+                data={"token": token},
+                auth=(settings.KEYCLOAK_CLIENT_ID, settings.KEYCLOAK_CLIENT_SECRET),
+            )
+            response.raise_for_status()
+            introspection_result = response.json()
+
+            if not introspection_result.get("active"):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token inválido ou expirado.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            return introspection_result
+
+        except httpx.HTTPStatusError:
+            # Se o Keycloak retornar um erro (ex: 401, 404), o token é inválido.
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido ou expirado.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
