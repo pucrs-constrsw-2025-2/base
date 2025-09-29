@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Reservation API",
+  "type": "object",
+  "definitions": {
+    "AuthorizedUser": {
+      "type": "object",
+      "properties": {
+        "authorized_user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reservation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "required": ["authorized_user_id", "reservation_id", "user_id", "name"]
+    },
+    "Reservation": {
+      "type": "object",
+      "properties": {
+        "reservation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initial_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "authorizedUsers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AuthorizedUser" }
+        }
+      },
+      "required": ["reservation_id", "initial_date", "end_date"]
+    },
+    "CreateReservation": {
+      "type": "object",
+      "properties": {
+        "initial_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Data de início da reserva (YYYY-MM-DD)"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Data de término da reserva (YYYY-MM-DD)"
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Detalhes adicionais da reserva"
+        },
+        "authorizedUsers": {
+          "type": "array",
+          "description": "Lista de usuários autorizados a acessar a reserva",
+          "items": {
+            "type": "object",
+            "properties": {
+              "user_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Identificador do usuário autorizado"
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "description": "Nome do usuário autorizado"
+              }
+            },
+            "required": ["user_id", "name"]
+          }
+        }
+      },
+      "required": ["initial_date", "end_date"]
+    }
+  }
+}

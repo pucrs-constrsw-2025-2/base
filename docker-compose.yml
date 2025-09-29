@@ -1,3 +1,4 @@
+
 networks:
     constrsw:
 
@@ -189,5 +190,27 @@ services:
       - constrsw
     ports:
       - "3000:3000"
+    restart: always
+
+  reservations:
+    container_name: reservations
+    build:
+      context: ./backend/reservations
+      dockerfile: Dockerfile
+    image: constrsw/reservations
+    environment:
+      - PORT=3001
+      - POSTGRES_HOST=${POSTGRESQL_INTERNAL_HOST}
+      - POSTGRES_PORT=${POSTGRESQL_INTERNAL_PORT}
+      - POSTGRES_USER=${POSTGRESQL_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD}
+      - POSTGRES_DB=${POSTGRESQL_DB}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks:
+      - constrsw
+    ports:
+      - "3001:3001"
     restart: always
 
