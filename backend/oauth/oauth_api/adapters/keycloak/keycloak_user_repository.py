@@ -1,3 +1,5 @@
+# Onde: oauth_api/adapters/db/keycloak_user_repository.py
+
 from typing import Dict, List, Optional
 
 from oauth_api.core.domain.user import User
@@ -7,18 +9,33 @@ from oauth_api.core.exceptions import (
     NotFoundError,
 )
 from oauth_api.core.ports.user_repository import IUserRepository
-
+from oauth_api.config import settings  # Importar settings
 from .keycloak_client import KeycloakAdminClient
 
 
 class KeycloakUserRepository(IUserRepository):
-    # Define a constant for the API endpoint
     _USERS_ENDPOINT = "/users"
-    _ROLES_ENDPOINT = "/roles"
-
 
     def __init__(self, client: KeycloakAdminClient):
         self.client = client
+        self._client_uuid: Optional[str] = None  # Cache para o UUID do client
+
+    async def _get_client_uuid(self) -> str:
+        """Busca e armazena em cache o UUID interno do client a partir do client_id."""
+        if self._client_uuid:
+            return self._client_uuid
+
+        params = {"clientId": settings.KEYCLOAK_CLIENT_ID}
+        clients_list = await self.client.get("/clients", params=params)
+
+        if not clients_list:
+            raise KeycloakAPIError(
+                500,
+                f"Client com clientId '{settings.KEYCLOAK_CLIENT_ID}' não encontrado.",
+            )
+
+        self._client_uuid = clients_list[0]["id"]
+        return self._client_uuid
 
     def _to_domain(self, kc_user: Dict) -> User:
         return User(
@@ -54,15 +71,17 @@ class KeycloakUserRepository(IUserRepository):
 
         filtered_users = [user for user in all_users if user.enabled == enabled]
         return filtered_users
-    
+
     async def find_users_by_role_name(self, role_name: str) -> List[User]:
-        """Busca usuários associados a um role específico no Keycloak."""
+        """Busca usuários associados a um client role específico no Keycloak."""
         try:
-            # Este endpoint retorna uma lista de representações de usuários
-            kc_users = await self.client.get(f"{self._ROLES_ENDPOINT}/{role_name}/users")
+            client_uuid = await self._get_client_uuid()
+            # Este endpoint retorna os usuários para um client role específico
+            kc_users = await self.client.get(
+                f"/clients/{client_uuid}/roles/{role_name}/users"
+            )
             return [self._to_domain(user) for user in kc_users]
         except KeycloakAPIError as e:
-            # Se o role não for encontrado, retorna uma lista vazia
             if e.status_code == 404:
                 return []
             raise
@@ -84,7 +103,10 @@ class KeycloakUserRepository(IUserRepository):
             if not user_location:
                 raise KeycloakAPIError(500, "Header 'Location' não encontrado.")
             user_id = user_location.split("/")[-1]
-            return await self.find_by_id(user_id)
+            found_user = await self.find_by_id(user_id)
+            if not found_user:
+                raise KeycloakAPIError(500, "Falha ao buscar usuário recém-criado.")
+            return found_user
         except KeycloakAPIError as e:
             if e.status_code == 409:
                 raise ConflictAlreadyExistsError() from e
@@ -92,29 +114,27 @@ class KeycloakUserRepository(IUserRepository):
 
     async def update(self, user_id: str, user_data: dict) -> None:
         await self.find_by_id(user_id)
-
         keycloak_field_map = {
             "username": "username",
             "first_name": "firstName",
             "last_name": "lastName",
             "enabled": "enabled",
         }
-
         kc_payload = {}
         for domain_field, kc_field in keycloak_field_map.items():
             if domain_field in user_data:
                 kc_payload[kc_field] = user_data[domain_field]
-        
         if "username" in kc_payload:
             kc_payload["email"] = kc_payload["username"]
-
         if kc_payload:
             await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}", json=kc_payload)
 
     async def reset_password(self, user_id: str, new_password: str) -> None:
         await self.find_by_id(user_id)
         payload = {"type": "password", "value": new_password, "temporary": False}
-        await self.client.put(f"{self._USERS_ENDPOINT}/{user_id}/reset-password", json=payload)
+        await self.client.put(
+            f"{self._USERS_ENDPOINT}/{user_id}/reset-password", json=payload
+        )
 
     async def disable(self, user_id: str) -> None:
         await self.find_by_id(user_id)
