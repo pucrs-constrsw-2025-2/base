@@ -13,7 +13,7 @@ import { LessonsScreen } from './components/screens/LessonsScreen';
 import { ResourcesScreen } from './components/screens/ResourcesScreen';
 import { ReservationsScreen } from './components/screens/ReservationsScreen';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 
 type UserRole = 'Administrador' | 'Coordenador' | 'Professor' | 'Aluno';

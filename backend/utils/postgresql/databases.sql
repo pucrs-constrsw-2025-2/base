@@ -24,6 +24,7 @@ CREATE USER students WITH PASSWORD 'a12345678' CREATEDB;
 -- =====================================================
 
 -- Criar todos os bancos de dados como usuário postgres
+CREATE DATABASE admin_db TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'en_US.utf8' LC_CTYPE 'en_US.utf8' TABLESPACE pg_default CONNECTION LIMIT -1;
 CREATE DATABASE sonar TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'en_US.utf8' LC_CTYPE 'en_US.utf8' TABLESPACE pg_default CONNECTION LIMIT -1;
 CREATE DATABASE classes TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'en_US.utf8' LC_CTYPE 'en_US.utf8' TABLESPACE pg_default CONNECTION LIMIT -1;
 CREATE DATABASE courses TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'en_US.utf8' LC_CTYPE 'en_US.utf8' TABLESPACE pg_default CONNECTION LIMIT -1;
@@ -39,6 +40,7 @@ CREATE DATABASE students TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'en_US.ut
 -- =====================================================
 
 -- Conceder privilégios completos aos usuários em seus respectivos bancos
+GRANT ALL PRIVILEGES ON DATABASE admin_db TO admin;
 GRANT ALL PRIVILEGES ON DATABASE sonar TO sonar;
 GRANT ALL PRIVILEGES ON DATABASE classes TO classes;
 GRANT ALL PRIVILEGES ON DATABASE courses TO courses;
@@ -52,6 +54,14 @@ GRANT ALL PRIVILEGES ON DATABASE students TO students;
 -- =====================================================
 -- FASE 4: Configurar privilégios do schema public para cada banco
 -- =====================================================
+
+-- Configurar privilégios para o banco admin_db
+\c admin_db;
+GRANT ALL ON SCHEMA public TO admin;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO admin;
 
 -- Configurar privilégios para o banco classes
 \c classes;
