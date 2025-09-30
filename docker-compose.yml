@@ -185,3 +185,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  courses-api: # Novo serviço para a API de Cursos
+    container_name: courses-api
+    build:
+      context: backend/courses
+    image: courses-api
+    env_file:
+      - .env
+    networks:
+      - constrsw
+    ports:
+      - "8002:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: always    

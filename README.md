@@ -77,6 +77,7 @@ As variáveis principais estão em **`.env`** (já incluído). Ajuste conforme s
 ```bash
 docker volume create constrsw-keycloak-data
 docker volume create constrsw-postgresql-data
+docker volume create constrsw-mongodb-data
 docker volume create constrsw-sonarqube-data
 docker volume create constrsw-sonarqube-extensions
 docker volume create constrsw-sonarqube-logs
