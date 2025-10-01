@@ -1,0 +1,304 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Employee": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for the employee"
+        },
+        "contract_number": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Employee contract number"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Employee full name"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Employee role or position"
+        },
+        "salary": {
+          "type": "number",
+          "format": "decimal",
+          "minimum": 0,
+          "description": "Employee salary (Decimal128 in MongoDB)"
+        },
+        "organizational_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Organizational unit where the employee belongs"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Task"
+          },
+          "description": "List of tasks assigned to the employee"
+        },
+        "room": {
+          "type": "object",
+          "properties": {
+            "_id_room": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Reference to room via external API"
+            }
+          },
+          "description": "Room reference (aggregated from external API)"
+        }
+      },
+      "required": ["contract_number", "name", "role"],
+      "additionalProperties": false
+    },
+    "Task": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for the task"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Task description"
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Task start date"
+        },
+        "expected_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Expected task completion date"
+        },
+        "actual_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Actual task completion date (null if not completed)"
+        }
+      },
+      "required": ["description", "start_date", "expected_end_date"],
+      "additionalProperties": false
+    }
+  },
+  "schemas": {
+    "EmployeeCreateRequest": {
+      "type": "object",
+      "properties": {
+        "contract_number": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Employee contract number"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Employee full name"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Employee role or position"
+        },
+        "salary": {
+          "type": "number",
+          "format": "decimal",
+          "minimum": 0,
+          "description": "Employee salary"
+        },
+        "organizational_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Organizational unit where the employee belongs"
+        },
+        "room": {
+          "type": "object",
+          "properties": {
+            "_id_room": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Reference to room via external API"
+            }
+          },
+          "description": "Room reference (optional on creation)"
+        }
+      },
+      "required": ["contract_number", "name", "role"],
+      "additionalProperties": false
+    },
+    "EmployeeUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "contract_number": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Employee contract number"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Employee full name"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Employee role or position"
+        },
+        "salary": {
+          "type": "number",
+          "format": "decimal",
+          "minimum": 0,
+          "description": "Employee salary"
+        },
+        "organizational_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Organizational unit where the employee belongs"
+        },
+        "room": {
+          "type": "object",
+          "properties": {
+            "_id_room": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Reference to room via external API"
+            }
+          },
+          "description": "Room reference"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "EmployeeResponse": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Employee"
+        }
+      ]
+    },
+    "EmployeeListResponse": {
+      "type": "object",
+      "properties": {
+        "employees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Employee"
+          },
+          "description": "List of employees"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of employees"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Current page number"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of items per page"
+        }
+      },
+      "required": ["employees", "total"],
+      "additionalProperties": false
+    },
+    "TaskCreateRequest": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Task description"
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Task start date"
+        },
+        "expected_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Expected task completion date"
+        },
+        "actual_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Actual task completion date (optional)"
+        }
+      },
+      "required": ["description", "start_date", "expected_end_date"],
+      "additionalProperties": false
+    },
+    "TaskUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Task description"
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Task start date"
+        },
+        "expected_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Expected task completion date"
+        },
+        "actual_end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Actual task completion date"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error details"
+        }
+      },
+      "required": ["error"],
+      "additionalProperties": false
+    }
+  }
+}
