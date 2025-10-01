@@ -25,3 +25,6 @@
 [submodule "backend/bff"]
 	path = backend/bff
 	url = https://github.com/pucrs-constrsw-2025-2/bff
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/pucrs-constrsw-2025-2/frontend
