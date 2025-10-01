@@ -15,12 +15,14 @@ O Closed CRAS é um sistema completo para gerenciamento de recursos computaciona
 ## 🚀 Tecnologias Utilizadas
 
 ### Frontend
+
 - React 18.3.1 + TypeScript
 - Vite + Tailwind CSS
 - shadcn/ui + Radix UI
 - React Hook Form + Sonner
 
 ### Backend
+
 - Java Spring Boot
 - PostgreSQL
 - Keycloak (OAuth2/OpenID Connect)
@@ -37,12 +39,14 @@ O Closed CRAS é um sistema completo para gerenciamento de recursos computaciona
 ### Execução com Docker (Recomendado)
 
 1. **Clone o repositório**:
+
 ```bash
 git clone <repository-url>
 cd constrsw-2025-2
 ```
 
 2. **Configure as variáveis de ambiente**:
+
 ```bash
 # Copie o arquivo de exemplo
 cp .env.example .env
@@ -52,6 +56,7 @@ nano .env
 ```
 
 3. **Execute o sistema completo**:
+
 ```bash
 # Linux/Mac
 ./build-frontend.sh
@@ -64,7 +69,9 @@ docker-compose up -d
 ```
 
 4. **Acesse os serviços**:
+
 - **Frontend**: http://localhost:3000
+- **Swagger Documentation**: http://localhost:8080/swagger-ui.html
 - **Keycloak**: http://localhost:8001
 - **SonarQube**: http://localhost:9000
 - **PostgreSQL**: localhost:5432
@@ -72,6 +79,7 @@ docker-compose up -d
 ### Desenvolvimento Local
 
 #### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -79,6 +87,7 @@ npm run dev
 ```
 
 #### Backend
+
 ```bash
 cd backend
 ./mvnw spring-boot:run
@@ -111,6 +120,7 @@ constrsw-2025-2/
 
 - [Frontend README](./frontend/README.md) - Documentação detalhada do frontend
 - [Autenticação](./frontend/AUTHENTICATION.md) - Estratégias de autenticação
+- [API Documentation (Swagger)](http://localhost:8080/swagger-ui.html) - Documentação interativa da API
 - [Postman Collections](./ConstrSW.postman_collection.json) - API endpoints
 
 ## 🤝 Contribuição
@@ -132,6 +142,7 @@ Desenvolvido para a disciplina de Construção de Software - PUCRS 2025-2.
 ---
 
 **Última atualização**: Janeiro 2025
+
 # Closed CRAS
 
 Base repository for the Closed CRAS application.
