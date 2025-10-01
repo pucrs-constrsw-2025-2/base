@@ -1,134 +1,94 @@
-# Closed CRAS 2025-2
+# 🏗️ Projeto ConstrSW - Base
 
-Sistema de Gestão de Recursos Computacionais desenvolvido para a disciplina de Construção de Software - PUCRS 2025-2.
-
-## 📋 Sobre o Projeto
-
-O Closed CRAS é um sistema completo para gerenciamento de recursos computacionais de uma universidade, incluindo:
-
-- **Frontend**: Interface web desenvolvida em React + TypeScript
-- **Backend**: API REST com autenticação OAuth2/Keycloak
-- **Banco de Dados**: PostgreSQL
-- **Análise de Código**: SonarQube
-- **Autenticação**: Keycloak
-
-## 🚀 Tecnologias Utilizadas
-
-### Frontend
-- React 18.3.1 + TypeScript
-- Vite + Tailwind CSS
-- shadcn/ui + Radix UI
-- React Hook Form + Sonner
-
-### Backend
-- Java Spring Boot
-- PostgreSQL
-- Keycloak (OAuth2/OpenID Connect)
-- SonarQube
-
-## 🛠️ Instalação e Execução
-
-### Pré-requisitos
-
-- Docker e Docker Compose
-- Node.js 18+ (para desenvolvimento local do frontend)
-- Java 17+ (para desenvolvimento local do backend)
-
-### Execução com Docker (Recomendado)
-
-1. **Clone o repositório**:
-```bash
-git clone <repository-url>
-cd constrsw-2025-2
-```
-
-2. **Configure as variáveis de ambiente**:
-```bash
-# Copie o arquivo de exemplo
-cp .env.example .env
-
-# Edite as variáveis conforme necessário
-nano .env
-```
-
-3. **Execute o sistema completo**:
-```bash
-# Linux/Mac
-./build-frontend.sh
-
-# Windows PowerShell
-.\build-frontend.ps1
-
-# Ou manualmente
-docker-compose up -d
-```
-
-4. **Acesse os serviços**:
-- **Frontend**: http://localhost:3000
-- **Keycloak**: http://localhost:8001
-- **SonarQube**: http://localhost:9000
-- **PostgreSQL**: localhost:5432
-
-### Desenvolvimento Local
-
-#### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-#### Backend
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-## 🔐 Autenticação
-
-O sistema utiliza Keycloak para autenticação. Credenciais padrão:
-
-- **Admin Keycloak**: admin / a12345678
-- **Usuários de teste**: Ver documentação do frontend
-
-## 📁 Estrutura do Projeto
-
-```
-constrsw-2025-2/
-├── frontend/              # Aplicação React
-│   ├── src/
-│   ├── Dockerfile
-│   └── README.md
-├── backend/               # API REST
-│   ├── oauth/
-│   └── utils/
-├── docker-compose.yml     # Orquestração dos serviços
-├── .env                   # Variáveis de ambiente
-└── README.md             # Este arquivo
-```
-
-## 📚 Documentação
-
-- [Frontend README](./frontend/README.md) - Documentação detalhada do frontend
-- [Autenticação](./frontend/AUTHENTICATION.md) - Estratégias de autenticação
-- [Postman Collections](./ConstrSW.postman_collection.json) - API endpoints
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
-
-## 👥 Equipe
-
-Desenvolvido para a disciplina de Construção de Software - PUCRS 2025-2.
+Este repositório contém a arquitetura **base** do projeto **ConstrSW - Grupo 8**.  
+Ele é responsável por orquestrar todos os serviços principais da aplicação via **Docker Compose**.
 
 ---
 
-**Última atualização**: Janeiro 2025
+## 📦 Pré-requisitos
+
+Antes de iniciar, certifique-se de ter instalado:
+
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+---
+
+## ▶️ Como rodar o projeto
+
+1. Clone o repositório.
+2. Para subir os containers, execute:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Para rodar em background:
+
+   ```bash
+   docker compose up -d
+   ```
+
+4. Para parar os containers:
+
+   ```bash
+   docker compose down
+   ```
+
+---
+
+## 🌐 Arquitetura
+
+O projeto é composto pelos seguintes serviços:
+
+| Serviço       | Porta Externa | Porta Interna | URL                          |
+|---------------|---------------|---------------|------------------------------|
+| Frontend      | 3001          | 80            | http://localhost:3001        |
+| OAuth / Swagger | 3000        | 3000          | http://localhost:3000/api    |
+| Keycloak      | 8001          | 8080          | http://localhost:8001        |
+| PostgreSQL    | 5432          | 5432          | localhost:5432               |
+| SonarQube     | 9000          | 9000          | http://localhost:9000        |
+
+---
+
+## 🔑 Autenticação
+
+- O **OAuth** é responsável pelo fluxo de autenticação, integrado ao **Keycloak**.
+- O **Keycloak** gerencia usuários, roles e permissões no realm `constrsw`.
+- O **Frontend** consome o OAuth para login e proteção de rotas.
+
+---
+
+## 📂 Estrutura do Repositório
+
+```
+base/
+├── backend/              # Serviços backend (oauth, utils, etc.)
+├── frontend/             # Aplicação frontend
+├── docker-compose.yml    # Orquestração dos containers
+├── .env.example          # Variáveis de ambiente
+├── README.md             # Este arquivo
+└── ...
+```
+
+---
+
+## 🛠️ Comandos Úteis
+
+- Ver logs de todos os serviços:
+
+   ```bash
+   docker compose logs -f
+   ```
+
+- Ver logs de um serviço específico (exemplo: oauth):
+
+   ```bash
+   docker compose logs -f oauth
+   ```
+
+- Reconstruir e reiniciar apenas um serviço (exemplo: oauth):
+
+   ```bash
+   docker compose up -d --build oauth
+   ```
