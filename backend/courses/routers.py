@@ -110,14 +110,18 @@ async def delete_course(id: str):
         raise HTTPException(status_code=404, detail=f"Course with ID {id} not found")
 
 # === Material Sub-resource Endpoints ===
-
 @router.post("/courses/{id}/materials", response_model=Material, status_code=status.HTTP_201_CREATED)
 async def add_material_to_course(id: str, material: MaterialBase):
     """Adiciona um novo material a um curso."""
     new_material = Material(**material.model_dump())
+
+    # Converte o objeto do material para um dicionário pronto para o MongoDB
+    material_dict = new_material.model_dump()
+    material_dict['url'] = str(material_dict['url']) # CONVERTE A URL PARA STRING
+
     update_result = await course_collection.update_one(
         {"_id": ObjectId(id)},
-        {"$push": {"materials": new_material.model_dump()}}
+        {"$push": {"materials": material_dict}} # USA O DICIONÁRIO CORRIGIDO
     )
     if update_result.matched_count == 0:
         raise HTTPException(status_code=404, detail=f"Course with ID {id} not found")
@@ -127,7 +131,7 @@ async def add_material_to_course(id: str, material: MaterialBase):
 async def get_materials_from_course(id: str, name: Optional[str] = None):
     """Lista os materiais de um curso, com filtro opcional por nome."""
     course = await get_course(id) # Reutiliza a função de busca
-    materials = course["materials"]
+    materials = course.get("materials", [])
     if name:
         return [m for m in materials if name.lower() in m["name"].lower()]
     return materials
@@ -158,7 +162,11 @@ async def partial_update_material_in_course(id: str, material_id: str, material:
     update_data = material.model_dump(exclude_unset=True)
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
-    
+
+    # SE a url estiver sendo atualizada, converta-a para string
+    if 'url' in update_data and update_data['url'] is not None:
+        update_data['url'] = str(update_data['url'])
+
     mongo_update_fields = {f"materials.$.{key}": value for key, value in update_data.items()}
 
     update_result = await course_collection.update_one(

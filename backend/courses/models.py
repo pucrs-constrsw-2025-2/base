@@ -48,14 +48,13 @@ class CourseBase(BaseModel):
     description: Optional[str] = None
 
 class CourseCreate(CourseBase):
-    classes: List[str] = [] # Lista de IDs de turmas
+    pass # Não há campos extras além dos que já estão em CourseBase
 
 class CourseUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=3)
     credits: Optional[int] = Field(None, ge=0)
     modality: Optional[Modality] = None
     description: Optional[str] = None
-    classes: Optional[List[str]] = None
 
 class CourseInDB(CourseBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
