@@ -27,4 +27,4 @@
 	url = https://github.com/pucrs-constrsw-2025-2/bff
 [submodule "frontend"]
 	path = frontend
-	url = https://github.com/pucrs-constrsw-2025-2/frontend
+	url = https://github.com/pucrs-constrsw-2025-2/frontend.git
