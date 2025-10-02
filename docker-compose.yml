@@ -141,6 +141,34 @@ services:
       retries: 10
     restart: always
 
+  # Employees API
+  employees-api:
+    container_name: employees-api
+    build:
+      context: ./backend/employees/
+      dockerfile: Dockerfile
+    image: constrsw/employees-api
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=Employees
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+    networks:
+      - constrsw
+    ports:
+      - ${EMPLOYEES_API_EXTERNAL_PORT:-8080}:8080
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/actuator/health || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   oauth-api:
     container_name: oauth-api
     build:
