@@ -169,6 +169,30 @@ services:
       timeout: 10s
       retries: 3
 
+  oauth-api:
+    container_name: oauth-api
+    build:
+      context: ./backend/oauth # Diretório que contém o Dockerfile da API
+      dockerfile: Dockerfile
+    image: constrsw/oauth-api
+    command: uvicorn oauth_api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8080:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
+    networks:
+      - constrsw
+    volumes:
+      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
+      - ./backend/oauth:/app 
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    restart: always
+    # Garanta que você tenha um arquivo .env na pasta backend/oauth
+    env_file:
+      - ./backend/oauth/.env 
+
   # Frontend React
   frontend:
     container_name: frontend

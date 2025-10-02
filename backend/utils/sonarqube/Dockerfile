@@ -5,20 +5,21 @@ FROM sonarqube:lts-community
 # Configurar usuário não-root para segurança
 USER root
 
-# Instalar dependências necessárias
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    unzip \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Criar diretórios necessários
-RUN mkdir -p /opt/sonarqube/data \
-    && mkdir -p /opt/sonarqube/extensions \
-    && mkdir -p /opt/sonarqube/logs \
-    && mkdir -p /opt/sonarqube/temp \
-    && mkdir -p /opt/sonarqube/conf
+# Instalar dependências e criar diretórios em uma única camada
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y \
+        curl \
+        postgresql-client \
+        unzip \
+        wget; \
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir -p \
+        /opt/sonarqube/data \
+        /opt/sonarqube/extensions \
+        /opt/sonarqube/logs \
+        /opt/sonarqube/temp \
+        /opt/sonarqube/conf
 
 # Copiar arquivos de configuração
 COPY sonar.properties /opt/sonarqube/conf/sonar.properties
