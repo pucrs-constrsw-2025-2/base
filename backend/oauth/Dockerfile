@@ -31,7 +31,7 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copia o código-fonte da sua aplicação.
-COPY ./oauth_api ./oauth_api
+COPY ./src ./src
 
 # Define o usuário 'app' como o usuário que irá rodar a aplicação.
 USER app
@@ -40,4 +40,4 @@ USER app
 EXPOSE 80
 
 # Comando para iniciar o servidor Uvicorn e executar a aplicação FastAPI.
-CMD ["uvicorn", "oauth_api.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "oauth.main:app", "--host", "0.0.0.0", "--port", "80"]

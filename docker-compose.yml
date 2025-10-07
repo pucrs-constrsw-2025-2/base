@@ -21,6 +21,7 @@ volumes:
         
 services:
 
+  # Keycloak
   keycloak:
     container_name: keycloak
     build:
@@ -34,6 +35,7 @@ services:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
+      # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
       - constrsw-keycloak-data:/opt/keycloak/data
       - ./backend/utils/keycloak:/opt/keycloak/data/import     
     networks:
@@ -49,6 +51,25 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+
+  oauth:
+    container_name: oauth
+    build:
+      context: ./backend/oauth # Diretório que contém o Dockerfile da API
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    command: uvicorn oauth.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8080:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
+    networks:
+      - constrsw
+    volumes:
+      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
+      - ./backend/oauth:/app 
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
 
   # PostgreSQL
   postgresql:
@@ -89,10 +110,15 @@ services:
     build:
       context: ./backend/utils/mongodb/
       dockerfile: Dockerfile
+      args:
+        - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+        - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
     image: constrsw/mongodb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_INTERNAL_HOST=${MONGODB_INTERNAL_HOST}
+      - MONGODB_INTERNAL_PORT=${MONGODB_INTERNAL_PORT}
     volumes:
       # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
       - constrsw-mongodb-data:/data/mongodb
@@ -101,7 +127,7 @@ services:
     ports:
       - ${MONGODB_EXTERNAL_PORT}:${MONGODB_INTERNAL_PORT}
     healthcheck:
-      test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${MONGODB_DB} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/constrsw --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
       start_period: 30s
       interval: 20s
       timeout: 10s
@@ -142,22 +168,23 @@ services:
     restart: always
 
   # Employees API
-  employees-api:
-    container_name: employees-api
+  employees:
+    container_name: employees
     build:
       context: ./backend/employees/
       dockerfile: Dockerfile
-    image: constrsw/employees-api
+    image: constrsw/employees
     environment:
-      - MONGODB_HOST=mongodb
-      - MONGODB_PORT=27017
-      - MONGODB_DATABASE=Employees
-      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_HOST=${MONGODB_INTERNAL_HOST}
+      - MONGODB_PORT=${MONGODB_INTERNAL_PORT}
+      - MONGODB_USERNAME=employees
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=employees
+      - MONGODB_AUTH_SOURCE=employees
     networks:
       - constrsw
     ports:
-      - ${EMPLOYEES_API_EXTERNAL_PORT:-8080}:8080
+      - ${EMPLOYEES_EXTERNAL_API_PORT}:${EMPLOYEES_INTERNAL_API_PORT}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -168,30 +195,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  oauth-api:
-    container_name: oauth-api
-    build:
-      context: ./backend/oauth # Diretório que contém o Dockerfile da API
-      dockerfile: Dockerfile
-    image: constrsw/oauth-api
-    command: uvicorn oauth_api.main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8080:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
-    networks:
-      - constrsw
-    volumes:
-      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
-      - ./backend/oauth:/app 
-    depends_on:
-      keycloak:
-        condition: service_healthy
-      postgresql:
-        condition: service_healthy
-    restart: always
-    # Garanta que você tenha um arquivo .env na pasta backend/oauth
-    env_file:
-      - ./backend/oauth/.env 
 
   # Frontend React
   frontend:
