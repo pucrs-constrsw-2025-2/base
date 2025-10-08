@@ -186,10 +186,10 @@ services:
       timeout: 10s
       retries: 3
 
-  courses-api: # Novo serviço para a API de Cursos
+  courses-api:
     container_name: courses-api
     build:
-      context: backend/courses
+      context: ../courses
     image: courses-api
     env_file:
       - .env
