@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 
-from oauth_api.core.domain.role import Role
+# A importação de 'Role' de outro módulo está correta.
+from oauth_api.core.domain.role import Role 
 
+# A linha "from oauth_api.core.ports.role_repository import IRoleRepository" foi removida.
 
 class IRoleRepository(ABC):
     """Interface (Port) para o repositório de roles."""
@@ -25,6 +27,11 @@ class IRoleRepository(ABC):
     async def find_by_name(self, name: str) -> Role | None:
         """Busca um role pelo seu nome."""
         raise NotImplementedError
+    
+    @abstractmethod
+    async def find_roles_by_user_id(self, user_id: str) -> list[Role]:
+        """Busca todos os roles associados a um usuário específico."""
+        raise NotImplementedError
 
     @abstractmethod
     async def update(self, role_id: str, update_data: dict) -> Role | None:
@@ -33,7 +40,7 @@ class IRoleRepository(ABC):
 
     @abstractmethod
     async def delete(self, role_id: str) -> bool:
-        """Deleta um role. Retorna True em caso de sucesso."""
+        """Deleta (logicamente) um role. Retorna True em caso de sucesso."""
         raise NotImplementedError
 
     @abstractmethod

@@ -110,7 +110,20 @@ db.createUser({
   ]
 });
 
+// Para o serviço employees
+db = db.getSiblingDB('Employees');
+db.createCollection('Employees');
+db.createCollection('Tasks');
+// Cria usuário para o serviço employees
+db.createUser({
+  user: 'employees',
+  pwd: 'a12345678',
+  roles: [
+    { role: 'readWrite', db: 'Employees' }
+  ]
+});
+
 print('Todos os databases e usuários foram criados com sucesso!');
-print('Databases criados: classes, courses, lessons, professors, reservations, resources, rooms, students');
-print('Usuários criados: classes, courses, lessons, professors, reservations, resources, rooms, students');
+print('Databases criados: classes, courses, lessons, professors, reservations, resources, rooms, students, Employees');
+print('Usuários criados: classes, courses, lessons, professors, reservations, resources, rooms, students, employees');
 print('Senha padrão para todos os usuários: a12345678');

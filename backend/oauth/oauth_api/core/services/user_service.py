@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from oauth_api.core.domain.role import Role # Importar Role
 from oauth_api.core.domain.user import User
 from oauth_api.core.ports.role_repository import IRoleRepository
 from oauth_api.core.ports.user_repository import IUserRepository
@@ -20,10 +21,13 @@ class UserService:
 
     async def find_by_id(self, user_id: str) -> Optional[User]:
         return await self.user_repo.find_by_id(user_id)
+    
+    async def get_user_roles(self, user_id: str) -> list[Role]:
+        await self.find_by_id(user_id)
+        return await self.role_repo.find_roles_by_user_id(user_id)
 
-    async def update_user(self, user_id: str, user_data: dict) -> User:
-        # A implementação do repositório agora retorna o usuário atualizado
-        return await self.user_repo.update(user_id, user_data)
+    async def update_user(self, user_id: str, user_data: dict) -> None:
+        await self.user_repo.update(user_id, user_data)
 
     async def reset_password(self, user_id: str, new_password: str) -> None:
         await self.user_repo.reset_password(user_id, new_password)
@@ -36,11 +40,11 @@ class UserService:
         role = await self.role_repo.find_by_name(role_name)
         if not role:
             raise NotFoundError()
-        await self.role_repo.add_to_user(user_id, [role])
+        await self.role_repo.add_roles_to_user(user_id, [role])
 
     async def remove_role_from_user(self, user_id: str, role_name: str) -> None:
         await self.find_by_id(user_id)
         role = await self.role_repo.find_by_name(role_name)
         if not role:
             raise NotFoundError()
-        await self.role_repo.remove_from_user(user_id, [role])
+        await self.role_repo.remove_roles_from_user(user_id, [role])
