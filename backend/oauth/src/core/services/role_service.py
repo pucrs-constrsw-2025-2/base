@@ -1,8 +1,8 @@
 from typing import Optional
-from oauth_api.core.domain.role import Role
-from oauth_api.core.exceptions import ConflictAlreadyExistsError, NotFoundError
-from oauth_api.core.ports.role_repository import IRoleRepository
-from oauth_api.core.ports.user_repository import IUserRepository # Importar
+from src.core.domain.role import Role
+from src.core.exceptions import ConflictAlreadyExistsError, NotFoundError
+from src.core.ports.role_repository import IRoleRepository
+from src.core.ports.user_repository import IUserRepository # Importar
 
 
 class RoleService:

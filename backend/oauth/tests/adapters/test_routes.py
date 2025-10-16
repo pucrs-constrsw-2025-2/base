@@ -5,11 +5,11 @@ import pytest
 from fastapi.testclient import TestClient
 from respx import MockRouter
 
-from oauth_api.core.domain.role import Role
+from src.core.domain.role import Role
 
 # Importa os objetos de domínio para usar como retornos mockados
-from oauth_api.core.domain.user import User
-from oauth_api.core.exceptions import ConflictAlreadyExistsError, NotFoundError
+from src.core.domain.user import User
+from src.core.exceptions import ConflictAlreadyExistsError, NotFoundError
 
 # Fixtures do conftest.py (client, mock_user_service, mock_role_service) são injetadas automaticamente
 
@@ -36,7 +36,7 @@ def mock_auth_settings(monkeypatch):
     # Força o módulo a recarregar as configurações mockadas
     import importlib
 
-    from oauth_api import adapters, config
+    from src import adapters, config
 
     importlib.reload(config)
     # Garante que a rota de auth use as configurações de teste
