@@ -4,9 +4,9 @@ from typing import Annotated, Any
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from oauth_api.adapters.api.schemas.auth_schemas import IntrospectResponse
-from oauth_api.adapters.api.schemas.user_schemas import TokenResponse
-from oauth_api.config import settings
+from src.adapters.api.schemas.auth_schemas import IntrospectResponse
+from src.adapters.api.schemas.user_schemas import TokenResponse
+from src.config import settings
 
 router = APIRouter(tags=["Authentication"])
 

@@ -3,16 +3,16 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from oauth_api.adapters.api.dependencies import (
+from src.adapters.api.dependencies import (
     get_current_user,
     get_role_service,
     get_user_service,
 )
-from oauth_api.core.services.role_service import RoleService
-from oauth_api.core.services.user_service import UserService
+from src.core.services.role_service import RoleService
+from src.core.services.user_service import UserService
 
 # Importa a aplicação principal e as dependências que serão mockadas
-from oauth_api.main import app
+from src.main import app
 
 
 @pytest.fixture(scope="session")

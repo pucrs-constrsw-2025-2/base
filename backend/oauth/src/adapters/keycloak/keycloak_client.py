@@ -2,8 +2,8 @@ from typing import Any, Dict
 
 import httpx
 
-from oauth_api.config import settings
-from oauth_api.core.exceptions import KeycloakAPIError
+from src.config import settings
+from src.core.exceptions import KeycloakAPIError
 
 
 class KeycloakAdminClient:

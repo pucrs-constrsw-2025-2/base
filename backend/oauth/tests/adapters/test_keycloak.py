@@ -6,11 +6,11 @@ import httpx
 import pytest
 from respx import MockRouter
 
-from oauth_api.adapters.keycloak.keycloak_client import KeycloakAdminClient
-from oauth_api.adapters.keycloak.keycloak_role_repository import KeycloakRoleRepository
-from oauth_api.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
-from oauth_api.core.domain.role import Role
-from oauth_api.core.exceptions import (
+from src.adapters.keycloak.keycloak_client import KeycloakAdminClient
+from src.adapters.keycloak.keycloak_role_repository import KeycloakRoleRepository
+from src.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
+from src.core.domain.role import Role
+from src.core.exceptions import (
     ConflictAlreadyExistsError,
     KeycloakAPIError,
     NotFoundError,
@@ -29,12 +29,12 @@ def mock_settings(monkeypatch):
 
     import importlib
 
-    from oauth_api import config
+    from src import config
 
     importlib.reload(config)
 
     monkeypatch.setattr(
-        "oauth_api.adapters.keycloak.keycloak_client.settings", config.settings
+        "src.adapters.keycloak.keycloak_client.settings", config.settings
     )
     return config.settings
 

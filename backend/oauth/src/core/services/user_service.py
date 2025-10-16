@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from oauth_api.core.domain.role import Role # Importar Role
-from oauth_api.core.domain.user import User
-from oauth_api.core.ports.role_repository import IRoleRepository
-from oauth_api.core.ports.user_repository import IUserRepository
+from src.core.domain.role import Role # Importar Role
+from src.core.domain.user import User
+from src.core.ports.role_repository import IRoleRepository
+from src.core.ports.user_repository import IUserRepository
 
 from .role_service import NotFoundError
 

@@ -2,14 +2,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Response, status
 
 # Supondo que você tenha essas dependências configuradas
-from oauth_api.adapters.api.dependencies import get_current_user, get_role_service
-from oauth_api.adapters.api.schemas.role_schemas import (
+from src.adapters.api.dependencies import get_current_user, get_role_service
+from src.adapters.api.schemas.role_schemas import (
     RoleCreateRequest,
     RolePartialUpdateRequest,
     RoleResponse,
     RoleUpdateRequest,
 )
-from oauth_api.core.services.role_service import RoleService
+from src.core.services.role_service import RoleService
 
 router = APIRouter(
     prefix="/roles",
