@@ -24,6 +24,7 @@ O Closed CRAS é um sistema completo para gerenciamento de recursos computaciona
 ### Backend
 
 - Java Spring Boot
+- C# .NET
 - PostgreSQL
 - Keycloak (OAuth2/OpenID Connect)
 - SonarQube
@@ -71,6 +72,7 @@ docker-compose up -d
 4. **Acesse os serviços**:
 
 - **Frontend**: http://localhost:3000
+- **Students API**: http://localhost:8083/swagger/index.html
 - **Swagger Documentation**: http://localhost:8080/swagger-ui.html
 - **Keycloak**: http://localhost:8001
 - **SonarQube**: http://localhost:9000
@@ -161,6 +163,7 @@ The system uses Keycloak as a centralized identity and access management (IAM) s
 
 - **Backend**:
   - **Rust**: Used in the authentication service (OAuth).
+  - **C# .NET**: Used in the students service.
   - **Keycloak**: For identity and access management.
   - **PostgreSQL**: Relational database.
 - **DevOps & Tools**:
@@ -205,6 +208,7 @@ The system uses Keycloak as a centralized identity and access management (IAM) s
       - **User**: Defined in `SONARQUBE_USER`
       - **Password**: Defined in `SONARQUBE_PASSWORD`
     - **OAuth Service API**: [http://localhost:8000](http://localhost:8000)
+    - **Students Service API**: [http://localhost:8083/swagger/index.html](http://localhost:8083/swagger/index.html)
     - **PostgreSQL**: Accessible on port `5432` at `localhost`.
       - **User**: Defined in `POSTGRESQL_USERNAME`
       - **Password**: Defined in `POSTGRESQL_PASSWORD`
