@@ -186,6 +186,9 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=employees
       - MONGODB_AUTH_SOURCE=employees
+      - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
     networks:
       - constrsw
     ports:
@@ -195,7 +198,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${EMPLOYEES_EXTERNAL_API_PORT}/api/v1/actuator/health || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
