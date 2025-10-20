@@ -189,7 +189,7 @@ services:
   courses-api:
     container_name: courses-api
     build:
-      context: ../courses
+      context: ./backend/courses/
     image: courses-api
     env_file:
       - .env
