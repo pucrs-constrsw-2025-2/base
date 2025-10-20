@@ -1,0 +1,240 @@
+{
+  "info": {
+    "name": "ConstrSW 2025-2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "c1e7dd7c-0000-4000-9000-collection-oauth-employees"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "OAuth API",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{oauth_base}}/" }
+        },
+        {
+          "name": "Auth - Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin@pucrs.br", "type": "text" },
+                { "key": "password", "value": "a12345678", "type": "text" }
+              ]
+            },
+            "url": "{{oauth_base}}/login"
+          }
+        },
+        {
+          "name": "Auth - Refresh",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+            "body": { "mode": "urlencoded", "urlencoded": [ { "key": "refresh_token", "value": "", "type": "text" } ] },
+            "url": "{{oauth_base}}/refresh"
+          }
+        },
+        {
+          "name": "Auth - Validate",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "url": "{{oauth_base}}/validate"
+          }
+        },
+        {
+          "name": "Users - Create",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"user1\",\n  \"email\": \"user1@example.com\",\n  \"firstName\": \"User\",\n  \"lastName\": \"One\",\n  \"enabled\": true,\n  \"password\": \"changeMe123\"\n}" },
+            "url": "{{oauth_base}}/users"
+          }
+        },
+        {
+          "name": "Users - List",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/users" }
+        },
+        {
+          "name": "Users - Get by ID",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/users/{{user_id}}" }
+        },
+        {
+          "name": "Users - Roles (List)",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/users/{{user_id}}/roles" }
+        },
+        {
+          "name": "Users - Update (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"new@example.com\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Name\",\n  \"enabled\": true\n}" },
+            "url": "{{oauth_base}}/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Users - Reset Password (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"NewPass123!\"\n}" },
+            "url": "{{oauth_base}}/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Users - Delete",
+          "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/users/{{user_id}}" }
+        },
+        {
+          "name": "Users - Assign Roles",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"role_ids\": [\"role-id-1\", \"role-id-2\"]\n}" },
+            "url": "{{oauth_base}}/users/{{user_id}}/roles"
+          }
+        },
+        {
+          "name": "Users - Remove Roles",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"role_ids\": [\"role-id-1\"]\n}" },
+            "url": "{{oauth_base}}/users/{{user_id}}/roles"
+          }
+        },
+        {
+          "name": "Roles - Create",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"manager\",\n  \"description\": \"Manager role\"\n}" },
+            "url": "{{oauth_base}}/roles"
+          }
+        },
+        {
+          "name": "Roles - List",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/roles" }
+        },
+        {
+          "name": "Roles - Get by ID",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/roles/{{role_id}}" }
+        },
+        {
+          "name": "Roles - Update (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"manager\",\n  \"description\": \"Updated desc\",\n  \"enabled\": true\n}" },
+            "url": "{{oauth_base}}/roles/{{role_id}}"
+          }
+        },
+        {
+          "name": "Roles - Partial Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Partial update\"\n}" },
+            "url": "{{oauth_base}}/roles/{{role_id}}"
+          }
+        },
+        {
+          "name": "Roles - Delete",
+          "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ], "url": "{{oauth_base}}/roles/{{role_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "Employees API",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{employees_base}}/actuator/health" }
+        },
+        {
+          "name": "Employees - Create",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"contractNumber\": 1001,\n  \"name\": \"John Doe\",\n  \"role\": \"Engineer\",\n  \"salary\": 10000,\n  \"organizationalUnit\": \"IT\"\n}" },
+            "url": "{{employees_base}}/employees"
+          }
+        },
+        {
+          "name": "Employees - List",
+          "request": { "method": "GET", "url": "{{employees_base}}/employees?page=1&limit=10" }
+        },
+        {
+          "name": "Employees - Get by ID",
+          "request": { "method": "GET", "url": "{{employees_base}}/employees/{{employee_id}}" }
+        },
+        {
+          "name": "Employees - Update (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Updated\",\n  \"role\": \"Senior Engineer\"\n}" },
+            "url": "{{employees_base}}/employees/{{employee_id}}"
+          }
+        },
+        {
+          "name": "Employees - Partial Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"Lead Engineer\"\n}" },
+            "url": "{{employees_base}}/employees/{{employee_id}}"
+          }
+        },
+        {
+          "name": "Employees - Delete",
+          "request": { "method": "DELETE", "url": "{{employees_base}}/employees/{{employee_id}}" }
+        },
+        {
+          "name": "Tasks - List by Employee",
+          "request": { "method": "GET", "url": "{{employees_base}}/employees/{{employee_id}}/tasks?page=1&limit=10" }
+        },
+        {
+          "name": "Tasks - Create",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"New task\",\n  \"startDate\": \"2025-10-01\",\n  \"endDate\": \"2025-10-10\"\n}" },
+            "url": "{{employees_base}}/employees/{{employee_id}}/tasks"
+          }
+        },
+        {
+          "name": "Tasks - Get by ID",
+          "request": { "method": "GET", "url": "{{employees_base}}/employees/{{employee_id}}/tasks/{{task_id}}" }
+        },
+        {
+          "name": "Tasks - Update (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated task\",\n  \"startDate\": \"2025-10-05\",\n  \"endDate\": \"2025-10-12\"\n}" },
+            "url": "{{employees_base}}/employees/{{employee_id}}/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Tasks - Partial Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Partial update\"\n}" },
+            "url": "{{employees_base}}/employees/{{employee_id}}/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Tasks - Delete",
+          "request": { "method": "DELETE", "url": "{{employees_base}}/employees/{{employee_id}}/tasks/{{task_id}}" }
+        }
+      ]
+    }
+  ]
+}
+
+

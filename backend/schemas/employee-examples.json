@@ -1,0 +1,180 @@
+{
+  "examples": {
+    "EmployeeCreateRequest": {
+      "contract_number": 12345,
+      "name": "João Silva",
+      "role": "Desenvolvedor Senior",
+      "salary": 8500.50,
+      "organizational_unit": "TI",
+      "room": {
+        "_id_room": "550e8400-e29b-41d4-a716-446655440000"
+      }
+    },
+    "EmployeeCreateRequestMinimal": {
+      "contract_number": 12346,
+      "name": "Maria Santos",
+      "role": "Analista"
+    },
+    "EmployeeUpdateRequest": {
+      "name": "João Silva Santos",
+      "salary": 9000.00,
+      "organizational_unit": "Desenvolvimento"
+    },
+    "EmployeeResponse": {
+      "_id": "550e8400-e29b-41d4-a716-446655440001",
+      "contract_number": 12345,
+      "name": "João Silva Santos",
+      "role": "Desenvolvedor Senior",
+      "salary": 9000.00,
+      "organizational_unit": "Desenvolvimento",
+      "tasks": [
+        {
+          "_id": "550e8400-e29b-41d4-a716-446655440002",
+          "description": "Implementar sistema completo de autenticação OAuth2 com integração ao Keycloak, incluindo fluxos de autorização, refresh tokens, logout e validação de permissões. Deve suportar múltiplos provedores de identidade e incluir logs de auditoria para todas as operações de autenticação.",
+          "start_date": "2024-01-15",
+          "expected_end_date": "2024-02-15",
+          "actual_end_date": "2024-02-10"
+        },
+        {
+          "_id": "550e8400-e29b-41d4-a716-446655440003",
+          "description": "Criar API de gerenciamento de funcionários",
+          "start_date": "2024-02-16",
+          "expected_end_date": "2024-03-16",
+          "actual_end_date": null
+        }
+      ],
+      "room": {
+        "_id_room": "550e8400-e29b-41d4-a716-446655440000"
+      }
+    },
+    "EmployeeListResponse": {
+      "employees": [
+        {
+          "_id": "550e8400-e29b-41d4-a716-446655440001",
+          "contract_number": 12345,
+          "name": "João Silva Santos",
+          "role": "Desenvolvedor Senior",
+          "salary": 9000.00,
+          "organizational_unit": "Desenvolvimento",
+          "tasks": [],
+          "room": {
+            "_id_room": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        {
+          "_id": "550e8400-e29b-41d4-a716-446655440004",
+          "contract_number": 12346,
+          "name": "Maria Oliveira",
+          "role": "Analista de Sistemas",
+          "salary": 7500.00,
+          "organizational_unit": "TI",
+          "tasks": [],
+          "room": {
+            "_id_room": "550e8400-e29b-41d4-a716-446655440005"
+          }
+        }
+      ],
+      "total": 2,
+      "page": 1,
+      "limit": 10
+    },
+    "TaskCreateRequest": {
+      "description": "Implementar validação de dados",
+      "start_date": "2024-03-01",
+      "expected_end_date": "2024-03-15"
+    },
+    "TaskUpdateRequest": {
+      "description": "Implementar validação de dados com melhorias",
+      "actual_end_date": "2024-03-12"
+    },
+    "ErrorResponse": {
+      "error": "Employee not found",
+      "code": "EMPLOYEE_NOT_FOUND",
+      "details": {
+        "employee_id": "550e8400-e29b-41d4-a716-446655440001"
+      }
+    }
+  },
+  "api_endpoints": {
+    "base_url": "{{base_url}}/employees",
+    "endpoints": {
+      "GET /employees": {
+        "description": "List all employees with pagination",
+        "query_parameters": {
+          "page": "integer (optional, default: 1)",
+          "limit": "integer (optional, default: 10)",
+          "role": "string (optional, filter by role)",
+          "organizational_unit": "string (optional, filter by organizational unit)"
+        },
+        "response_schema": "EmployeeListResponse"
+      },
+      "GET /employees/{id}": {
+        "description": "Get employee by ID",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "response_schema": "EmployeeResponse"
+      },
+      "POST /employees": {
+        "description": "Create a new employee",
+        "request_schema": "EmployeeCreateRequest",
+        "response_schema": "EmployeeResponse"
+      },
+      "PUT /employees/{id}": {
+        "description": "Update employee completely",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "request_schema": "EmployeeUpdateRequest",
+        "response_schema": "EmployeeResponse"
+      },
+      "PATCH /employees/{id}": {
+        "description": "Partially update employee",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "request_schema": "EmployeeUpdateRequest",
+        "response_schema": "EmployeeResponse"
+      },
+      "DELETE /employees/{id}": {
+        "description": "Delete employee",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "response": "204 No Content"
+      },
+      "GET /employees/{id}/tasks": {
+        "description": "Get all tasks for an employee",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "response_schema": "Array of Task objects"
+      },
+      "POST /employees/{id}/tasks": {
+        "description": "Create a new task for an employee",
+        "path_parameters": {
+          "id": "UUID of the employee"
+        },
+        "request_schema": "TaskCreateRequest",
+        "response_schema": "Task object"
+      },
+      "PUT /employees/{employee_id}/tasks/{task_id}": {
+        "description": "Update a task",
+        "path_parameters": {
+          "employee_id": "UUID of the employee",
+          "task_id": "UUID of the task"
+        },
+        "request_schema": "TaskUpdateRequest",
+        "response_schema": "Task object"
+      },
+      "DELETE /employees/{employee_id}/tasks/{task_id}": {
+        "description": "Delete a task",
+        "path_parameters": {
+          "employee_id": "UUID of the employee",
+          "task_id": "UUID of the task"
+        },
+        "response": "204 No Content"
+      }
+    }
+  }
+}

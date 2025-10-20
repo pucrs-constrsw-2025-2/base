@@ -1,0 +1,44 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: employees-api
+  
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: employees
+      username: employees
+      password: ${MONGODB_PASSWORD}
+      authentication-database: employees
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.constrsw.employees: DEBUG
+    org.springframework.data.mongodb: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+
+
+

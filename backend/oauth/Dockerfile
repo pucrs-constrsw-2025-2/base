@@ -1,43 +1,43 @@
-# Step 1: Use the official Rust image to build the project
-FROM rust:1.82 AS builder
-WORKDIR /usr/src/app
+# Stage 1: Build - Instala as dependências de produção com Poetry
+FROM python:3.12-slim AS builder
 
-# Copy manifest + lock (FALTAVA Cargo.lock)
-COPY Cargo.toml ./
-
-# Dummy src to cache deps
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Copy sources and tests
-COPY src ./src
-COPY tests ./tests
-
-# (Opcional) apenas compila testes sem executar para cache mais rápido
-# RUN cargo test --locked --no-run
-
-# Executa testes (falha interrompe build)
-RUN cargo test --all -- --test-threads=1
-
-# Build release
-RUN cargo build --release
-
-# --- Coverage Stage (tarpaulin) ---
-FROM rust:1.82 AS coverage
-WORKDIR /usr/src/app
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo fetch --locked
-COPY src ./src
-COPY tests ./tests
-
-# Instalar tarpaulin
-RUN cargo install cargo-tarpaulin --locked
-
-# Rodar cobertura (engine padrão ptrace)
-CMD ["cargo","tarpaulin","--workspace","--tests","--out","Html","--out","Lcov","--timeout","300","--output-dir","coverage","--fail-under","0"]
-
-# --- Final Stage ---
-FROM gcr.io/distroless/cc-debian12
+# Define '/app' como o diretório de trabalho DENTRO do contêiner.
 WORKDIR /app
-COPY --from=builder /usr/src/app/target/release/oauth .
-CMD ["./oauth"]
+
+# Instala o Poetry
+RUN pip install poetry
+
+# Copia os arquivos de definição de projeto e dependências.
+COPY poetry.lock pyproject.toml ./
+
+# Configura o Poetry para instalar dependências no ambiente do sistema e instala-as.
+# A flag --no-root evita a instalação do projeto local.
+RUN poetry config virtualenvs.create false && poetry install --without dev --no-interaction --no-ansi --no-root
+
+# Stage 2: Production - Cria a imagem final otimizada para produção
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Cria um usuário e grupo de sistema 'app' para rodar a aplicação com privilégios mínimos.
+RUN addgroup --system app && adduser --system --group app
+
+# Copia os pacotes Python instalados no stage 'builder'.
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+
+# --- LINHA ADICIONADA ---
+# Copia os executáveis (como o 'uvicorn') instalados pelo Poetry no stage 'builder'.
+# Eles são necessários para que o comando CMD possa encontrar e executar o servidor.
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copia o código-fonte da sua aplicação.
+COPY ./src ./src
+
+# Define o usuário 'app' como o usuário que irá rodar a aplicação.
+USER app
+
+# Expõe a porta 80.
+EXPOSE 80
+
+# Comando para iniciar o servidor Uvicorn e executar a aplicação FastAPI.
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "80"]
