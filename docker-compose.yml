@@ -224,8 +224,8 @@ services:
       retries: 3
 
   # Courses API
-  courses-api:
-    container_name: courses-api
+  courses:
+    container_name: courses
     build:
       context: ./backend/courses/
       dockerfile: Dockerfile
