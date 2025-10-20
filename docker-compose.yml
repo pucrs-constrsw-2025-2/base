@@ -222,3 +222,37 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+# Reservations API
+  reservations:
+    container_name: reservations
+    build:
+      context: ./backend/reservations/
+      dockerfile: Dockerfile
+    image: constrsw/reservations
+    environment:
+      - DATABASE_HOST=${POSTGRESQL_INTERNAL_HOST}
+      - DATABASE_PORT=${POSTGRESQL_INTERNAL_PORT}
+      - DATABASE_USER=${RESERVATIONS_POSTGRESQL_USER}
+      - DATABASE_PASSWORD=${RESERVATIONS_POSTGRESQL_PASSWORD}
+      - DATABASE_NAME=reservations
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
+    networks:
+      - constrsw
+    ports:
+      - "{RESERVATIONS_EXTERNAL_API_PORT}:${RESERVATIONS_INTERNAL_API_PORT}"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      oauth:
+        condition: service_started
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
