@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from oauth_api.core.domain.user import User
+from src.core.domain.user import User
 
 
 class IUserRepository(ABC):

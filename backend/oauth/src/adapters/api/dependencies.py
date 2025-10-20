@@ -6,15 +6,15 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from oauth_api.adapters.keycloak.keycloak_client import KeycloakAdminClient
-from oauth_api.adapters.keycloak.keycloak_role_repository import KeycloakRoleRepository
-from oauth_api.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
-from oauth_api.config import settings
-from oauth_api.core.exceptions import InvalidTokenError
-from oauth_api.core.ports.role_repository import IRoleRepository
-from oauth_api.core.ports.user_repository import IUserRepository
-from oauth_api.core.services.role_service import RoleService
-from oauth_api.core.services.user_service import UserService
+from src.adapters.keycloak.keycloak_client import KeycloakAdminClient
+from src.adapters.keycloak.keycloak_role_repository import KeycloakRoleRepository
+from src.adapters.keycloak.keycloak_user_repository import KeycloakUserRepository
+from src.config import settings
+from src.core.exceptions import InvalidTokenError
+from src.core.ports.role_repository import IRoleRepository
+from src.core.ports.user_repository import IUserRepository
+from src.core.services.role_service import RoleService
+from src.core.services.user_service import UserService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 jwks_cache = TTLCache(maxsize=10, ttl=600)

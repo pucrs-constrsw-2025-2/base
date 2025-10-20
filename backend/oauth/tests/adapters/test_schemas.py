@@ -1,20 +1,20 @@
 import pytest
 from pydantic import ValidationError
 
-from oauth_api.adapters.api.schemas.role_schemas import (
+from src.adapters.api.schemas.role_schemas import (
     RoleCreateRequest,
     RolePartialUpdateRequest,
     RoleResponse,
 )
 
 # Importando todos os schemas para garantir a cobertura
-from oauth_api.adapters.api.schemas.user_schemas import (
+from src.adapters.api.schemas.user_schemas import (
     PasswordUpdateRequest,
     UserCreateRequest,
     UserResponse,
     UserUpdateRequest,
 )
-from oauth_api.core.domain.role import Role
+from src.core.domain.role import Role
 
 
 def test_user_create_request_success_with_alias():

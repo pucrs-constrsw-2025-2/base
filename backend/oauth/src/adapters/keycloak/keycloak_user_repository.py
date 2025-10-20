@@ -2,14 +2,14 @@
 
 from typing import Dict, List, Optional
 
-from oauth_api.core.domain.user import User
-from oauth_api.core.exceptions import (
+from src.core.domain.user import User
+from src.core.exceptions import (
     ConflictAlreadyExistsError,
     KeycloakAPIError,
     NotFoundError,
 )
-from oauth_api.core.ports.user_repository import IUserRepository
-from oauth_api.config import settings  # Importar settings
+from src.core.ports.user_repository import IUserRepository
+from src.config import settings  # Importar settings
 from .keycloak_client import KeycloakAdminClient
 
 
