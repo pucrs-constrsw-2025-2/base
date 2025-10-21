@@ -202,31 +202,31 @@ services:
   #     retries: 3
 
   # Frontend React
-  # frontend:
-  #   container_name: frontend
-  #   build:
-  #     context: ./frontend/
-  #     dockerfile: Dockerfile
-  #   image: constrsw/frontend
-  #   environment:
-  #     - VITE_API_URL=${VITE_API_URL}
-  #     - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-  #     - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
-  #     - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
-  #   networks:
-  #     - constrsw
-  #   ports:
-  #     - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
-  #   depends_on:
-  #     keycloak:
-  #       condition: service_healthy
-  #   restart: always
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-  #     start_period: 30s
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    image: constrsw/frontend
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
+      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+    networks:
+      - constrsw
+    ports:
+      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Professors API
   professors:
@@ -236,24 +236,19 @@ services:
       dockerfile: Dockerfile
     image: constrsw/professors
     env_file:
-      - .env # Carrega o .env principal
-    environment:
-      # Define a porta interna (a mesma do Dockerfile CMD)
-      - PROFESSORS_INTERNAL_API_PORT=8082
-      # Garante que o Alembic/SQLAlchemy usem o host interno do PostgreSQL
-      - POSTGRESQL_INTERNAL_HOST=postgresql 
+      - .env
     ports:
-      # Mapeia a porta externa (nova) para a porta interna
       - "${PROFESSORS_EXTERNAL_API_PORT}:${PROFESSORS_INTERNAL_API_PORT}"
     networks:
       - constrsw
     depends_on:
       postgresql:
-        condition: service_healthy # Espera o PostgreSQL estar pronto
+        condition: service_healthy
+      oauth:
+        condition: service_started 
     restart: always
     healthcheck:
-      # Verifica o endpoint /health criado no main.py
-      test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${PROFESSORS_INTERNAL_API_PORT}/health || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
