@@ -1,25 +1,51 @@
 networks:
-    constrsw:
+  constrsw:
 
 volumes:
-    # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
-    constrsw-keycloak-data:
-        external: true
-    # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
-    constrsw-postgresql-data:
-        external: true
-    # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
-    constrsw-mongodb-data:
-        external: true
-    # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
-    constrsw-sonarqube-data:
-        external: true
-    constrsw-sonarqube-extensions:
-        external: true
-    constrsw-sonarqube-logs:
-        external: true
-        
+  # No terminal, criar o volume externo: docker volume create constrsw-prometheus-data
+  constrsw-prometheus-data:
+    external: true
+  # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
+  constrsw-keycloak-data:
+    external: true
+  # No terminal, criar o volume externo: docker volume create constrsw-postgresql-data
+  constrsw-postgresql-data:
+    external: true
+  # No terminal, criar o volume externo: docker volume create constrsw-mongodb-data
+  constrsw-mongodb-data:
+    external: true
+  # No terminal, criar os volumes externos: docker volume create constrsw-sonarqube-data && docker volume create constrsw-sonarqube-extensions && docker volume create constrsw-sonarqube-logs
+  constrsw-sonarqube-data:
+    external: true
+  constrsw-sonarqube-extensions:
+    external: true
+  constrsw-sonarqube-logs:
+    external: true
+
 services:
+  # Prometheus
+  prometheus:
+    container_name: prometheus
+    build:
+      context: ./backend/utils/prometheus
+      dockerfile: Dockerfile
+    image: constrsw/prometheus
+    environment:
+      - PROMETHEUS_INTERNAL_HOST=${PROMETHEUS_INTERNAL_HOST}
+      - PROMETHEUS_EXTERNAL_HOST=${PROMETHEUS_EXTERNAL_HOST}
+      - PROMETHEUS_INTERNAL_PORT=${PROMETHEUS_INTERNAL_PORT}
+      - PROMETHEUS_EXTERNAL_PORT=${PROMETHEUS_EXTERNAL_PORT}
+    volumes:
+      - constrsw-prometheus-data:/prometheus
+      - ./backend/utils/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./backend/utils/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+    networks:
+      - constrsw
+    ports:
+      - ${PROMETHEUS_EXTERNAL_PORT}:${PROMETHEUS_INTERNAL_PORT}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
 
   # Keycloak
   keycloak:
@@ -37,7 +63,7 @@ services:
     volumes:
       # No terminal, criar o volume externo: docker volume create constrsw-keycloak-data
       - constrsw-keycloak-data:/opt/keycloak/data
-      - ./backend/utils/keycloak:/opt/keycloak/data/import     
+      - ./backend/utils/keycloak:/opt/keycloak/data/import
     networks:
       - constrsw
     ports:
@@ -46,7 +72,11 @@ services:
     command: start-dev --import-realm
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_METRICS_PORT}/health" ]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f ${KEYCLOAK_INTERNAL_HOST}:${KEYCLOAK_INTERNAL_METRICS_PORT}/health",
+        ]
       start_period: 50s
       interval: 10s
       timeout: 10s
@@ -58,14 +88,19 @@ services:
       context: ./backend/oauth # Diretório que contém o Dockerfile da API
       dockerfile: Dockerfile
     image: constrsw/oauth
-    command: uvicorn oauth.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
     ports:
-      - "8080:8000" # Mapeia a porta 8000 do seu computador para a porta 8000 do contêiner
+      - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
     networks:
       - constrsw
     volumes:
       # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
-      - ./backend/oauth:/app 
+      - ./backend/oauth:/app
     depends_on:
       keycloak:
         condition: service_healthy
@@ -97,13 +132,26 @@ services:
     ports:
       - ${POSTGRESQL_EXTERNAL_PORT}:${POSTGRESQL_INTERNAL_PORT}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESQL_USERNAME}"]
       start_period: 20s
       interval: 10s
       timeout: 10s
       retries: 10
     restart: always
-    
+
+  # PostgreSQL Exporter para o Prometheus
+  postgresql-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgresql-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - constrsw
+    depends_on:
+      - postgresql
+
   # MongoDB
   mongodb:
     container_name: mongodb
@@ -127,17 +175,37 @@ services:
     ports:
       - ${MONGODB_EXTERNAL_PORT}:${MONGODB_INTERNAL_PORT}
     healthcheck:
-      test: [ "CMD-SHELL", "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/constrsw --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/constrsw --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'",
+        ]
       start_period: 30s
       interval: 20s
       timeout: 10s
       retries: 20
     restart: always
 
-   # SonarQube
+  # MongoDB Exporter para o Prometheus
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40.0
+    container_name: mongodb-exporter
+    environment:
+      - MONGODB_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}
+    ports:
+      - "9216:9216"
+    networks:
+      - constrsw
+    depends_on:
+      - mongodb
+
+  # SonarQube
   sonarqube:
     container_name: sonarqube
-    image: sonarqube:latest
+    build:
+      context: ./backend/utils/sonarqube/
+      dockerfile: Dockerfile
+    image: constrsw/sonarqube
     environment:
       - SONAR_WEB_HOST=${SONAR_WEB_HOST}
       - SONAR_WEB_PORT=${SONAR_WEB_PORT}
@@ -150,17 +218,23 @@ services:
     volumes:
       # No terminal, criar o volume externo: docker volume create constrsw-sonarqube-data
       - constrsw-sonarqube-data:/opt/sonarqube/data
+      # No terminal, criar o volume externo: docker volume create constrsw-sonarqube-extensions
       - constrsw-sonarqube-extensions:/opt/sonarqube/extensions
+      # No terminal, criar o volume externo: docker volume create constrsw-sonarqube-logs
       - constrsw-sonarqube-logs:/opt/sonarqube/logs
     networks:
       - constrsw
     ports:
-      - "9000:9000"
+      - ${SONAR_WEB_PORT}:${SONAR_WEB_PORT}
     depends_on:
       postgresql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f ${SONARQUBE_INTERNAL_PROTOCOL}://${SONARQUBE_INTERNAL_HOST}:${SONARQUBE_INTERNAL_PORT}/api/system/status || exit 1",
+        ]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -181,6 +255,9 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=employees
       - MONGODB_AUTH_SOURCE=employees
+      - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
     networks:
       - constrsw
     ports:
@@ -190,40 +267,84 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${EMPLOYEES_EXTERNAL_API_PORT}/api/v1/actuator/health || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Frontend React
-  frontend:
-    container_name: frontend
+  # Courses API
+  courses:
+    container_name: courses
     build:
-      context: ./frontend/
+      context: ./backend/courses/
       dockerfile: Dockerfile
-    image: constrsw/frontend
+    image: constrsw/courses
     environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
-      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+      - MONGO_URI=${MONGO_URI}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - CLASSES_API_BASE_URL=${CLASSES_API_BASE_URL}
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
     networks:
       - constrsw
     ports:
-      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+      - "${COURSES_EXTERNAL_API_PORT}:${COURSES_INTERNAL_API_PORT}"
     depends_on:
+      mongodb:
+        condition: service_healthy
       keycloak:
         condition: service_healthy
+      oauth:
+        condition: service_started
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${COURSES_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
       retries: 3
+      
+  # Lessons API
+  lessons:
+    container_name: lessons
+    build:
+      context: ./backend/lessons
+      dockerfile: Dockerfile
+    image: constrsw/lessons
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${LESSONS_DATABASE_URL}
+    ports:
+      - ${LESSONS_EXTERNAL_API_PORT}:${LESSONS_INTERNAL_API_PORT}
+    networks:
+      - constrsw
 
-# Reservations API
+  # Professors API
+  professors:
+    container_name: professors
+    build:
+      context: ./backend/professors
+      dockerfile: Dockerfile
+    image: constrsw/professors
+    env_file:
+      - .env
+    ports:
+      - "${PROFESSORS_EXTERNAL_API_PORT}:${PROFESSORS_INTERNAL_API_PORT}"
+    networks:
+      - constrsw
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      oauth:
+        condition: service_started 
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PROFESSORS_INTERNAL_API_PORT}/health || exit 1"]
+
+  # Reservations API
   reservations:
     container_name: reservations
     build:
@@ -252,6 +373,111 @@ services:
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # Resources API
+  resources:
+    container_name: resources
+    build:
+      context: ./backend/resources/
+      dockerfile: Dockerfile
+    image: constrsw/resources
+    environment:
+      - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
+    networks:
+      - constrsw
+    ports:
+      - ${RESOURCES_EXTERNAL_API_PORT}:${RESOURCES_INTERNAL_API_PORT}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${RESOURCES_INTERNAL_API_PORT}/api/v1/categories || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Rooms API
+  rooms:
+    container_name: rooms
+    build:
+      context: ./backend/rooms/
+      dockerfile: Dockerfile
+    image: constrsw/rooms
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@postgresql:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}?schema=public
+    networks:
+      - constrsw
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "npx prisma db push && npm run start:prod"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Students API
+  students:
+    container_name: students
+    build:
+      context: ./backend/students/
+      dockerfile: Dockerfile
+    image: constrsw/students
+    environment:
+      - ASPNETCORE_URLS=http://+:${STUDENTS_INTERNAL_API_PORT}
+      - ConnectionStrings__DefaultConnection=Host=postgresql;Database=students_db;Username=${POSTGRESQL_USERNAME};Password=${POSTGRESQL_PASSWORD}
+    networks:
+      - constrsw
+    ports:
+      - ${STUDENTS_EXTERNAL_API_PORT}:${STUDENTS_INTERNAL_API_PORT}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:${STUDENTS_INTERNAL_API_PORT}/health || exit 1",
+        ]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    image: constrsw/frontend
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
+      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+    networks:
+      - constrsw
+    ports:
+      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s

@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "oauth-api"
+name = "oauth"
 version = "0.1.0"
 description = "Keycloak API Gateway em conformidade com o T1 de ConstrSW."
 authors = ["AndreiRech <andreirech22@outlook.com>", "eduardo-de-bastiani <eduardocolladebastiani@gmail.com>", "erikvsuris <erikvsuris@gmail.com>", "shimpas-ville <cadu2001moraes@gmail.com>"]
 readme = "README.md"
-packages = [{include = "oauth_api"}]
+packages = [{include = "oauth"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -50,9 +50,9 @@ strict = true
 ignore_missing_imports = true
 
 [tool.taskipy.tasks]
-run = 'uvicorn oauth_api.main:app --reload'
+run = 'uvicorn src.main:app --reload'
 lint = 'ruff check .'
 format = 'ruff check . --fix ; ruff format .'
-test = 'pytest --cov=oauth_api --cov-report=xml:coverage.xml -vv'
+test = 'pytest --cov=oauth --cov-report=xml:coverage.xml -vv'
 post_test = 'coverage xml'
-security= 'bandit -r oauth_api/'
+security= 'bandit -r oauth/'

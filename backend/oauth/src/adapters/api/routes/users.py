@@ -1,20 +1,20 @@
 from fastapi import APIRouter, Depends, Response, status
 
-from oauth_api.adapters.api.dependencies import (
+from src.adapters.api.dependencies import (
     get_current_user,
     get_role_service,
     get_user_service,
 )
 # Importar o RoleResponse
-from oauth_api.adapters.api.schemas.role_schemas import RoleResponse, UserRolesRequest
-from oauth_api.adapters.api.schemas.user_schemas import (
+from src.adapters.api.schemas.role_schemas import RoleResponse, UserRolesRequest
+from src.adapters.api.schemas.user_schemas import (
     PasswordUpdateRequest,
     UserCreateRequest,
     UserResponse,
     UserUpdateRequest,
 )
-from oauth_api.core.services.role_service import RoleService
-from oauth_api.core.services.user_service import UserService
+from src.core.services.role_service import RoleService
+from src.core.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
