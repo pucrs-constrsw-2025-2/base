@@ -272,30 +272,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-  rooms:
-    container_name: rooms
-    build:
-      context: ./backend/rooms/
-      dockerfile: Dockerfile
-    image: constrsw/rooms
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@postgresql:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}?schema=public
-    networks:
-      - constrsw
-    ports:
-      - "3000:3000"
-    command: >
-      sh -c "npx prisma db push && npm run start:prod"
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
-      start_period: 30s
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # Resources API
   resources:
@@ -320,28 +296,27 @@ services:
       timeout: 10s
       retries: 3
 
-  # Frontend React
-  frontend:
-    container_name: frontend
+  # Rooms API
+  rooms:
+    container_name: rooms
     build:
-      context: ./frontend/
+      context: ./backend/rooms/
       dockerfile: Dockerfile
-    image: constrsw/frontend
+    image: constrsw/rooms
     environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
-      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+      - DATABASE_URL=postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@postgresql:${POSTGRESQL_INTERNAL_PORT}/${POSTGRESQL_DB}?schema=public
     networks:
       - constrsw
     ports:
-      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+      - "3000:3000"
+    command: >
+      sh -c "npx prisma db push && npm run start:prod"
     depends_on:
-      keycloak:
+      postgresql:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -371,6 +346,33 @@ services:
           "CMD-SHELL",
           "curl -f http://localhost:${STUDENTS_INTERNAL_API_PORT}/health || exit 1",
         ]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    image: constrsw/frontend
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+      - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
+      - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+    networks:
+      - constrsw
+    ports:
+      - ${FRONTEND_EXTERNAL_PORT}:${FRONTEND_INTERNAL_PORT}
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
