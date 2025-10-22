@@ -241,7 +241,7 @@ services:
     networks:
       - constrsw
     ports:
-      - "{RESERVATIONS_EXTERNAL_API_PORT}:${RESERVATIONS_INTERNAL_API_PORT}"
+      - "${RESERVATIONS_EXTERNAL_API_PORT}:${RESERVATIONS_INTERNAL_API_PORT}"
     depends_on:
       postgresql:
         condition: service_healthy
