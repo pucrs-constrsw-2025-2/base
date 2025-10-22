@@ -273,6 +273,36 @@ services:
       timeout: 10s
       retries: 3
 
+  # Classes API (ClasseMicroservice)
+  classes:
+    container_name: classes
+    build:
+      context: ./backend/classes/ClasseMicroservice
+      dockerfile: Dockerfile
+    image: constrsw/classes
+    environment:
+      - MONGODB_HOST=${MONGODB_INTERNAL_HOST}
+      - MONGODB_PORT=${MONGODB_INTERNAL_PORT}
+      - MONGODB_USERNAME=${CLASSES_MONGODB_USER}
+      - MONGODB_PASSWORD=${CLASSES_MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${CLASSES_MONGODB_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+    networks:
+      - constrsw
+    ports:
+      - ${CLASSES_EXTERNAL_API_PORT}:${CLASSES_INTERNAL_API_PORT}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:${CLASSES_INTERNAL_API_PORT}/swagger/v1/swagger.json || exit 1" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Courses API
   courses:
     container_name: courses
