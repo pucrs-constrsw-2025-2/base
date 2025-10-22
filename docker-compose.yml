@@ -299,3 +299,32 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Students API
+  students:
+    container_name: students
+    build:
+      context: ./backend/students/
+      dockerfile: Dockerfile
+    image: constrsw/students
+    environment:
+      - ASPNETCORE_URLS=http://+:${STUDENTS_INTERNAL_API_PORT}
+      - ConnectionStrings__DefaultConnection=Host=postgresql;Database=students_db;Username=${POSTGRESQL_USERNAME};Password=${POSTGRESQL_PASSWORD}
+    networks:
+      - constrsw
+    ports:
+      - ${STUDENTS_EXTERNAL_API_PORT}:${STUDENTS_INTERNAL_API_PORT}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:${STUDENTS_INTERNAL_API_PORT}/health || exit 1",
+        ]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
