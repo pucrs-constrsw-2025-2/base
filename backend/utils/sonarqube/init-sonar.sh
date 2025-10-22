@@ -27,4 +27,4 @@ echo "Banco de dados configurado com sucesso!"
 
 # Iniciar SonarQube
 echo "Iniciando SonarQube..."
-exec /opt/sonarqube/bin/run.sh 
+exec /opt/sonarqube/bin/run.sh

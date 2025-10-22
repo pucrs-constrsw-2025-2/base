@@ -10,7 +10,7 @@ from jose.utils import base64url_encode
 from respx import MockRouter
 
 # Módulos a serem testados
-from oauth_api.adapters.api.dependencies import (
+from src.adapters.api.dependencies import (
     get_current_user,
     get_jwks,
     get_role_repository,
@@ -19,7 +19,7 @@ from oauth_api.adapters.api.dependencies import (
     get_user_service,
     jwks_cache,
 )
-from oauth_api.core.exceptions import InvalidTokenError
+from src.core.exceptions import InvalidTokenError
 
 # --- Setup para Geração de Chaves e Tokens Falsos ---
 private_key = rsa.generate_private_key(
@@ -59,7 +59,7 @@ def mock_settings(monkeypatch):
 
     import importlib
 
-    from oauth_api import adapters, config
+    from src import adapters, config
 
     importlib.reload(config)
     monkeypatch.setattr(adapters.api.dependencies, "settings", config.settings)
@@ -122,7 +122,7 @@ def create_test_token(payload, headers=None):
 
 
 @pytest.mark.asyncio
-@patch("oauth_api.adapters.api.dependencies.get_jwks")
+@patch("src.adapters.api.dependencies.get_jwks")
 async def test_get_current_user_success(mock_get_jwks: AsyncMock, mock_settings):
     mock_get_jwks.return_value = mock_jwks
     payload = {"sub": "123"}
@@ -132,7 +132,7 @@ async def test_get_current_user_success(mock_get_jwks: AsyncMock, mock_settings)
 
 
 @pytest.mark.asyncio
-@patch("oauth_api.adapters.api.dependencies.get_jwks")
+@patch("src.adapters.api.dependencies.get_jwks")
 async def test_get_current_user_invalid_signature_raises_error(
     mock_get_jwks: AsyncMock, mock_settings
 ):
@@ -144,7 +144,7 @@ async def test_get_current_user_invalid_signature_raises_error(
 
 
 @pytest.mark.asyncio
-@patch("oauth_api.adapters.api.dependencies.get_jwks")
+@patch("src.adapters.api.dependencies.get_jwks")
 async def test_get_current_user_invalid_algorithm_raises_error(
     mock_get_jwks: AsyncMock, mock_settings
 ):
@@ -158,7 +158,7 @@ async def test_get_current_user_invalid_algorithm_raises_error(
 
 
 @pytest.mark.asyncio
-@patch("oauth_api.adapters.api.dependencies.get_jwks")
+@patch("src.adapters.api.dependencies.get_jwks")
 async def test_get_current_user_kid_not_found_raises_error(
     mock_get_jwks: AsyncMock, mock_settings
 ):

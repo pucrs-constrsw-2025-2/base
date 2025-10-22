@@ -9,12 +9,12 @@ spring:
   
   data:
     mongodb:
-      host: ${MONGODB_HOST:localhost}
-      port: ${MONGODB_PORT:27017}
-      database: ${MONGODB_DATABASE:Employees}
-      username: ${MONGODB_USERNAME:}
-      password: ${MONGODB_PASSWORD:}
-      authentication-database: admin
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: employees
+      username: employees
+      password: ${MONGODB_PASSWORD}
+      authentication-database: employees
 
   jackson:
     serialization:

@@ -3,10 +3,10 @@
 import asyncio
 from typing import Any, Dict, List, Optional
 
-from oauth_api.core.domain.role import Role
-from oauth_api.core.exceptions import KeycloakAPIError, NotFoundError
-from oauth_api.core.ports.role_repository import IRoleRepository
-from oauth_api.config import settings  # Importar settings
+from src.core.domain.role import Role
+from src.core.exceptions import KeycloakAPIError, NotFoundError
+from src.core.ports.role_repository import IRoleRepository
+from src.config import settings  # Importar settings
 from .keycloak_client import KeycloakAdminClient
 
 

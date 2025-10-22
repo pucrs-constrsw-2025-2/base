@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
 # A importação de 'Role' de outro módulo está correta.
-from oauth_api.core.domain.role import Role 
+from src.core.domain.role import Role 
 
-# A linha "from oauth_api.core.ports.role_repository import IRoleRepository" foi removida.
+# A linha "from src.core.ports.role_repository import IRoleRepository" foi removida.
 
 class IRoleRepository(ABC):
     """Interface (Port) para o repositório de roles."""

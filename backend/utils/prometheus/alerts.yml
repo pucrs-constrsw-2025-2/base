@@ -1,0 +1,183 @@
+groups:
+  - name: constrsw_alerts
+    rules:
+      # Alerta quando um serviço está down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Serviço {{ $labels.job }} está offline"
+          description: "O serviço {{ $labels.job }} está offline há mais de 1 minuto"
+
+      # Alerta para tempo de resposta alto
+      - alert: HighResponseTime
+        expr: http_server_requests_seconds_max > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tempo de resposta alto para {{ $labels.job }}"
+          description: "O tempo de resposta do serviço {{ $labels.job }} está acima de 2 segundos"
+
+      # Alerta para uso de memória alto
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes / jvm_memory_max_bytes) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso de memória alto para {{ $labels.job }}"
+          description: "O uso de memória do serviço {{ $labels.job }} está acima de 80%"
+
+      # Alerta para uso de CPU alto
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso de CPU alto para {{ $labels.job }}"
+          description: "O uso de CPU do serviço {{ $labels.job }} está acima de 80%"
+
+      # Alerta para muitas conexões de banco de dados
+      - alert: HighDatabaseConnections
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Muitas conexões de banco para {{ $labels.job }}"
+          description: "O serviço {{ $labels.job }} está usando mais de 80% das conexões disponíveis"
+
+      # Alerta para erro rate alto
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taxa de erro alta para {{ $labels.job }}"
+          description: "O serviço {{ $labels.job }} está retornando muitos erros 5xx"
+
+      # Alerta para garbage collection frequente
+      - alert: FrequentGarbageCollection
+        expr: rate(jvm_gc_collection_seconds_count[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Garbage collection frequente para {{ $labels.job }}"
+          description: "O serviço {{ $labels.job }} está fazendo garbage collection muito frequentemente"
+
+      # Alerta para tempo de garbage collection alto
+      - alert: LongGarbageCollection
+        expr: jvm_gc_collection_seconds_sum > 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Garbage collection longo para {{ $labels.job }}"
+          description: "O garbage collection do serviço {{ $labels.job }} está demorando mais de 1 segundo"
+
+      # Alerta para serviços específicos do domínio
+      - alert: ClassesServiceDown
+        expr: up{job="classes"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: classes
+        annotations:
+          summary: "Serviço de Classes está offline"
+          description: "O serviço de gerenciamento de classes está offline"
+
+      - alert: CoursesServiceDown
+        expr: up{job="courses"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: courses
+        annotations:
+          summary: "Serviço de Courses está offline"
+          description: "O serviço de gerenciamento de cursos está offline"
+
+      - alert: LessonsServiceDown
+        expr: up{job="lessons"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: lessons
+        annotations:
+          summary: "Serviço de Lessons está offline"
+          description: "O serviço de gerenciamento de aulas está offline"
+
+      - alert: ProfessorsServiceDown
+        expr: up{job="professors"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: professors
+        annotations:
+          summary: "Serviço de Professors está offline"
+          description: "O serviço de gerenciamento de professores está offline"
+
+      - alert: ReservationsServiceDown
+        expr: up{job="reservations"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: reservations
+        annotations:
+          summary: "Serviço de Reservations está offline"
+          description: "O serviço de gerenciamento de reservas está offline"
+
+      - alert: ResourcesServiceDown
+        expr: up{job="resources"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: resources
+        annotations:
+          summary: "Serviço de Resources está offline"
+          description: "O serviço de gerenciamento de recursos está offline"
+
+      - alert: RoomsServiceDown
+        expr: up{job="rooms"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: rooms
+        annotations:
+          summary: "Serviço de Rooms está offline"
+          description: "O serviço de gerenciamento de salas está offline"
+
+      - alert: StudentsServiceDown
+        expr: up{job="students"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: students
+        annotations:
+          summary: "Serviço de Students está offline"
+          description: "O serviço de gerenciamento de estudantes está offline"
+
+      - alert: OAuthServiceDown
+        expr: up{job="oauth"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: oauth
+        annotations:
+          summary: "Serviço de OAuth está offline"
+          description: "O serviço de autenticação está offline"
+
+      - alert: BFFServiceDown
+        expr: up{job="bff"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: bff
+        annotations:
+          summary: "Serviço BFF está offline"
+          description: "O Backend for Frontend está offline" 

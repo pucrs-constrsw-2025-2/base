@@ -4,20 +4,20 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from oauth_api.core.domain.role import Role
-from oauth_api.core.domain.user import User
-from oauth_api.core.exceptions import (
+from src.core.domain.role import Role
+from src.core.domain.user import User
+from src.core.exceptions import (
     BaseAPIException,
     ConflictAlreadyExistsError,
     InvalidTokenError,
     KeycloakAPIError,
     NotFoundError,
 )
-from oauth_api.core.services.role_service import RoleService
-from oauth_api.core.services.user_service import UserService
+from src.core.services.role_service import RoleService
+from src.core.services.user_service import UserService
 
 # Importações da Aplicação
-from oauth_api.main import app
+from src.main import app
 
 
 @pytest.fixture

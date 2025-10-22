@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware # Importado
 
-from oauth_api.adapters.api.error_handler import api_exception_handler
-from oauth_api.adapters.api.routes import auth, roles, users
-from oauth_api.core.exceptions import BaseAPIException
-from oauth_api.core.services.role_service import NotFoundError
+from src.adapters.api.error_handler import api_exception_handler
+from src.adapters.api.routes import auth, roles, users
+from src.core.exceptions import BaseAPIException
+from src.core.services.role_service import NotFoundError
 
 app = FastAPI(
     title="ConstrSW - OAuth API Gateway",
