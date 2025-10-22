@@ -273,6 +273,28 @@ services:
       timeout: 10s
       retries: 3
 
+  # Professors API
+  professors:
+    container_name: professors
+    build:
+      context: ./backend/professors
+      dockerfile: Dockerfile
+    image: constrsw/professors
+    env_file:
+      - .env
+    ports:
+      - "${PROFESSORS_EXTERNAL_API_PORT}:${PROFESSORS_INTERNAL_API_PORT}"
+    networks:
+      - constrsw
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      oauth:
+        condition: service_started 
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PROFESSORS_INTERNAL_API_PORT}/health || exit 1"]
+
   # Resources API
   resources:
     container_name: resources
