@@ -273,7 +273,24 @@ services:
       timeout: 10s
       retries: 3
 
-  # Professors API
+  # Lessons API
+  lessons:
+    container_name: lessons
+    build:
+      context: ./backend/lessons
+      dockerfile: Dockerfile
+    image: constrsw/lessons
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${LESSONS_DATABASE_URL}
+    ports:
+      - ${LESSONS_EXTERNAL_API_PORT}:${LESSONS_INTERNAL_API_PORT}
+    networks:
+      - constrsw
+
+# Professors API
   professors:
     container_name: professors
     build:
