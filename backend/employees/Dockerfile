@@ -6,8 +6,8 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-# Install Maven
-RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+# Install Maven and curl (curl needed for healthcheck)
+RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
 
 # Build the application
 RUN mvn clean package -DskipTests

@@ -40,4 +40,4 @@ USER app
 EXPOSE 80
 
 # Comando para iniciar o servidor Uvicorn e executar a aplicação FastAPI.
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

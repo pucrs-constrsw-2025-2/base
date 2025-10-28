@@ -82,29 +82,6 @@ services:
       timeout: 10s
       retries: 10
 
-  oauth:
-    container_name: oauth
-    build:
-      context: ./backend/oauth # Diretório que contém o Dockerfile da API
-      dockerfile: Dockerfile
-    image: constrsw/oauth
-    environment:
-      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-    ports:
-      - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
-    networks:
-      - constrsw
-    volumes:
-      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
-      - ./backend/oauth:/app
-    depends_on:
-      keycloak:
-        condition: service_healthy
-    restart: always
-
   # PostgreSQL
   postgresql:
     container_name: postgresql
@@ -240,6 +217,31 @@ services:
       retries: 10
     restart: always
 
+  # OAuth
+  oauth:
+    container_name: oauth
+    build:
+      context: ./backend/oauth # Diretório que contém o Dockerfile da API
+      dockerfile: Dockerfile
+    image: constrsw/oauth
+    environment:
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+    ports:
+      - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
+    networks:
+      - constrsw
+    volumes:
+      # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
+      - ./backend/oauth:/app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: always
+
   # Employees API
   employees:
     container_name: employees
@@ -265,7 +267,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${EMPLOYEES_EXTERNAL_PROTOCOL}://${EMPLOYEES_EXTERNAL_HOST}:${EMPLOYEES_EXTERNAL_API_PORT}/api/v1/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${EMPLOYEES_INTERNAL_PROTOCOL}://${EMPLOYEES_INTERNAL_HOST}:${EMPLOYEES_INTERNAL_API_PORT}/api/v1/actuator/health || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -299,7 +301,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f ${CLASSES_EXTERNAL_PROTOCOL}://${CLASSES_EXTERNAL_HOST}:${CLASSES_EXTERNAL_API_PORT}/swagger/v1/swagger.json || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f ${CLASSES_INTERNAL_PROTOCOL}://${CLASSES_INTERNAL_HOST}:${CLASSES_INTERNAL_API_PORT}/swagger/v1/swagger.json || exit 1" ]
       start_period: 10s
       interval: 10s
       timeout: 5s
@@ -333,7 +335,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${COURSES_EXTERNAL_PROTOCOL}://${COURSES_EXTERNAL_HOST}:${COURSES_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -366,7 +368,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${LESSONS_EXTERNAL_PROTOCOL}://${LESSONS_EXTERNAL_HOST}:${LESSONS_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${LESSONS_INTERNAL_PROTOCOL}://${LESSONS_INTERNAL_HOST}:${LESSONS_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -399,7 +401,7 @@ services:
         condition: service_healthy 
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${PROFESSORS_EXTERNAL_PROTOCOL}://${PROFESSORS_EXTERNAL_HOST}:${PROFESSORS_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${PROFESSORS_INTERNAL_PROTOCOL}://${PROFESSORS_INTERNAL_HOST}:${PROFESSORS_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -432,7 +434,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${RESERVATIONS_EXTERNAL_PROTOCOL}://${RESERVATIONS_EXTERNAL_HOST}:${RESERVATIONS_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${RESERVATIONS_INTERNAL_PROTOCOL}://${RESERVATIONS_INTERNAL_HOST}:${RESERVATIONS_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -465,7 +467,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${RESOURCES_EXTERNAL_PROTOCOL}://${RESOURCES_EXTERNAL_HOST}:${RESOURCES_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${RESOURCES_INTERNAL_PROTOCOL}://${RESOURCES_INTERNAL_HOST}:${RESOURCES_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -500,7 +502,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${ROOMS_EXTERNAL_PROTOCOL}://${ROOMS_EXTERNAL_HOST}:${ROOMS_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${ROOMS_INTERNAL_PROTOCOL}://${ROOMS_INTERNAL_HOST}:${ROOMS_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -535,7 +537,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${STUDENTS_EXTERNAL_PROTOCOL}://${STUDENTS_EXTERNAL_HOST}:${STUDENTS_EXTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${STUDENTS_INTERNAL_PROTOCOL}://${STUDENTS_INTERNAL_HOST}:${STUDENTS_INTERNAL_API_PORT}/ || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s

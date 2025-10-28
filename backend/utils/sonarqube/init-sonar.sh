@@ -25,6 +25,6 @@ EOSQL
 
 echo "Banco de dados configurado com sucesso!"
 
-# Iniciar SonarQube
+# Iniciar SonarQube usando o entrypoint padrão da imagem
 echo "Iniciando SonarQube..."
-exec /opt/sonarqube/bin/run.sh
+exec /opt/sonarqube/docker/entrypoint.sh
