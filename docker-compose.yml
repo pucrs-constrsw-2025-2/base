@@ -324,6 +324,8 @@ services:
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - CLASSES_API_BASE_URL=${CLASSES_INTERNAL_PROTOCOL}://${CLASSES_INTERNAL_HOST}:${CLASSES_INTERNAL_API_PORT}
+      - MONGO_URI=mongodb://${COURSES_MONGODB_USERNAME}:${COURSES_MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${COURSES_MONGODB_DB}
+      - DATABASE_NAME=${COURSES_MONGODB_DB}
     networks:
       - constrsw
     ports:
@@ -332,7 +334,7 @@ services:
       mongodb:
         condition: service_healthy
       oauth:
-        condition: service_healthy
+        condition: service_started
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/ || exit 1"]
