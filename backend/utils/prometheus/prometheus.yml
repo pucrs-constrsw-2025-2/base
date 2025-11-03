@@ -26,26 +26,26 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 10s
 
-  # Courses Service
-  - job_name: 'courses'
-    static_configs:
-      - targets: ['courses:8080']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 10s
+  # Courses Service (FastAPI - não expõe métricas Prometheus por padrão)
+  # - job_name: 'courses'
+  #   static_configs:
+  #     - targets: ['courses:8080']
+  #   metrics_path: '/actuator/prometheus'
+  #   scrape_interval: 10s
 
-  # Lessons Service
-  - job_name: 'lessons'
-    static_configs:
-      - targets: ['lessons:8000']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 10s
+  # Lessons Service (NestJS - não expõe métricas Prometheus por padrão)
+  # - job_name: 'lessons'
+  #   static_configs:
+  #     - targets: ['lessons:8000']
+  #   metrics_path: '/actuator/prometheus'
+  #   scrape_interval: 10s
 
-  # Professors Service
-  - job_name: 'professors'
-    static_configs:
-      - targets: ['professors:3000']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 10s
+  # Professors Service (FastAPI - não expõe métricas Prometheus por padrão)
+  # - job_name: 'professors'
+  #   static_configs:
+  #     - targets: ['professors:3000']
+  #   metrics_path: '/actuator/prometheus'
+  #   scrape_interval: 10s
 
   # Reservations Service
   - job_name: 'reservations'
@@ -75,12 +75,12 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 10s
 
-  # OAuth Service
-  - job_name: 'oauth'
-    static_configs:
-      - targets: ['oauth:3000']
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 10s
+  # OAuth Service (FastAPI - não expõe métricas Prometheus por padrão)
+  # - job_name: 'oauth'
+  #   static_configs:
+  #     - targets: ['oauth:3000']
+  #   metrics_path: '/actuator/prometheus'
+  #   scrape_interval: 10s
 
   # Keycloak (se expuser métricas)
   - job_name: 'keycloak'
