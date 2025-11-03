@@ -334,7 +334,7 @@ services:
       mongodb:
         condition: service_healthy
       oauth:
-        condition: service_started
+        condition: service_healthy
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/ || exit 1"]
