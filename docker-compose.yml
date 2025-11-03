@@ -82,6 +82,7 @@ services:
       timeout: 10s
       retries: 10
 
+
   # PostgreSQL
   postgresql:
     container_name: postgresql
@@ -217,13 +218,14 @@ services:
       retries: 10
     restart: always
 
-  # OAuth
+  # OAuth API
   oauth:
     container_name: oauth
     build:
       context: ./backend/oauth # Diretório que contém o Dockerfile da API
       dockerfile: Dockerfile
     image: constrsw/oauth
+    command: uvicorn src.main:app --host 0.0.0.0 --port ${OAUTH_INTERNAL_API_PORT} --reload
     environment:
       - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}
@@ -236,11 +238,16 @@ services:
     volumes:
       # Monta o código-fonte da API dentro do contêiner para que o --reload funcione
       - ./backend/oauth:/app
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       keycloak:
         condition: service_healthy
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${OAUTH_INTERNAL_API_PORT}/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # Employees API
   employees:

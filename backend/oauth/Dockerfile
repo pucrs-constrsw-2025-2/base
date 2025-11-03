@@ -15,12 +15,18 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create false && poetry install --without dev --no-interaction --no-ansi --no-root
 
 # Stage 2: Production - Cria a imagem final otimizada para produção
-FROM python:3.12-slim
+FROM python:3.12-slim AS final
 
 WORKDIR /app
 
-# Cria um usuário e grupo de sistema 'app' para rodar a aplicação com privilégios mínimos.
-RUN addgroup --system app && adduser --system --group app
+RUN apt-get update && \
+    # Instala o curl para que o healthcheck possa funcionar
+    apt-get install -y curl && \
+    # Cria um usuário e grupo de sistema 'app' para rodar a aplicação com privilégios mínimos.
+    addgroup --system app && \
+    adduser --system --group app && \
+    rm -rf /var/lib/apt/lists/*
+
 
 # Copia os pacotes Python instalados no stage 'builder'.
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
