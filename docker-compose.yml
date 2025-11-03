@@ -343,7 +343,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -377,7 +377,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${LESSONS_INTERNAL_PROTOCOL}://${LESSONS_INTERNAL_HOST}:${LESSONS_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${LESSONS_INTERNAL_PROTOCOL}://${LESSONS_INTERNAL_HOST}:${LESSONS_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -410,7 +410,7 @@ services:
         condition: service_healthy 
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${PROFESSORS_INTERNAL_PROTOCOL}://${PROFESSORS_INTERNAL_HOST}:${PROFESSORS_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${PROFESSORS_INTERNAL_PROTOCOL}://${PROFESSORS_INTERNAL_HOST}:${PROFESSORS_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -443,7 +443,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${RESERVATIONS_INTERNAL_PROTOCOL}://${RESERVATIONS_INTERNAL_HOST}:${RESERVATIONS_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${RESERVATIONS_INTERNAL_PROTOCOL}://${RESERVATIONS_INTERNAL_HOST}:${RESERVATIONS_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -476,7 +476,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${RESOURCES_INTERNAL_PROTOCOL}://${RESOURCES_INTERNAL_HOST}:${RESOURCES_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${RESOURCES_INTERNAL_PROTOCOL}://${RESOURCES_INTERNAL_HOST}:${RESOURCES_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -511,7 +511,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${ROOMS_INTERNAL_PROTOCOL}://${ROOMS_INTERNAL_HOST}:${ROOMS_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${ROOMS_INTERNAL_PROTOCOL}://${ROOMS_INTERNAL_HOST}:${ROOMS_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
@@ -546,7 +546,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${STUDENTS_INTERNAL_PROTOCOL}://${STUDENTS_INTERNAL_HOST}:${STUDENTS_INTERNAL_API_PORT}/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${STUDENTS_INTERNAL_PROTOCOL}://${STUDENTS_INTERNAL_HOST}:${STUDENTS_INTERNAL_API_PORT} || exit 1"]
       start_period: 30s
       interval: 30s
       timeout: 10s
