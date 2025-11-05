@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:21-jdk-alpine
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY pom.xml .
 COPY src ./src
 
 # Install Maven and curl (curl needed for healthcheck)
-RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache maven curl
 
 # Build the application
 RUN mvn clean package -DskipTests
