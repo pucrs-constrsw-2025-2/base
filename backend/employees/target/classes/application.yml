@@ -23,10 +23,13 @@ spring:
       fail-on-unknown-properties: false
 
 management:
+  # Executa o Actuator em porta separada para não herdar o context-path
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always

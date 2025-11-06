@@ -4,15 +4,25 @@ FROM python:3.12-slim AS builder
 # Define '/app' como o diretório de trabalho DENTRO do contêiner.
 WORKDIR /app
 
+# Instala toolchain para compilar dependências nativas (uvloop/httptools)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 # Instala o Poetry
 RUN pip install poetry
 
 # Copia os arquivos de definição de projeto e dependências.
-COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml ./
+# Copia o lockfile se existir, caso contrário será gerado
+COPY poetry.lock* ./
 
-# Configura o Poetry para instalar dependências no ambiente do sistema e instala-as.
-# A flag --no-root evita a instalação do projeto local.
-RUN poetry config virtualenvs.create false && poetry install --without dev --no-interaction --no-ansi --no-root
+# Configura o Poetry para instalar dependências no ambiente do sistema
+RUN poetry config virtualenvs.create false
+
+# Tenta instalar. Se o lockfile estiver desatualizado, atualiza e instala novamente
+RUN poetry install --without dev --no-interaction --no-ansi --no-root || \
+    (poetry lock --no-interaction --no-ansi && poetry install --without dev --no-interaction --no-ansi --no-root)
 
 # Stage 2: Production - Cria a imagem final otimizada para produção
 FROM python:3.12-slim AS final
