@@ -12,75 +12,82 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # BFF Service
-  - job_name: 'bff'
+  # OpenTelemetry Collector
+  - job_name: 'otel-collector'
     static_configs:
-      - targets: ['bff:3000']
-    metrics_path: '/actuator/prometheus'
+      - targets: ['otel-collector:8889']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Classes Service
-  - job_name: 'classes'
+  # OAuth Service (FastAPI - OpenTelemetry)
+  - job_name: 'oauth'
     static_configs:
-      - targets: ['classes:8080']
-    metrics_path: '/actuator/prometheus'
+      - targets: ['oauth:8000']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Courses Service (FastAPI - não expõe métricas Prometheus por padrão)
-  # - job_name: 'courses'
-  #   static_configs:
-  #     - targets: ['courses:8080']
-  #   metrics_path: '/actuator/prometheus'
-  #   scrape_interval: 10s
+  # Courses Service (FastAPI - OpenTelemetry)
+  - job_name: 'courses'
+    static_configs:
+      - targets: ['courses:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
 
-  # Lessons Service (NestJS - não expõe métricas Prometheus por padrão)
-  # - job_name: 'lessons'
-  #   static_configs:
-  #     - targets: ['lessons:8000']
-  #   metrics_path: '/actuator/prometheus'
-  #   scrape_interval: 10s
+  # Professors Service (FastAPI - OpenTelemetry)
+  - job_name: 'professors'
+    static_configs:
+      - targets: ['professors:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
 
-  # Professors Service (FastAPI - não expõe métricas Prometheus por padrão)
-  # - job_name: 'professors'
-  #   static_configs:
-  #     - targets: ['professors:3000']
-  #   metrics_path: '/actuator/prometheus'
-  #   scrape_interval: 10s
+  # Lessons Service (OpenTelemetry)
+  - job_name: 'lessons'
+    static_configs:
+      - targets: ['lessons:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
 
-  # Reservations Service
+  # Reservations Service (OpenTelemetry)
   - job_name: 'reservations'
     static_configs:
-      - targets: ['reservations:8080']
-    metrics_path: '/actuator/prometheus'
+      - targets: ['reservations:9091']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Resources Service
+  # Resources Service (OpenTelemetry)
   - job_name: 'resources'
     static_configs:
-      - targets: ['resources:3000']
-    metrics_path: '/actuator/prometheus'
+      - targets: ['resources:9091']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Rooms Service
+  # Rooms Service (OpenTelemetry)
   - job_name: 'rooms'
     static_configs:
-      - targets: ['rooms:8080']
-    metrics_path: '/actuator/prometheus'
+      - targets: ['rooms:9091']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Students Service
+  # Students Service (.NET - OpenTelemetry)
   - job_name: 'students'
     static_configs:
       - targets: ['students:8080']
-    metrics_path: '/actuator/prometheus'
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # OAuth Service (FastAPI - não expõe métricas Prometheus por padrão)
-  # - job_name: 'oauth'
-  #   static_configs:
-  #     - targets: ['oauth:3000']
-  #   metrics_path: '/actuator/prometheus'
-  #   scrape_interval: 10s
+  # Employees Service (Spring Boot - OpenTelemetry)
+  - job_name: 'employees'
+    static_configs:
+      - targets: ['employees:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Classes Service (.NET - OpenTelemetry)
+  - job_name: 'classes'
+    static_configs:
+      - targets: ['classes:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
 
   # Keycloak (se expuser métricas)
   - job_name: 'keycloak'
@@ -101,4 +108,30 @@ scrape_configs:
     static_configs:
       - targets: ['mongodb-exporter:9216']
     metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Health Checks via Blackbox Exporter
+  - job_name: 'health-checks'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://oauth:8000/health
+        - http://courses:8080/health
+        - http://professors:8082/health
+        - http://lessons:3000/health
+        - http://reservations:8080/health
+        - http://resources:3000/health
+        - http://rooms:3000/health
+        - http://students:8080/health
+        - http://employees:8080/api/v1/health
+        - http://classes:8080/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
     scrape_interval: 30s

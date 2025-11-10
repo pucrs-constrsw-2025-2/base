@@ -23,16 +23,35 @@ spring:
       fail-on-unknown-properties: false
 
 management:
-  # Executa o Actuator em porta separada para não herdar o context-path
-  server:
-    port: 8081
+  # Actuator expõe endpoints na porta principal com base-path /actuator
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
+      enabled: true
       show-details: always
+      # Expõe health groups para Kubernetes (liveness/readiness)
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+
+opentelemetry:
+  service-name: ${OTEL_SERVICE_NAME:employees}
+  resource-attributes:
+    service.name: ${OTEL_SERVICE_NAME:employees}
+    service.version: 1.0.0
+  exporter:
+    prometheus:
+      enabled: true
+      port: 9091
+      endpoint: /metrics
 
 logging:
   level:

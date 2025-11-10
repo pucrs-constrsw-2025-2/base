@@ -180,4 +180,123 @@ groups:
           service: bff
         annotations:
           summary: "Serviço BFF está offline"
-          description: "O Backend for Frontend está offline" 
+          description: "O Backend for Frontend está offline"
+
+      # Alertas de Health Check via Blackbox Exporter
+      - alert: HealthCheckFailed
+        expr: probe_success{job="health-checks"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Health check falhou para {{ $labels.instance }}"
+          description: "O endpoint de health check {{ $labels.instance }} está retornando erro há mais de 1 minuto"
+
+      - alert: HealthCheckSlow
+        expr: probe_http_duration_seconds{job="health-checks"} > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health check lento para {{ $labels.instance }}"
+          description: "O endpoint de health check {{ $labels.instance }} está demorando mais de 2 segundos para responder"
+
+      - alert: OAuthHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*oauth.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: oauth
+        annotations:
+          summary: "Health check do OAuth falhou"
+          description: "O endpoint de health check do serviço OAuth está retornando erro"
+
+      - alert: CoursesHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*courses.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: courses
+        annotations:
+          summary: "Health check do Courses falhou"
+          description: "O endpoint de health check do serviço Courses está retornando erro"
+
+      - alert: ProfessorsHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*professors.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: professors
+        annotations:
+          summary: "Health check do Professors falhou"
+          description: "O endpoint de health check do serviço Professors está retornando erro"
+
+      - alert: LessonsHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*lessons.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: lessons
+        annotations:
+          summary: "Health check do Lessons falhou"
+          description: "O endpoint de health check do serviço Lessons está retornando erro"
+
+      - alert: ReservationsHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*reservations.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: reservations
+        annotations:
+          summary: "Health check do Reservations falhou"
+          description: "O endpoint de health check do serviço Reservations está retornando erro"
+
+      - alert: ResourcesHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*resources.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: resources
+        annotations:
+          summary: "Health check do Resources falhou"
+          description: "O endpoint de health check do serviço Resources está retornando erro"
+
+      - alert: RoomsHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*rooms.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: rooms
+        annotations:
+          summary: "Health check do Rooms falhou"
+          description: "O endpoint de health check do serviço Rooms está retornando erro"
+
+      - alert: StudentsHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*students.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: students
+        annotations:
+          summary: "Health check do Students falhou"
+          description: "O endpoint de health check do serviço Students está retornando erro"
+
+      - alert: EmployeesHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*employees.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: employees
+        annotations:
+          summary: "Health check do Employees falhou"
+          description: "O endpoint de health check do serviço Employees está retornando erro"
+
+      - alert: ClassesHealthCheckFailed
+        expr: probe_success{job="health-checks",instance=~".*classes.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: classes
+        annotations:
+          summary: "Health check do Classes falhou"
+          description: "O endpoint de health check do serviço Classes está retornando erro"
