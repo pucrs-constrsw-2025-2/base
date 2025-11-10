@@ -490,12 +490,12 @@ services:
       dockerfile: Dockerfile
     image: constrsw/rooms
     environment:
+      - ROOMS_INTERNAL_API_PORT=${ROOMS_INTERNAL_API_PORT}
       - POSTGRESQL_HOST=${POSTGRESQL_INTERNAL_HOST}
       - POSTGRESQL_PORT=${POSTGRESQL_INTERNAL_PORT}
       - POSTGRESQL_DB=${ROOMS_POSTGRESQL_DB}
       - POSTGRESQL_USER=${ROOMS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${ROOMS_POSTGRESQL_PASSWORD}
-      - DATABASE_URL=postgresql://${ROOMS_POSTGRESQL_USERNAME}:${ROOMS_POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${ROOMS_POSTGRESQL_DB}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
@@ -503,8 +503,6 @@ services:
       - constrsw
     ports:
       - ${ROOMS_EXTERNAL_API_PORT}:${ROOMS_INTERNAL_API_PORT}
-    command: >
-      sh -c "npx prisma db push && npm run start:prod"
     depends_on:
       postgresql:
         condition: service_healthy
