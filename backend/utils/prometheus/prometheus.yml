@@ -41,11 +41,11 @@ scrape_configs:
   #   scrape_interval: 10s
 
   # Professors Service (FastAPI - não expõe métricas Prometheus por padrão)
-  # - job_name: 'professors'
-  #   static_configs:
-  #     - targets: ['professors:3000']
-  #   metrics_path: '/actuator/prometheus'
-  #   scrape_interval: 10s
+  - job_name: 'professors'
+    static_configs:
+      - targets: ['professors:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
 
   # Reservations Service
   - job_name: 'reservations'
