@@ -75,11 +75,12 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Employees Service (Spring Boot - OpenTelemetry)
+  # Employees Service (Spring Boot - Actuator Prometheus)
+  # O Actuator está herdando o context-path do servidor (/api/v1)
   - job_name: 'employees'
     static_configs:
-      - targets: ['employees:9091']
-    metrics_path: '/metrics'
+      - targets: ['employees:8080']
+    metrics_path: '/api/v1/actuator/prometheus'
     scrape_interval: 10s
 
   # Classes Service (.NET - OpenTelemetry)
@@ -89,10 +90,10 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # Keycloak (se expuser métricas)
+  # Keycloak (métricas expostas na porta de management)
   - job_name: 'keycloak'
     static_configs:
-      - targets: ['keycloak:8080']
+      - targets: ['keycloak:9001']
     metrics_path: '/metrics'
     scrape_interval: 30s
 

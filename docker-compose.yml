@@ -299,6 +299,9 @@ services:
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=employees
+      # OpenTelemetry OTLP Exporter Configuration
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     networks:
       - constrsw
     ports:
@@ -306,6 +309,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
