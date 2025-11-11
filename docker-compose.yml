@@ -596,6 +596,119 @@ services:
       timeout: 10s
       retries: 3
 
+  # BFF API
+  bff:
+    container_name: bff
+    build:
+      context: ./backend/bff/
+      dockerfile: Dockerfile
+    image: constrsw/bff
+    environment:
+      - NODE_ENV=production
+      - PORT=${BFF_INTERNAL_API_PORT}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
+      # OAuth/OIDC
+      - OAUTH_ISSUER=${KEYCLOAK_SERVER_URL}/realms/${KEYCLOAK_REALM}
+      - OAUTH_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - OAUTH_TOKEN_ENDPOINT=/api/v1/login
+      - OAUTH_JWKS_URI=/.well-known/jwks.json
+      - OAUTH_AUDIENCE=${KEYCLOAK_CLIENT_ID}
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      # Microservices - OAuth
+      - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
+      - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
+      - OAUTH_TIMEOUT=5000
+      # Microservices - Employees
+      - EMPLOYEES_INTERNAL_HOST=${EMPLOYEES_INTERNAL_HOST}
+      - EMPLOYEES_INTERNAL_API_PORT=${EMPLOYEES_INTERNAL_API_PORT}
+      - EMPLOYEES_TIMEOUT=5000
+      # Microservices - Students
+      - STUDENTS_INTERNAL_HOST=${STUDENTS_INTERNAL_HOST}
+      - STUDENTS_INTERNAL_API_PORT=${STUDENTS_INTERNAL_API_PORT}
+      - STUDENTS_TIMEOUT=5000
+      # Microservices - Professors
+      - PROFESSORS_INTERNAL_HOST=${PROFESSORS_INTERNAL_HOST}
+      - PROFESSORS_INTERNAL_API_PORT=${PROFESSORS_INTERNAL_API_PORT}
+      - PROFESSORS_TIMEOUT=5000
+      # Microservices - Courses
+      - COURSES_INTERNAL_HOST=${COURSES_INTERNAL_HOST}
+      - COURSES_INTERNAL_API_PORT=${COURSES_INTERNAL_API_PORT}
+      - COURSES_TIMEOUT=5000
+      # Microservices - Classes
+      - CLASSES_INTERNAL_HOST=${CLASSES_INTERNAL_HOST}
+      - CLASSES_INTERNAL_API_PORT=${CLASSES_INTERNAL_API_PORT}
+      - CLASSES_TIMEOUT=5000
+      # Microservices - Lessons
+      - LESSONS_INTERNAL_HOST=${LESSONS_INTERNAL_HOST}
+      - LESSONS_INTERNAL_API_PORT=${LESSONS_INTERNAL_API_PORT}
+      - LESSONS_TIMEOUT=5000
+      # Microservices - Reservations
+      - RESERVATIONS_INTERNAL_HOST=${RESERVATIONS_INTERNAL_HOST}
+      - RESERVATIONS_INTERNAL_API_PORT=${RESERVATIONS_INTERNAL_API_PORT}
+      - RESERVATIONS_TIMEOUT=5000
+      # Microservices - Resources
+      - RESOURCES_INTERNAL_HOST=${RESOURCES_INTERNAL_HOST}
+      - RESOURCES_INTERNAL_API_PORT=${RESOURCES_INTERNAL_API_PORT}
+      - RESOURCES_TIMEOUT=5000
+      # Microservices - Rooms
+      - ROOMS_INTERNAL_HOST=${ROOMS_INTERNAL_HOST}
+      - ROOMS_INTERNAL_API_PORT=${ROOMS_INTERNAL_API_PORT}
+      - ROOMS_TIMEOUT=5000
+      # Cache
+      - CACHE_TTL=300
+      - CACHE_MAX=100
+      # Rate Limiting
+      - THROTTLE_TTL=60
+      - THROTTLE_LIMIT=100
+      # HTTP
+      - HTTP_TIMEOUT=5000
+      # Circuit Breaker
+      - CIRCUIT_BREAKER_TIMEOUT=3000
+      - CIRCUIT_BREAKER_ERROR_THRESHOLD=50
+      - CIRCUIT_BREAKER_RESET_TIMEOUT=30000
+      # Request Timeout
+      - REQUEST_TIMEOUT=10000
+      # OpenTelemetry
+      - OTEL_SERVICE_NAME=bff
+      - OTEL_SERVICE_VERSION=1.0.0
+      - METRICS_PORT=9464
+    networks:
+      - constrsw
+    ports:
+      - ${BFF_EXTERNAL_API_PORT}:${BFF_INTERNAL_API_PORT}
+    depends_on:
+      oauth:
+        condition: service_healthy
+      employees:
+        condition: service_healthy
+      students:
+        condition: service_healthy
+      professors:
+        condition: service_healthy
+      courses:
+        condition: service_healthy
+      classes:
+        condition: service_healthy
+      lessons:
+        condition: service_healthy
+      reservations:
+        condition: service_healthy
+      resources:
+        condition: service_healthy
+      rooms:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/v1/health > /dev/null || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Frontend React
   frontend:
     container_name: frontend
