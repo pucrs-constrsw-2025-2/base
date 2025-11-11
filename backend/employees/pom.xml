@@ -46,11 +46,18 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- OpenTelemetry Micrometer Bridge -->
+        <!-- Micrometer Prometheus Registry - Necessário para expor /actuator/prometheus -->
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-otlp</artifactId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
+
+        <!-- OpenTelemetry Micrometer Bridge - REMOVIDO: não estamos usando OTLP para métricas -->
+        <!-- As métricas são expostas via Prometheus Actuator (/actuator/prometheus) -->
+        <!-- <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency> -->
         
         <!-- OpenTelemetry SDK -->
         <dependency>
