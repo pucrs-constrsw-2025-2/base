@@ -1,0 +1,158 @@
+name: Employees Service CI/CD
+
+on:
+  push:
+    branches: [ "grupo7" ]
+    paths:
+      - 'backend/employees/**'
+      - '.github/workflows/employees-ci.yml'
+  pull_request:
+    branches: [ "grupo7" ]
+    paths:
+      - 'backend/employees/**'
+      - '.github/workflows/employees-ci.yml'
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    services:
+      # MongoDB não é necessário pois usamos Testcontainers
+      # mas podemos manter para documentação
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Run tests with coverage
+        working-directory: ./backend/employees
+        run: mvn clean test jacoco:report
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/employees/target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: backend/employees/target/site/jacoco/
+          retention-days: 7
+
+      - name: Publish coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/employees/target/site/jacoco/jacoco.xml
+          flags: employees
+          name: employees-coverage
+          fail_ci_if_error: false
+
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/grupo7'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Run tests with coverage
+        working-directory: ./backend/employees
+        run: mvn clean test jacoco:report
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: backend/employees
+          args: >
+            -Dsonar.projectKey=constrsw-employees
+            -Dsonar.projectName=ConstrSW Employees Service
+            -Dsonar.sources=src/main/java
+            -Dsonar.tests=src/test/java
+            -Dsonar.java.binaries=target/classes
+            -Dsonar.java.test.binaries=target/test-classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+            -Dsonar.junit.reportPaths=target/surefire-reports
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/grupo7'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/employees
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            constrsw/employees:latest
+            constrsw/employees:${{ github.sha }}
+          cache-from: type=registry,ref=constrsw/employees:latest
+          cache-to: type=inline
+

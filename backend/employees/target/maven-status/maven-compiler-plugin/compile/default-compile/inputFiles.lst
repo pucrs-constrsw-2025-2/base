@@ -1,6 +1,7 @@
 /app/src/main/java/com/constrsw/employees/EmployeesApiApplication.java
 /app/src/main/java/com/constrsw/employees/config/MongoConfig.java
 /app/src/main/java/com/constrsw/employees/controller/EmployeeController.java
+/app/src/main/java/com/constrsw/employees/controller/HealthController.java
 /app/src/main/java/com/constrsw/employees/dto/EmployeeCreateRequest.java
 /app/src/main/java/com/constrsw/employees/dto/EmployeeListResponse.java
 /app/src/main/java/com/constrsw/employees/dto/EmployeeResponse.java

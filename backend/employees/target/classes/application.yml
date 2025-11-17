@@ -24,6 +24,8 @@ spring:
 
 management:
   # Actuator expõe endpoints na porta principal com base-path /actuator
+  # No Spring Boot 3, o Actuator herda o context-path do servidor quando configurado
+  # Os endpoints do Actuator ficam em /api/v1/actuator devido ao context-path
   endpoints:
     web:
       exposure:
@@ -36,11 +38,15 @@ management:
       # Expõe health groups para Kubernetes (liveness/readiness)
       probes:
         enabled: true
+    prometheus:
+      enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
         step: 10s
+      # OTLP removido: usando apenas Prometheus via Actuator para métricas
+      # Traces podem usar OpenTelemetry SDK (configurado abaixo)
 
 opentelemetry:
   service-name: ${OTEL_SERVICE_NAME:employees}
@@ -48,10 +54,11 @@ opentelemetry:
     service.name: ${OTEL_SERVICE_NAME:employees}
     service.version: 1.0.0
   exporter:
+    # OpenTelemetry Prometheus exporter desabilitado - usando Actuator Prometheus
     prometheus:
-      enabled: true
-      port: 9091
-      endpoint: /metrics
+      enabled: false
+      # port: 9091
+      # endpoint: /metrics
 
 logging:
   level:
