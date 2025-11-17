@@ -104,12 +104,6 @@ jobs:
             sleep 2
           done
 
-      - name: Run database migrations
-        working-directory: backend/reservations
-        run: npm run migration:run || echo "No migrations or migration failed (continuing)"
-        env:
-          NODE_ENV: test
-
       - name: Run integration tests with coverage
         working-directory: backend/reservations
         run: npm run test:e2e:cov
