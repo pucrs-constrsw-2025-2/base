@@ -1,0 +1,120 @@
+name: Reservations CI/CD Pipeline
+on:
+  push:
+    branches: [ "main", "grupo3-actions" ]
+    paths:
+      - 'backend/reservations/**'
+      - '.github/workflows/reservations.yml' 
+  pull_request:
+    paths:
+      - 'backend/reservations/**'
+      - '.github/workflows/reservations.yml'
+
+jobs:
+
+  # ----------------------------
+  # 🧪 UNIT TESTS JOB
+  # ----------------------------
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: backend/reservations
+        run: npm install --legacy-peer-deps
+
+      - name: Run unit tests with coverage
+        working-directory: backend/reservations
+        run: npm run test:cov
+        env:
+          NODE_ENV: test
+
+      - name: Upload Unit Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: reservation-unit-coverage
+          path: backend/reservations/coverage/lcov.info
+          retention-days: 1
+
+  # ----------------------------
+  # 🧪🔌 INTEGRATION TESTS JOB
+  # Depends on unit-tests
+  # ----------------------------
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests   # <-- integration tests wait for unit tests to pass
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: backend/reservations
+        run: npm install --legacy-peer-deps
+
+      - name: Create test environment file
+        working-directory: backend/reservations
+        run: |
+          cat > .env << EOF
+          POSTGRESQL_HOST=localhost
+          POSTGRESQL_PORT=5432
+          POSTGRESQL_USER=test_user
+          POSTGRESQL_PASSWORD=test_password
+          POSTGRESQL_DB=test_db
+          NODE_ENV=test
+          JWT_SECRET=test-secret-key-${{ github.sha }}
+          EOF
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      - name: Run integration tests with coverage
+        working-directory: backend/reservations
+        run: npm run test:e2e:cov
+        env:
+          NODE_ENV: test
+
+      - name: Upload Integration Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: reservation-integration-coverage
+          path: backend/reservations/coverage/lcov.info
+          retention-days: 1
