@@ -1,0 +1,5 @@
+#surefire_0
+#Thu Nov 13 01:17:00 GMT 2025
+TESTCONTAINERS_RYUK_DISABLED=true
+basedir=/app
+localRepository=/root/.m2/repository
