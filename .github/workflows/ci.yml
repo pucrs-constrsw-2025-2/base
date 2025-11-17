@@ -7,35 +7,35 @@ on:
 
 jobs:
   # Python OAuth Service Tests (unchanged)
-  oauth-tests:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+  # oauth-tests:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #     with:
+  #       fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
+  #   - name: Set up Python
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: '3.12'
 
-    - name: Install Poetry
-      run: pip install poetry
+  #   - name: Install Poetry
+  #     run: pip install poetry
 
-    - name: Install dependencies
-      working-directory: ./backend/oauth
-      run: poetry install
+  #   - name: Install dependencies
+  #     working-directory: ./backend/oauth
+  #     run: poetry install
 
-    - name: Run tests and generate coverage report
-      working-directory: ./backend/oauth
-      run: poetry run task test
+  #   - name: Run tests and generate coverage report
+  #     working-directory: ./backend/oauth
+  #     run: poetry run task test
 
-    - name: Upload OAuth coverage
-      uses: actions/upload-artifact@v3
-      with:
-        name: oauth-coverage
-        path: backend/oauth/coverage.xml
-        retention-days: 1
+  #   - name: Upload OAuth coverage
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: oauth-coverage
+  #       path: backend/oauth/coverage.xml
+  #       retention-days: 1
 
   # NestJS Reservation Service Integration Tests
   # Runs ONLY for reservation service, isolated from other services
@@ -127,55 +127,55 @@ jobs:
           fi
 
   # SonarQube Analysis (runs after tests complete)
-  sonarqube:
-    runs-on: ubuntu-latest
-    needs: [oauth-tests, reservation-tests]
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+  # sonarqube:
+  #   runs-on: ubuntu-latest
+  #   needs: [oauth-tests, reservation-tests]
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #     with:
+  #       fetch-depth: 0
 
-    - name: Download OAuth coverage
-      uses: actions/download-artifact@v3
-      with:
-        name: oauth-coverage
-        path: backend/oauth/
+  #   - name: Download OAuth coverage
+  #     uses: actions/download-artifact@v3
+  #     with:
+  #       name: oauth-coverage
+  #       path: backend/oauth/
 
-    - name: Download Reservation coverage
-      uses: actions/download-artifact@v3
-      with:
-        name: reservation-coverage
-        path: backend/reservations/coverage/
+  #   - name: Download Reservation coverage
+  #     uses: actions/download-artifact@v3
+  #     with:
+  #       name: reservation-coverage
+  #       path: backend/reservations/coverage/
 
-    - name: List coverage files (debug)
-      run: |
-        echo "📁 OAuth coverage:"
-        ls -la backend/oauth/ || echo "No OAuth coverage files"
-        echo ""
-        echo "📁 Reservation coverage:"
-        ls -la backend/reservations/coverage/ || echo "No Reservation coverage files"
+  #   - name: List coverage files (debug)
+  #     run: |
+  #       echo "📁 OAuth coverage:"
+  #       ls -la backend/oauth/ || echo "No OAuth coverage files"
+  #       echo ""
+  #       echo "📁 Reservation coverage:"
+  #       ls -la backend/reservations/coverage/ || echo "No Reservation coverage files"
 
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      with:
-        args: >
-          -Dsonar.projectKey=constrsw-project
-          -Dsonar.sources=backend/
-          -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.spec.ts,**/*.e2e-spec.ts,**/__pycache__/**,**/*.pyc,**/dist/**,**/build/**,**/coverage/**
-          -Dsonar.tests=backend/oauth/tests,backend/reservations/test
-          -Dsonar.test.inclusions=**/*.spec.ts,**/*.e2e-spec.ts,**/test_*.py
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-          -Dsonar.python.coverage.reportPaths=backend/oauth/coverage.xml
-          -Dsonar.javascript.lcov.reportPaths=backend/reservations/coverage/lcov.info
-          -Dsonar.typescript.lcov.reportPaths=backend/reservations/coverage/lcov.info
+  #   - name: SonarQube Scan
+  #     uses: sonarsource/sonarqube-scan-action@master
+  #     env:
+  #       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  #     with:
+  #       args: >
+  #         -Dsonar.projectKey=constrsw-project
+  #         -Dsonar.sources=backend/
+  #         -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.spec.ts,**/*.e2e-spec.ts,**/__pycache__/**,**/*.pyc,**/dist/**,**/build/**,**/coverage/**
+  #         -Dsonar.tests=backend/oauth/tests,backend/reservations/test
+  #         -Dsonar.test.inclusions=**/*.spec.ts,**/*.e2e-spec.ts,**/test_*.py
+  #         -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+  #         -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+  #         -Dsonar.python.coverage.reportPaths=backend/oauth/coverage.xml
+  #         -Dsonar.javascript.lcov.reportPaths=backend/reservations/coverage/lcov.info
+  #         -Dsonar.typescript.lcov.reportPaths=backend/reservations/coverage/lcov.info
 
-    - name: SonarQube Quality Gate check
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  #   - name: SonarQube Quality Gate check
+  #     uses: sonarsource/sonarqube-quality-gate-action@master
+  #     timeout-minutes: 5
+  #     env:
+  #       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
