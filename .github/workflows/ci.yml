@@ -82,7 +82,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: backend/reservations
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Create test environment file
         working-directory: backend/reservations
