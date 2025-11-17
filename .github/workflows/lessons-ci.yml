@@ -1,0 +1,250 @@
+name: Lessons CI/CD
+
+on:
+  push:
+    branches: [ "grupo7" ]
+    paths:
+      - 'backend/lessons/**'
+      - '.github/workflows/lessons-ci.yml'
+  pull_request:
+    branches: [ "grupo7" ]
+    paths:
+      - 'backend/lessons/**'
+      - '.github/workflows/lessons-ci.yml'
+
+env:
+  NODE_VERSION: '20'
+  POSTGRES_VERSION: '15'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lessons_db_test
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: lessons_db_test
+
+jobs:
+  # Job 1: Testes Unitários
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/lessons/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/lessons
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        working-directory: ./backend/lessons
+        run: npx prisma generate
+
+      - name: Run linter
+        working-directory: ./backend/lessons
+        run: npm run lint || true
+
+      - name: Run unit tests
+        working-directory: ./backend/lessons
+        run: npm test
+
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/lessons/coverage/coverage-final.json
+          flags: lessons-unit
+          name: lessons-unit-coverage
+          fail_ci_if_error: false
+
+  # Job 2: Testes E2E
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgresql:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      # OAuth mock não é necessário - os testes mockam o fetch globalmente
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/lessons/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/lessons
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        working-directory: ./backend/lessons
+        run: npx prisma generate
+
+      - name: Setup test database
+        working-directory: ./backend/lessons
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          npx prisma db push --skip-generate --accept-data-loss || true
+
+      - name: Run E2E tests
+        working-directory: ./backend/lessons
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          # OAuth é mockado nos testes via fetch global
+        run: npm run test:e2e
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: backend/lessons/test-results/
+          retention-days: 7
+
+  # Job 3: Build Docker Image
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub (optional)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: constrsw/lessons
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/lessons
+          file: ./backend/lessons/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+  # Job 4: SonarQube Analysis (opcional)
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/grupo7'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/lessons/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/lessons
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        working-directory: ./backend/lessons
+        run: npx prisma generate
+
+      - name: Run tests with coverage
+        working-directory: ./backend/lessons
+        run: npm run test:cov
+
+      - name: SonarQube Scan
+        uses: sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          scannerHome: ${{ github.workspace }}/.sonar/scanner
+          args: >
+            -Dsonar.projectKey=constrsw-lessons
+            -Dsonar.sources=backend/lessons/src
+            -Dsonar.tests=backend/lessons/src,backend/lessons/test
+            -Dsonar.javascript.lcov.reportPaths=backend/lessons/coverage/lcov.info
+            -Dsonar.test.inclusions=**/*.spec.ts,**/*.e2e-spec.ts
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/*.spec.ts
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+  # Job 5: Summary
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, build-docker]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create summary
+        run: |
+          echo "## 🎯 Lessons CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Testes Unitários" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Testes E2E" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🐳 Build Docker" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.build-docker.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.e2e-tests.result }}" == "success" ] && [ "${{ needs.build-docker.result }}" == "success" ]; then
+            echo "### 🎉 Todos os testes passaram!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Alguns testes falharam" >> $GITHUB_STEP_SUMMARY
+          fi
+
