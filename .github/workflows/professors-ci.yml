@@ -1,0 +1,109 @@
+name: CI API Professors
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/professors/**'
+      - '.github/workflows/professors-ci.yml' 
+  pull_request:
+    paths:
+      - 'backend/professors/**'
+      - '.github/workflows/professors-ci.yml'
+
+defaults:
+  run:
+    working-directory: ./backend/professors
+
+jobs:
+  unit-test:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "1. Checkout com submódulos"
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: "2. Setup Python 3.11"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: "3. Instalar Poetry"
+        run: pipx install poetry
+
+      - name: "4. Cache de dependências"
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: "5. Instalar dependências"
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-root --with test
+      
+      - name: "6. Rodar Testes Unitários"
+        run: poetry run pytest tests/core
+
+  integration-test:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    needs: unit-test 
+    
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432 
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: "1. Checkout com submódulos"
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: "2. Setup Python 3.11"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: "3. Instalar Poetry"
+        run: pipx install poetry
+
+      - name: "4. Cache de dependências"
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: "5. Instalar dependências"
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-root --with test
+
+      - name: "6. Rodar Testes de Integração e Gerar Cobertura"
+        env:
+          DATABASE_URL: "postgresql://testuser:testpassword@localhost:5432/testdb"
+        run: |
+          poetry run pytest \
+            --cov=professors \
+            --cov-report=xml:coverage.xml \
+            tests/adapters/api
+      
+      - name: "7. Upload do Relatório de Cobertura"
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./backend/professors/coverage.xml
+          retention-days: 7
