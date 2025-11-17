@@ -71,7 +71,7 @@ jobs:
           fetch-depth: 0
 
       - name: Testing
-      - run: ls -R backend/reservations
+        run: ls -R backend/reservations
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
