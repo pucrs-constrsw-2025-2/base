@@ -1,12 +1,13 @@
-name: SonarQube Analysis
+name: CI/CD Pipeline
 on:
   push:
-    branches: [ "grupo7" ]
+    branches: [ "grupo7" , "grupo3-actions"]
   pull_request:
-    branches: [ "grupo7" ]
+    branches: [ "grupo7", "grupo3-actions" ]
 
 jobs:
-  sonarqube:
+  # Python OAuth Service Tests (unchanged)
+  oauth-tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -29,16 +30,155 @@ jobs:
       working-directory: ./backend/oauth
       run: poetry run task test
 
+    - name: Upload OAuth coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: oauth-coverage
+        path: backend/oauth/coverage.xml
+        retention-days: 1
+
+  # NestJS Reservation Service Integration Tests
+  # Runs ONLY for reservation service, isolated from other services
+  reservation-tests:
+    runs-on: ubuntu-latest
+    
+    # Only run if reservation files changed (optional optimization)
+    # Remove this section if you want to run on every push
+    # if: |
+    #   contains(github.event.head_commit.modified, 'backend/reservations/') ||
+    #   contains(github.event.head_commit.added, 'backend/reservations/')
+
+    services:
+      # Isolated PostgreSQL just for this test
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/reservations/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend/reservations
+        run: npm ci
+
+      - name: Create test environment file
+        working-directory: backend/reservations
+        run: |
+          cat > .env << EOF
+          POSTGRESQL_HOST=localhost
+          POSTGRESQL_PORT=5432
+          POSTGRESQL_USER=test_user
+          POSTGRESQL_PASSWORD=test_password
+          POSTGRESQL_DB=test_db
+          NODE_ENV=test
+          JWT_SECRET=test-secret-key-${{ github.sha }}
+          EOF
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      - name: Run database migrations
+        working-directory: backend/reservations
+        run: npm run migration:run || echo "No migrations or migration failed (continuing)"
+        env:
+          NODE_ENV: test
+
+      - name: Run integration tests with coverage
+        working-directory: backend/reservations
+        run: npm run test:e2e:cov
+        env:
+          NODE_ENV: test
+
+      - name: Upload Reservation coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: reservation-coverage
+          path: backend/reservations/coverage/lcov.info
+          retention-days: 1
+
+      - name: Display test summary
+        if: always()
+        working-directory: backend/reservations
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "📊 Test Coverage Summary:"
+            cat coverage/coverage-summary.json
+          fi
+
+  # SonarQube Analysis (runs after tests complete)
+  sonarqube:
+    runs-on: ubuntu-latest
+    needs: [oauth-tests, reservation-tests]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Download OAuth coverage
+      uses: actions/download-artifact@v3
+      with:
+        name: oauth-coverage
+        path: backend/oauth/
+
+    - name: Download Reservation coverage
+      uses: actions/download-artifact@v3
+      with:
+        name: reservation-coverage
+        path: backend/reservations/coverage/
+
+    - name: List coverage files (debug)
+      run: |
+        echo "📁 OAuth coverage:"
+        ls -la backend/oauth/ || echo "No OAuth coverage files"
+        echo ""
+        echo "📁 Reservation coverage:"
+        ls -la backend/reservations/coverage/ || echo "No Reservation coverage files"
+
     - name: SonarQube Scan
-      uses: sonarqube-quality-gate-action@master
+      uses: sonarsource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       with:
-        scannerHome: ${{ github.workspace }}/.sonar/scanner
         args: >
           -Dsonar.projectKey=constrsw-project
-          -Dsonar.sources=.
+          -Dsonar.sources=backend/
+          -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.spec.ts,**/*.e2e-spec.ts,**/__pycache__/**,**/*.pyc,**/dist/**,**/build/**,**/coverage/**
+          -Dsonar.tests=backend/oauth/tests,backend/reservations/test
+          -Dsonar.test.inclusions=**/*.spec.ts,**/*.e2e-spec.ts,**/test_*.py
           -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
           -Dsonar.python.coverage.reportPaths=backend/oauth/coverage.xml
+          -Dsonar.javascript.lcov.reportPaths=backend/reservations/coverage/lcov.info
+          -Dsonar.typescript.lcov.reportPaths=backend/reservations/coverage/lcov.info
+
+    - name: SonarQube Quality Gate check
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      timeout-minutes: 5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
