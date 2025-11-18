@@ -1,0 +1,212 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Debug Employees (Docker)",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "projectName": "employees-api",
+      "timeout": 30000,
+      "sourcePaths": [
+        "${workspaceFolder}/backend/employees/src"
+      ],
+      "preLaunchTask": null
+    },
+    {
+      "name": "Debug Classes (Docker)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": [
+          "exec",
+          "-i",
+          "classes"
+        ],
+        "debuggerPath": "/vsdbg/vsdbg",
+        "pipeCwd": "${workspaceFolder}/backend/classes/ClasseMicroservice",
+        "quoteArgs": false
+      },
+      "sourceFileMap": {
+        "/app": "${workspaceFolder}/backend/classes/ClasseMicroservice/src"
+      },
+      "justMyCode": false,
+      "requireExactSource": false,
+      "logging": {
+        "engineLogging": true
+      }
+    },
+    {
+      "name": "Debug Courses (Docker)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 8283
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/backend/courses/src",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Debug Lessons (Docker)",
+      "type": "node",
+      "request": "attach",
+      "port": 8284,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/backend/lessons",
+      "remoteRoot": "/usr/src/app",
+      "protocol": "inspector",
+      "restart": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Professors (Docker)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 8285
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/backend/professors/professors",
+          "remoteRoot": "/app/professors"
+        }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Debug Reservations (Docker)",
+      "type": "node",
+      "request": "attach",
+      "port": 8286,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/backend/reservations",
+      "remoteRoot": "/usr/src/app",
+      "protocol": "inspector",
+      "restart": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Resources (Docker)",
+      "type": "node",
+      "request": "attach",
+      "port": 8287,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/backend/resources",
+      "remoteRoot": "/app",
+      "protocol": "inspector",
+      "restart": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Rooms (Docker)",
+      "type": "node",
+      "request": "attach",
+      "port": 8288,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/backend/rooms",
+      "remoteRoot": "/app",
+      "protocol": "inspector",
+      "restart": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Students (Docker)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": [
+          "exec",
+          "-i",
+          "students"
+        ],
+        "debuggerPath": "/vsdbg/vsdbg",
+        "pipeCwd": "${workspaceFolder}/backend/students",
+        "quoteArgs": false
+      },
+      "sourceFileMap": {
+        "/app": "${workspaceFolder}/backend/students"
+      },
+      "justMyCode": false,
+      "requireExactSource": false,
+      "logging": {
+        "engineLogging": true
+      }
+    },
+    {
+      "name": "Debug OAuth (Docker)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 8280
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/backend/oauth/src",
+          "remoteRoot": "/app/src"
+        }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Debug BFF (Docker)",
+      "type": "node",
+      "request": "attach",
+      "port": 8290,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/backend/bff",
+      "remoteRoot": "/app",
+      "protocol": "inspector",
+      "restart": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ]
+}
+
