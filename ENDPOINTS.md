@@ -6,7 +6,7 @@ Este documento lista todos os endpoints de todos os serviços do sistema ConstrS
 1. [OAuth](#oauth)
 2. [Employees](#employees)
 3. [Classes](#classes)
-4. [Courses](#courses)
+4. [Courses (Disciplinas)](#courses-disciplinas)
 5. [Lessons](#lessons)
 6. [Professors](#professors)
 7. [Reservations](#reservations)
@@ -97,29 +97,29 @@ Este documento lista todos os endpoints de todos os serviços do sistema ConstrS
 
 ---
 
-## Courses
+## Courses (Disciplinas)
 
 **Base URL:** `http://localhost:8183` (externo) / `http://courses:8080` (interno)  
 **Prefixo:** `/api/v1` (implícito no router)
 
-### Cursos
-- `POST /api/v1/courses` - Criar um novo curso
-- `GET /api/v1/courses` - Listar cursos (query params: `name`, `modality`)
-- `GET /api/v1/courses/{id}` - Buscar curso por ID
-- `PUT /api/v1/courses/{id}` - Atualizar curso (completo)
-- `PATCH /api/v1/courses/{id}` - Atualizar curso (parcial)
-- `DELETE /api/v1/courses/{id}` - Deletar curso
+### Disciplinas
+- `POST /api/v1/courses` - Criar uma nova disciplina
+- `GET /api/v1/courses` - Listar disciplinas (query params: `name`, `modality`)
+- `GET /api/v1/courses/{id}` - Buscar disciplina por ID
+- `PUT /api/v1/courses/{id}` - Atualizar disciplina (completo)
+- `PATCH /api/v1/courses/{id}` - Atualizar disciplina (parcial)
+- `DELETE /api/v1/courses/{id}` - Deletar disciplina
 
-### Materiais (Materials) - Sub-recurso de Cursos
-- `POST /api/v1/courses/{id}/materials` - Adicionar material a um curso
-- `GET /api/v1/courses/{id}/materials` - Listar materiais de um curso (query param: `name`)
+### Materiais (Materials) - Sub-recurso de Disciplinas
+- `POST /api/v1/courses/{id}/materials` - Adicionar material a uma disciplina
+- `GET /api/v1/courses/{id}/materials` - Listar materiais de uma disciplina (query param: `name`)
 - `GET /api/v1/courses/{id}/materials/{material_id}` - Buscar material específico
 - `PUT /api/v1/courses/{id}/materials/{material_id}` - Atualizar material (completo)
 - `PATCH /api/v1/courses/{id}/materials/{material_id}` - Atualizar material (parcial)
 - `DELETE /api/v1/courses/{id}/materials/{material_id}` - Deletar material
 
-### Turmas (Classes) - Sub-recurso de Cursos
-- `GET /api/v1/courses/{id}/classes` - Buscar turmas de um curso (query params: `semester`, `year`)
+### Turmas (Classes) - Sub-recurso de Disciplinas
+- `GET /api/v1/courses/{id}/classes` - Buscar turmas de uma disciplina (query params: `semester`, `year`)
 
 ### Health & Metrics
 - `GET /health` - Health check

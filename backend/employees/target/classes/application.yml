@@ -48,6 +48,17 @@ management:
       # OTLP removido: usando apenas Prometheus via Actuator para métricas
       # Traces podem usar OpenTelemetry SDK (configurado abaixo)
 
+springdoc:
+  api-docs:
+    path: /docs
+  swagger-ui:
+    path: /docs
+    enabled: true
+  info:
+    title: ConstrSW - Employees API
+    description: API para gerenciamento de funcionários e tarefas
+    version: 1.0.0
+
 opentelemetry:
   service-name: ${OTEL_SERVICE_NAME:employees}
   resource-attributes:

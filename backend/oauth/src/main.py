@@ -31,6 +31,9 @@ app = FastAPI(
     title="ConstrSW - OAuth API Gateway",
     description="API Gateway para o Keycloak, implementando os requisitos do T1.",
     version="1.0.0",
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json",
 )
 
 origins = [

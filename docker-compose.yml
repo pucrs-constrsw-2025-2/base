@@ -720,6 +720,7 @@ services:
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - ASPNETCORE_URLS=http://+:${STUDENTS_INTERNAL_API_PORT}
       - ConnectionStrings__DefaultConnection=Host=postgresql;Database=students_db;Username=${POSTGRESQL_USERNAME};Password=${POSTGRESQL_PASSWORD}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OTEL_SERVICE_NAME=students
       # Debug Configuration for .NET
       - DOTNET_DBG_ENABLE=${DOTNET_DBG_ENABLE:-1}
