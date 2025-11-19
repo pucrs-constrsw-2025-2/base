@@ -2,12 +2,12 @@ name: Lessons CI/CD
 
 on:
   push:
-    branches: [ "main", "grupo6-ci" ]
+    branches: [ "main", "grupo6-ci", "dev" ]
     paths:
       - 'backend/lessons/**'
       - '.github/workflows/lessons-ci.yml'
   pull_request:
-    branches: [ "main", "grupo6-ci" ]
+    branches: [ "main", "grupo6-ci", "dev" ]
     paths:
       - 'backend/lessons/**'
       - '.github/workflows/lessons-ci.yml'
