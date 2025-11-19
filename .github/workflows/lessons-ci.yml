@@ -15,7 +15,7 @@ on:
 env:
   NODE_VERSION: '20'
   POSTGRES_VERSION: '15'
-  DATABASE_URL: postgresql://postgres:postgres@postgresql:5432/lessons_db_test
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lessons_db_test
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: lessons_db_test
