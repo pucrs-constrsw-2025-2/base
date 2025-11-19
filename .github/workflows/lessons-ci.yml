@@ -1,0 +1,116 @@
+name: Lessons CI/CD
+
+on:
+  push:
+    branches: [ "main", "grupo6-ci", "dev" ]
+    paths:
+      - 'backend/lessons/**'
+      - '.github/workflows/lessons-ci.yml'
+  pull_request:
+    branches: [ "main", "grupo6-ci", "dev" ]
+    paths:
+      - 'backend/lessons/**'
+      - '.github/workflows/lessons-ci.yml'
+
+env:
+  NODE_VERSION: '20'
+  POSTGRES_VERSION: '15'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lessons_db_test
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: lessons_db_test
+
+jobs:
+  # Job 1: Testes Unitários
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/lessons/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/lessons
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        working-directory: ./backend/lessons
+        run: npx prisma generate
+
+      - name: Run linter
+        working-directory: ./backend/lessons
+        run: npm run lint || true
+
+      - name: Run unit tests with coverage
+        working-directory: ./backend/lessons
+        run: npm run test:cov
+
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/lessons/coverage/coverage-final.json
+          flags: lessons-unit
+          name: lessons-unit-coverage
+          fail_ci_if_error: false
+
+  # Job 2: Testes E2E
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgresql:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lessons_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      # OAuth mock não é necessário - os testes mockam o fetch globalmente
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/lessons/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/lessons
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        working-directory: ./backend/lessons
+        run: npx prisma generate
+
+      - name: Setup test database
+        working-directory: ./backend/lessons
+        run: npx prisma db push --skip-generate --accept-data-loss
+
+      - name: Run E2E tests
+        working-directory: ./backend/lessons
+        run: npm run test:e2e

@@ -328,4 +328,3 @@ Este documento lista todos os endpoints de todos os serviços do sistema ConstrS
 5. **Portas Externas**: As portas externas (localhost) são diferentes das internas (Docker). Use as portas externas para acesso local.
 
 6. **Endpoints Scaffold**: Alguns endpoints de Furnitures (Rooms) estão marcados como scaffold e retornam 501 (Not Implemented).
-
