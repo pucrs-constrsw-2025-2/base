@@ -2,12 +2,12 @@ name: Lessons CI/CD
 
 on:
   push:
-    branches: [ "grupo7" ]
+    branches: [ "main", "grupo6-ci" ]
     paths:
       - 'backend/lessons/**'
       - '.github/workflows/lessons-ci.yml'
   pull_request:
-    branches: [ "grupo7" ]
+    branches: [ "main", "grupo6-ci" ]
     paths:
       - 'backend/lessons/**'
       - '.github/workflows/lessons-ci.yml'
@@ -49,9 +49,9 @@ jobs:
         working-directory: ./backend/lessons
         run: npm run lint || true
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         working-directory: ./backend/lessons
-        run: npm test
+        run: npm run test:cov
 
       - name: Upload coverage reports
         if: always()
@@ -66,6 +66,8 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@postgresql:5432/${{ env.POSTGRES_DB }}
     
     services:
       postgresql:
@@ -105,25 +107,11 @@ jobs:
 
       - name: Setup test database
         working-directory: ./backend/lessons
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: |
-          npx prisma db push --skip-generate --accept-data-loss || true
+        run: npx prisma db push --skip-generate --accept-data-loss
 
       - name: Run E2E tests
         working-directory: ./backend/lessons
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-          # OAuth é mockado nos testes via fetch global
         run: npm run test:e2e
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: e2e-test-results
-          path: backend/lessons/test-results/
-          retention-days: 7
 
   # Job 3: Build Docker Image
   build-docker:
@@ -145,25 +133,15 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: constrsw/lessons
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./backend/lessons
           file: ./backend/lessons/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: constrsw/lessons:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -217,34 +195,4 @@ jobs:
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/*.spec.ts
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-  # Job 5: Summary
-  ci-summary:
-    name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [unit-tests, e2e-tests, build-docker]
-    if: always()
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Create summary
-        run: |
-          echo "## 🎯 Lessons CI/CD Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Testes Unitários" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Testes E2E" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🐳 Build Docker" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ needs.build-docker.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.e2e-tests.result }}" == "success" ] && [ "${{ needs.build-docker.result }}" == "success" ]; then
-            echo "### 🎉 Todos os testes passaram!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ Alguns testes falharam" >> $GITHUB_STEP_SUMMARY
-          fi
 
