@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./backend/lessons
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Generate Prisma Client
         working-directory: ./backend/lessons
@@ -101,7 +101,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./backend/lessons
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Generate Prisma Client
         working-directory: ./backend/lessons
