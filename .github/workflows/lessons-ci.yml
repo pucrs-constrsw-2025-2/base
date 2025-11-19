@@ -15,7 +15,7 @@ on:
 env:
   NODE_VERSION: '20'
   POSTGRES_VERSION: '15'
-  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lessons_db_test
+  DATABASE_URL: postgresql://postgres:postgres@postgresql:5432/lessons_db_test
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: lessons_db_test
@@ -66,16 +66,14 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@postgresql:5432/${{ env.POSTGRES_DB }}
     
     services:
       postgresql:
-        image: postgres:${{ env.POSTGRES_VERSION }}
+        image: postgres:15
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lessons_db_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
