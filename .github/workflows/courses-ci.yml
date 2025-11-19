@@ -25,15 +25,15 @@ jobs:
         python-version: '3.11'
     
     - name: Install dependencies
+      working-directory: ./backend/courses
       run: |
-        cd backend/courses
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-asyncio httpx
     
     - name: Run tests
+      working-directory: ./backend/courses
       run: |
-        cd backend/courses
         pytest tests/ -v --cov=src --cov-report=term-missing
       env:
         MONGODB_INTERNAL_HOST: localhost
@@ -59,14 +59,14 @@ jobs:
         pip install flake8 black
     
     - name: Lint with flake8
+      working-directory: ./backend/courses
       run: |
-        cd backend/courses
         flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
     - name: Check formatting with black
+      working-directory: ./backend/courses
       run: |
-        cd backend/courses
         black --check src/
 
   build:
@@ -77,8 +77,8 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Build Docker image
+      working-directory: ./backend/courses
       run: |
-        cd backend/courses
         docker build -t courses:test .
     
     - name: Test Docker image
