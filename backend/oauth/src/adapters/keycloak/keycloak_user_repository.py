@@ -26,7 +26,8 @@ class KeycloakUserRepository(IUserRepository):
             return self._client_uuid
 
         params = {"clientId": settings.KEYCLOAK_CLIENT_ID}
-        clients_list = await self.client.get("/clients", params=params)
+        # Usar token de admin para buscar informações do client
+        clients_list = await self.client.get_with_admin("/clients", params=params)
 
         if not clients_list:
             raise KeycloakAPIError(

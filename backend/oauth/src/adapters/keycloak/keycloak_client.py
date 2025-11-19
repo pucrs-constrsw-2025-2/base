@@ -7,9 +7,10 @@ from src.core.exceptions import KeycloakAPIError
 
 
 class KeycloakAdminClient:
-    def __init__(self):
+    def __init__(self, user_token: str | None = None):
         self.base_url = settings.keycloak_admin_api_url
         self._admin_token: str | None = None
+        self._user_token: str | None = user_token
 
     async def _get_admin_token(self) -> str:
         if self._admin_token:
@@ -31,10 +32,44 @@ class KeycloakAdminClient:
                     description=f"Erro ao obter token de admin: {e.response.text}",
                 )
 
+    async def _get_token(self, use_admin: bool = False) -> str:
+        """
+        Retorna o token do usuário se disponível e não forçado a usar admin,
+        caso contrário usa o token de admin.
+        
+        Args:
+            use_admin: Se True, força o uso do token de admin mesmo que tenha token de usuário.
+        """
+        if use_admin or not self._user_token:
+            return await self._get_admin_token()
+        return self._user_token
+    
+    async def get_with_admin(self, endpoint: str, params: Dict | None = None) -> Any:
+        """
+        Faz uma requisição GET usando token de admin (para operações que requerem admin).
+        """
+        token = await self._get_admin_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    f"{self.base_url}{endpoint}", headers=headers, params=params
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                raise KeycloakAPIError(
+                    status_code=e.response.status_code,
+                    description=f"Erro na API do Keycloak: {e.response.text}",
+                )
+
     async def _request(
         self, method: str, endpoint: str, **kwargs: Any
     ) -> httpx.Response:
-        token = await self._get_admin_token()
+        token = await self._get_token()
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -47,6 +82,13 @@ class KeycloakAdminClient:
                 response.raise_for_status()
                 return response
             except httpx.HTTPStatusError as e:
+                # Se usar token de usuário e receber 401, não tentar refresh
+                if e.response.status_code == 401 and self._user_token:
+                    raise KeycloakAPIError(
+                        status_code=e.response.status_code,
+                        description=f"Token do usuário inválido ou sem permissões: {e.response.text}",
+                    )
+                # Se usar token de admin e receber 401, tentar refresh
                 if e.response.status_code == 401:
                     self._admin_token = None
                     token = await self._get_admin_token()
