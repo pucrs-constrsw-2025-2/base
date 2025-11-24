@@ -60,7 +60,7 @@ FastAPIInstrumentor.instrument_app(app)
 HTTPXClientInstrumentor().instrument()
 
 # Endpoint de health check padronizado (formato compatível com Actuator)
-@app.get("/health")
+@app.get("/api/v1/health")
 async def health():
     """
     Health check endpoint padronizado.
@@ -80,7 +80,7 @@ async def health():
     }
 
 # Endpoint para expor métricas Prometheus
-@app.get("/metrics")
+@app.get("/api/v1/metrics")
 async def metrics_endpoint():
     from prometheus_client import CONTENT_TYPE_LATEST
     # O PrometheusMetricReader na versão 0.42b0 não expõe HTTP diretamente
