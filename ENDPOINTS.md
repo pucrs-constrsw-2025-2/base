@@ -323,7 +323,7 @@ Este documento lista todos os endpoints de todos os serviços do sistema ConstrS
 
 4. **Prefixos**: A maioria dos serviços usa o prefixo `/api/v1`, exceto:
    - Employees: `/employees`
-   - OAuth: `/api/v1` (mas alguns endpoints estão na raiz como `/health`)
+   - OAuth: `/api/v1` (incluindo `/api/v1/health` e `/api/v1/metrics`)
 
 5. **Portas Externas**: As portas externas (localhost) são diferentes das internas (Docker). Use as portas externas para acesso local.
 

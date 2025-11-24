@@ -694,7 +694,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /health:
+  /api/v1/health:
     get:
       tags:
         - Health
@@ -731,7 +731,7 @@ paths:
                                 type: string
                                 example: 1.0.0
 
-  /metrics:
+  /api/v1/metrics:
     get:
       tags:
         - Metrics
