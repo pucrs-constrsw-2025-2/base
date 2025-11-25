@@ -80,7 +80,7 @@ scrape_configs:
   - job_name: 'employees'
     static_configs:
       - targets: ['employees:8080']
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Classes Service (.NET - OpenTelemetry)

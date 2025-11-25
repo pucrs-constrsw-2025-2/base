@@ -16,7 +16,7 @@ tags:
     description: Gerenciamento de tarefas
 
 paths:
-  /employees:
+  /api/v1/employees:
     post:
       tags:
         - Employees
@@ -74,7 +74,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /employees/{id}:
+  /api/v1/employees/{employeeId}:
     get:
       tags:
         - Employees
@@ -83,7 +83,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -108,7 +108,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -141,7 +141,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -174,7 +174,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -187,7 +187,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /employees/{id}/tasks:
+  /api/v1/employees/{employeeId}/tasks:
     get:
       tags:
         - Tasks
@@ -196,7 +196,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -247,7 +247,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: employeeId
           in: path
           required: true
           schema:
@@ -272,7 +272,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /employees/{employeeId}/tasks/{taskId}:
+  /api/v1/employees/{employeeId}/tasks/{taskId}:
     get:
       tags:
         - Tasks
@@ -414,6 +414,20 @@ paths:
       responses:
         '200':
           description: Serviço está funcionando
+
+  /api/v1/metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Métricas Prometheus
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Métricas em formato Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
 
 components:
   securitySchemes:
