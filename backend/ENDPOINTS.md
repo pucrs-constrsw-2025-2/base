@@ -214,7 +214,7 @@ Este documento lista TODOS os endpoints de cada serviço (exceto o BFF).
 - `POST /api/v1/resources` - Criar um novo recurso
 - `GET /api/v1/resources` - Listar todos os recursos (query: `categoryId`)
 - `GET /api/v1/resources/{resourceId}` - Buscar recurso por ID
-- `GET /api/v1/resources/category/{categoryId}` - Buscar recursos por categoria
+- `GET /api/v1/resources?categoryId={categoryId}` - Buscar recursos por categoria
 - `PATCH /api/v1/resources/{resourceId}` - Atualizar recurso (parcial)
 - `PUT /api/v1/resources/{resourceId}` - Substituir recurso (completo)
 - `DELETE /api/v1/resources/{resourceId}` - Deletar recurso
