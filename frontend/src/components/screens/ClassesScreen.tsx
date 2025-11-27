@@ -3,9 +3,8 @@ import { Calendar } from 'lucide-react';
 
 export function ClassesScreen() {
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <Card>
+    <div className="p-4 md:p-6 w-full">
+      <Card className="w-full">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-primary" />
@@ -21,7 +20,6 @@ export function ClassesScreen() {
             </p>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

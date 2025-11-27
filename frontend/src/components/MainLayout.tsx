@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
@@ -14,6 +14,7 @@ import {
   Calendar, 
   Monitor, 
   ClipboardList, 
+  Briefcase,
   LogOut 
 } from 'lucide-react';
 
@@ -37,9 +38,10 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
 
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'teachers', label: 'Cadastro de Professores', icon: GraduationCap },
+    { id: 'professors', label: 'Cadastro de Professores', icon: GraduationCap },
     { id: 'students', label: 'Cadastro de Estudantes', icon: Users },
-    { id: 'buildings', label: 'Cadastro de Prédios e Salas', icon: Building },
+    { id: 'employees', label: 'Cadastro de Funcionários', icon: Briefcase },
+    { id: 'rooms', label: 'Cadastro de Salas', icon: Building },
     { id: 'subjects', label: 'Cadastro de Disciplinas', icon: BookOpen },
     { id: 'classes', label: 'Cadastro de Turmas', icon: Calendar },
     { id: 'lessons', label: 'Cadastro de Aulas', icon: Calendar },
@@ -67,7 +69,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-background w-full">
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex">
           <SidebarHeader className="p-4 border-b">
@@ -101,7 +103,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
         </Sidebar>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col w-full min-w-0">
           {/* Mobile Header */}
           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -111,6 +113,12 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Menu de Navegação</SheetTitle>
+                  <SheetDescription>
+                    Menu principal de navegação do sistema
+                  </SheetDescription>
+                </SheetHeader>
                 <div className="py-4">
                   <h2 className="font-semibold text-primary mb-4">Closed CRAS</h2>
                   <div className="flex items-center space-x-3 mb-6">
@@ -187,8 +195,10 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 overflow-auto">
-            {children}
+          <main className="flex-1 overflow-auto w-full">
+            <div className="w-full h-full">
+              {children}
+            </div>
           </main>
         </div>
       </div>

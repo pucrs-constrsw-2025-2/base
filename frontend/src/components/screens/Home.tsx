@@ -27,7 +27,7 @@ export function Home() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 w-full">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold">Dashboard</h1>

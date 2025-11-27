@@ -1,0 +1,136 @@
+export interface Room {
+  id: string;
+  number: string;
+  building: string;
+  category: string;
+  capacity: number;
+  floor: number;
+  description?: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RoomListResponse {
+  items: Room[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+function getAuthToken(): string | null {
+  const savedTokens = localStorage.getItem('auth_tokens');
+  if (!savedTokens) return null;
+  
+  try {
+    const tokens = JSON.parse(savedTokens);
+    return tokens.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('Token de autenticação não encontrado');
+  }
+
+  const baseUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:8080';
+  const url = `${baseUrl}/api/v1${endpoint}`;
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+    ...(options.headers as HeadersInit),
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      let errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
+      try {
+        const errorData = JSON.parse(responseText);
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } catch {
+        // Se não conseguir parsear, usar a mensagem padrão
+      }
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText,
+      });
+      throw new Error(errorMessage);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    if (!responseText) {
+      return undefined as T;
+    }
+
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      // Check if the response is wrapped in a 'data' field by the BFF
+      if (parsedResponse && parsedResponse.data !== undefined) {
+        console.log('API Response (extracted data):', parsedResponse.data);
+        return parsedResponse.data as T;
+      }
+      console.log('API Response (raw):', parsedResponse);
+      return parsedResponse as T;
+    } catch (parseError) {
+      console.error('Erro ao parsear resposta JSON:', parseError, responseText);
+      throw new Error('Resposta do servidor não é um JSON válido');
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Erro desconhecido ao fazer requisição');
+  }
+}
+
+export async function getRooms(params?: {
+  page?: number;
+  limit?: number;
+  building?: string;
+  category?: string;
+  status?: string;
+  number?: string;
+}): Promise<RoomListResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.building) queryParams.append('building', params.building);
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.number) queryParams.append('number', params.number);
+
+  const queryString = queryParams.toString();
+  return apiRequest<RoomListResponse>(`/rooms${queryString ? `?${queryString}` : ''}`);
+}
+
+export async function getRoomById(id: string): Promise<Room> {
+  return apiRequest<Room>(`/rooms/${id}`);
+}
+
