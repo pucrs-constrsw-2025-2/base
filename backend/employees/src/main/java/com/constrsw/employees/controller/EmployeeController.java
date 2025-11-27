@@ -20,7 +20,7 @@ public class EmployeeController {
     private EmployeeService employeeService;
     
     @PostMapping
-    @RequiresRole("Administrador")
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeCreateRequest request) {
         EmployeeResponse response = employeeService.createEmployee(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -43,7 +43,7 @@ public class EmployeeController {
     }
     
     @PutMapping("/{id}")
-    @RequiresRole("Administrador")
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> updateEmployee(
             @PathVariable String id,
             @Valid @RequestBody EmployeeUpdateRequest request) {
@@ -52,7 +52,7 @@ public class EmployeeController {
     }
     
     @PatchMapping("/{id}")
-    @RequiresRole("Administrador")
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> patchEmployee(
             @PathVariable String id,
             @RequestBody EmployeeUpdateRequest request) {
@@ -61,7 +61,7 @@ public class EmployeeController {
     }
     
     @DeleteMapping("/{id}")
-    @RequiresRole("Administrador")
+    @RequiresRole("administrator")
     public ResponseEntity<Void> deleteEmployee(@PathVariable String id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();

@@ -2,8 +2,10 @@ package com.constrsw.employees.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OAuthValidationResponse {
@@ -15,6 +17,8 @@ public class OAuthValidationResponse {
     private String email;
     @JsonProperty("realm_access")
     private RealmAccess realmAccess;
+    @JsonProperty("resource_access")
+    private Map<String, RealmAccess> resourceAccess;
     
     public boolean isActive() {
         return active;
@@ -64,11 +68,33 @@ public class OAuthValidationResponse {
         this.realmAccess = realmAccess;
     }
     
+    public Map<String, RealmAccess> getResourceAccess() {
+        return resourceAccess;
+    }
+    
+    public void setResourceAccess(Map<String, RealmAccess> resourceAccess) {
+        this.resourceAccess = resourceAccess;
+    }
+    
     public List<String> getRoles() {
+        ArrayList<String> allRoles = new ArrayList<>();
+        
+        // Adicionar roles do realm
         if (realmAccess != null && realmAccess.getRoles() != null) {
-            return realmAccess.getRoles();
+            allRoles.addAll(realmAccess.getRoles());
         }
-        return List.of();
+        
+        // Adicionar roles de recursos (ex: oauth, account, etc.)
+        if (resourceAccess != null) {
+            resourceAccess.values().forEach(access -> {
+                if (access != null && access.getRoles() != null) {
+                    allRoles.addAll(access.getRoles());
+                }
+            });
+        }
+        
+        // Remover duplicatas
+        return allRoles.stream().distinct().collect(Collectors.toList());
     }
     
     @JsonIgnoreProperties(ignoreUnknown = true)

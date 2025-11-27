@@ -77,13 +77,13 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                     validationResponse.getPreferredUsername() : validationResponse.getUsername());
             request.setAttribute("userRoles", validationResponse.getRoles());
             
-            // Check if user has Administrador role
+            // Check if user has administrator role
             List<String> userRoles = validationResponse.getRoles();
             boolean hasAdminRole = false;
             
             for (String userRole : userRoles) {
-                if (userRole.equalsIgnoreCase("Administrador") ||
-                    userRole.toLowerCase().contains("administrador") ||
+                if (userRole.equalsIgnoreCase("administrator") ||
+                    userRole.toLowerCase().contains("administrator") ||
                     userRole.toLowerCase().contains("admin")) {
                     hasAdminRole = true;
                     break;
@@ -92,7 +92,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             
             if (!hasAdminRole) {
                 sendErrorResponse(response, HttpStatus.FORBIDDEN, 
-                        "Access denied. Required role: Administrador");
+                        "Access denied. Required role: administrator");
                 return;
             }
             
