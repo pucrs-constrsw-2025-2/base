@@ -139,13 +139,11 @@ export function ClassesScreen() {
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto">
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mr-4">
-                <Calendar className="w-6 h-6 text-primary" />
+    <div className="p-4 md:p-6 w-full">
+      <Card className="w-full">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-primary" />
               </div>
               <div>
                 <CardTitle>Cadastro de Turmas</CardTitle>
@@ -158,7 +156,6 @@ export function ClassesScreen() {
               <Button onClick={openCreate} variant="default">
                 <PlusCircle className="w-4 h-4 mr-2" /> Nova Turma
               </Button>
-            </div>
           </CardHeader>
 
           <CardContent>
@@ -289,8 +286,6 @@ export function ClassesScreen() {
             </div>
           </CardContent>
         </Card>
-      </div>
-
       {/* Dialog for create / edit */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>

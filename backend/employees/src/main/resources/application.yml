@@ -71,6 +71,11 @@ opentelemetry:
       # port: 9091
       # endpoint: /metrics
 
+oauth:
+  internal:
+    host: ${OAUTH_INTERNAL_HOST:oauth}
+    port: ${OAUTH_INTERNAL_API_PORT:8000}
+
 logging:
   level:
     com.constrsw.employees: DEBUG
