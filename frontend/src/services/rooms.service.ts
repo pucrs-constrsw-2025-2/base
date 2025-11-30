@@ -1,3 +1,5 @@
+export type RoomStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
+
 export interface Room {
   id: string;
   number: string;
@@ -6,9 +8,19 @@ export interface Room {
   capacity: number;
   floor: number;
   description?: string;
-  status: string;
+  status: RoomStatus;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CreateRoomDto {
+  number: string;
+  building: string;
+  category: string;
+  capacity: number;
+  floor: number;
+  description?: string;
+  status?: RoomStatus;
 }
 
 export interface RoomListResponse {
@@ -63,21 +75,11 @@ async function apiRequest<T>(
       let errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
       try {
         const errorData = JSON.parse(responseText);
-        if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        }
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
       } catch {
-        // Se não conseguir parsear, usar a mensagem padrão
+        // Falha no parse, usa mensagem padrão
       }
-      console.error('API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: responseText,
-      });
       throw new Error(errorMessage);
     }
 
@@ -91,24 +93,21 @@ async function apiRequest<T>(
 
     try {
       const parsedResponse = JSON.parse(responseText);
-      // Check if the response is wrapped in a 'data' field by the BFF
+      // O BFF pode retornar dados encapsulados em 'data' ou diretamente
       if (parsedResponse && parsedResponse.data !== undefined) {
-        console.log('API Response (extracted data):', parsedResponse.data);
         return parsedResponse.data as T;
       }
-      console.log('API Response (raw):', parsedResponse);
       return parsedResponse as T;
-    } catch (parseError) {
-      console.error('Erro ao parsear resposta JSON:', parseError, responseText);
+    } catch {
       throw new Error('Resposta do servidor não é um JSON válido');
     }
   } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
+    if (error instanceof Error) throw error;
     throw new Error('Erro desconhecido ao fazer requisição');
   }
 }
+
+// --- Métodos Públicos ---
 
 export async function getRooms(params?: {
   page?: number;
@@ -134,3 +133,22 @@ export async function getRoomById(id: string): Promise<Room> {
   return apiRequest<Room>(`/rooms/${id}`);
 }
 
+export async function createRoom(data: CreateRoomDto): Promise<Room> {
+  return apiRequest<Room>('/rooms', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateRoom(id: string, data: Partial<CreateRoomDto>): Promise<Room> {
+  return apiRequest<Room>(`/rooms/${id}`, {
+    method: 'PUT', // BFF usa PUT para update completo ou PATCH para parcial, ajustável conforme necessidade
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteRoom(id: string): Promise<void> {
+  return apiRequest<void>(`/rooms/${id}`, {
+    method: 'DELETE',
+  });
+}
