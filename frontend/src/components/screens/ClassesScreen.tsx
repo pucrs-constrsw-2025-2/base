@@ -18,11 +18,15 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Pencil, Trash, PlusCircle, Calendar } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
+import * as coursesService from "../../services/courses.service";
 import * as classesApi from "../../services/classes";
 import { Class as ClassType } from "../../types/class";
 
 export function ClassesScreen() {
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [courses, setCourses] = useState<{ id: string; name?: string }[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,17 +36,17 @@ export function ClassesScreen() {
   const [courseId, setCourseId] = useState<string>("");
   const [page, setPage] = useState(1);
   const [size] = useState(10);
+  const canGoNext = classes.length >= size;
 
   // dialog / form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ClassType | null>(null);
   const [form, setForm] = useState({
-    name: "",
+    classNumber: "",
     year: "",
     semester: "",
-    course_id: "",
-    code: "",
-    capacity: "",
+    schedule: "",
+    course: "", // armazenamos o id do curso selecionado
   });
 
   const fetchList = async () => {
@@ -69,15 +73,31 @@ export function ClassesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // Carregar lista de cursos para dropdown (executa uma vez)
+  useEffect(() => {
+    const loadCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        const data = await coursesService.listCourses();
+        // Sanitiza para id & name (evita objetos grandes)
+        setCourses((Array.isArray(data) ? data : []).map(c => ({ id: c.id, name: (c as any).name })));
+      } catch (err: any) {
+        console.error('Erro ao carregar cursos', err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+    loadCourses();
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setForm({
-      name: "",
+      classNumber: "",
       year: "",
       semester: "",
-      course_id: "",
-      code: "",
-      capacity: "",
+      schedule: "",
+      course: "",
     });
     setIsDialogOpen(true);
   };
@@ -85,12 +105,11 @@ export function ClassesScreen() {
   const openEdit = (c: ClassType) => {
     setEditing(c);
     setForm({
-      name: c.name || "",
+      classNumber: (c as any).classNumber ? String((c as any).classNumber) : "",
       year: String(c.year || ""),
       semester: String(c.semester || ""),
-      course_id: c.course_id || "",
-      code: c.code || "",
-      capacity: c.capacity ? String(c.capacity) : "",
+      schedule: (c as any).schedule || "",
+      course: (c as any).course?.id || (c as any).course || "",
     });
     setIsDialogOpen(true);
   };
@@ -99,12 +118,14 @@ export function ClassesScreen() {
     e.preventDefault();
     try {
       const payload: any = {
-        name: form.name,
+        classNumber: form.classNumber ? form.classNumber : null,
         year: Number(form.year),
         semester: Number(form.semester),
-        course_id: form.course_id || undefined,
-        code: form.code || undefined,
-        capacity: form.capacity ? Number(form.capacity) : undefined,
+        schedule: form.schedule || null,
+        exams: [],
+        students: [],
+        professors: [],
+        course: form.course || null, // envia id do curso
       };
       if (editing && editing.id) {
         await classesApi.updateClass(editing.id, payload);
@@ -141,155 +162,159 @@ export function ClassesScreen() {
   return (
     <div className="p-4 md:p-6 w-full">
       <Card className="w-full">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Cadastro de Turmas</CardTitle>
-                <CardDescription>
-                  Gerencie turmas: criar, editar, listar e excluir
-                </CardDescription>
-              </div>
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-primary" />
+          </div>
+          <div>
+            <CardTitle>Cadastro de Turmas</CardTitle>
+            <CardDescription>
+              Gerencie turmas: criar, editar, listar e excluir
+            </CardDescription>
+          </div>
+          <div className="flex items-center justify-center mt-4">
+            <Button onClick={openCreate} variant="default">
+              <PlusCircle className="w-4 h-4 mr-2" /> Nova Turma
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <form
+            className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4"
+            onSubmit={handleFilter}
+          >
+            <div className="md:col-span-2">
+              <Label htmlFor="yearFilter">Ano</Label>
+              <Input
+                id="yearFilter"
+                value={year}
+                onChange={(e: any) => setYear(e.target.value)}
+                placeholder="2025"
+              />
             </div>
-            <div className="flex items-center space-x-2">
-              <Button onClick={openCreate} variant="default">
-                <PlusCircle className="w-4 h-4 mr-2" /> Nova Turma
+            <div className="md:col-span-2">
+              <Label htmlFor="semesterFilter">Semestre</Label>
+              <Input
+                id="semesterFilter"
+                value={semester}
+                onChange={(e: any) => setSemester(e.target.value)}
+                placeholder="1"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label>Course ID</Label>
+              <Select value={courseId} onValueChange={(val: string) => setCourseId(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCourses ? "Carregando..." : "Selecione"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.id}{c.name ? ` - ${c.name}` : ""}
+                    </SelectItem>
+                  ))}
+                  {courses.length === 0 && !loadingCourses && (
+                    <SelectItem disabled value="__empty">Nenhum curso</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-6 flex space-x-2 mt-2">
+              <Button type="submit">Filtrar</Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setYear("");
+                  setSemester("");
+                  setCourseId("");
+                  setPage(1);
+                  fetchList();
+                }}
+              >
+                Limpar
               </Button>
-          </CardHeader>
+            </div>
+          </form>
 
-          <CardContent>
-            <form
-              className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4"
-              onSubmit={handleFilter}
-            >
-              <div className="md:col-span-2">
-                <Label htmlFor="year">Ano</Label>
-                <Input
-                  id="year"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  placeholder="2025"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="semester">Semestre</Label>
-                <Input
-                  id="semester"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  placeholder="1"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="course">Course ID</Label>
-                <Input
-                  id="course"
-                  value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
-                  placeholder="course_id"
-                />
-              </div>
-              <div className="md:col-span-6 flex space-x-2 mt-2">
-                <Button type="submit">Filtrar</Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setYear("");
-                    setSemester("");
-                    setCourseId("");
-                    setPage(1);
-                    fetchList();
-                  }}
-                >
-                  Limpar
-                </Button>
-              </div>
-            </form>
-
-            {loading ? (
-              <div className="text-center py-8">Carregando...</div>
-            ) : error ? (
-              <div className="text-center py-8 text-destructive">{error}</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto">
-                  <thead>
-                    <tr className="text-left">
-                      <th className="px-3 py-2">Código</th>
-                      <th className="px-3 py-2">Nome</th>
-                      <th className="px-3 py-2">Ano</th>
-                      <th className="px-3 py-2">Semestre</th>
-                      <th className="px-3 py-2">Course ID</th>
-                      <th className="px-3 py-2">Capacidade</th>
-                      <th className="px-3 py-2">Ações</th>
+          {loading ? (
+            <div className="text-center py-8">Carregando...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-destructive">{error}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-3 py-2">Class Number</th>
+                    <th className="px-3 py-2">Ano</th>
+                    <th className="px-3 py-2">Semestre</th>
+                    <th className="px-3 py-2">Schedule</th>
+                    <th className="px-3 py-2">Course</th>
+                    <th className="px-3 py-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classes.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        Nenhuma turma encontrada
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {classes.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          Nenhuma turma encontrada
+                  ) : (
+                    classes.map((c) => (
+                      <tr key={c.id} className="border-t">
+                        <td className="px-3 py-2">{(c as any).classNumber ?? "-"}</td>
+                        <td className="px-3 py-2">{c.year}</td>
+                        <td className="px-3 py-2">{c.semester}</td>
+                        <td className="px-3 py-2">{(c as any).schedule ?? "-"}</td>
+                        <td className="px-3 py-2">{(c as any).course?.id || (c as any).course || "-"}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              onClick={() => openEdit(c)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleDelete(c.id)}
+                              className="text-destructive"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      classes.map((c) => (
-                        <tr key={c.id} className="border-t">
-                          <td className="px-3 py-2">{c.code || "-"}</td>
-                          <td className="px-3 py-2">{c.name}</td>
-                          <td className="px-3 py-2">{c.year}</td>
-                          <td className="px-3 py-2">{c.semester}</td>
-                          <td className="px-3 py-2">{c.course_id || "-"}</td>
-                          <td className="px-3 py-2">{c.capacity ?? "-"}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                onClick={() => openEdit(c)}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => handleDelete(c.id)}
-                                className="text-destructive"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div />
-              <div className="flex items-center space-x-2">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Anterior
-                </Button>
-                <span>Página {page}</span>
-                <Button onClick={() => setPage((p) => p + 1)}>Próxima</Button>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </CardContent>
-        </Card>
-      {/* Dialog for create / edit */}
+          )}
+
+          <div className="flex items-center justify-between mt-4">
+            <div />
+            <div className="flex items-center space-x-2">
+              <Button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <span>Página {page}</span>
+              <Button disabled={!canGoNext} onClick={() => setPage((p) => p + 1)}>Próxima</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          {/* hidden trigger - we open dialog programmatically */}
           <button style={{ display: "none" }} aria-hidden />
         </DialogTrigger>
         <DialogContent>
@@ -298,23 +323,22 @@ export function ClassesScreen() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3">
             <div>
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="classNumber">Class Number</Label>
               <Input
-                id="name"
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
+                id="classNumber"
+                value={form.classNumber}
+                onChange={(e: any) =>
+                  setForm((f) => ({ ...f, classNumber: e.target.value }))
                 }
-                required
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="year">Ano</Label>
+                <Label htmlFor="yearForm">Ano</Label>
                 <Input
                   id="yearForm"
                   value={form.year}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setForm((f) => ({ ...f, year: e.target.value }))
                   }
                   required
@@ -325,7 +349,7 @@ export function ClassesScreen() {
                 <Input
                   id="semesterForm"
                   value={form.semester}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setForm((f) => ({ ...f, semester: e.target.value }))
                   }
                   required
@@ -333,38 +357,38 @@ export function ClassesScreen() {
               </div>
             </div>
             <div>
-              <Label htmlFor="course_id">Course ID</Label>
+              <Label htmlFor="schedule">Schedule</Label>
               <Input
-                id="course_id"
-                value={form.course_id}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, course_id: e.target.value }))
+                id="schedule"
+                value={form.schedule}
+                onChange={(e: any) =>
+                  setForm((f) => ({ ...f, schedule: e.target.value }))
                 }
+                placeholder="Ex.: Seg/Qua 10:00-11:30"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="code">Código</Label>
-                <Input
-                  id="code"
-                  value={form.code}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, code: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="capacity">Capacidade</Label>
-                <Input
-                  id="capacity"
-                  value={form.capacity}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, capacity: e.target.value }))
-                  }
-                />
-              </div>
+            <div>
+              <Label>Course</Label>
+              <Select
+                value={form.course}
+                onValueChange={(val: string) => setForm((f: any) => ({ ...f, course: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCourses ? "Carregando..." : "Selecione"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.id}{c.name ? ` - ${c.name}` : ""}
+                    </SelectItem>
+                  ))}
+                  {courses.length === 0 && !loadingCourses && (
+                    <SelectItem disabled value="__empty">Nenhum curso</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-
+            
             <DialogFooter>
               <Button type="submit">Salvar</Button>
               <Button

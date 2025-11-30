@@ -6,20 +6,24 @@ export interface ListParams {
   course_id?: string;
 }
 
-// Build BASE from Vite environment variable `VITE_API_URL` (preferred).
-// Support multiple formats in env:
-// - http://host:port                  => becomes http://host:port/api/v1/classes
-// - http://host:port/api              => becomes http://host:port/api/v1/classes
-// - http://host:port/api/v1           => becomes http://host:port/api/v1/classes
-// If VITE_API_URL is missing, fall back to a relative path so proxying works in dev.
-function buildBase(): string {
-  // Simple rule per request: host always 'bff', port is provided via Vite env
-  const env = (import.meta as any).env || {};
-  const port = env.BFF_INTERNAL_API_PORT || env.VITE_API_PORT || '3000';
-  return `http://bff:${String(port)}/api/v1/classes`;
+function getAuthToken(): string | null {
+  const savedTokens = localStorage.getItem('auth_tokens');
+  if (!savedTokens) return null;
+  try {
+    const tokens = JSON.parse(savedTokens);
+    return tokens.access_token || null;
+  } catch {
+    return null;
+  }
 }
 
-const BASE = buildBase();
+function getBaseUrl(): string {
+  const env = (import.meta as any).env || {};
+  const baseUrl = env.VITE_BFF_URL || 'http://localhost:8080';
+  return `${baseUrl}/api/v1/classes`;
+}
+
+const BASE = getBaseUrl();
 
 async function handleResp(res: Response) {
   if (!res.ok) {
@@ -46,49 +50,79 @@ function qs(params: Record<string, any> = {}) {
 
 export async function listClasses(params: ListParams = {}) {
   const query = qs(params as any);
-  const res = await fetch(`${BASE}${query}`, { credentials: 'include' });
+  const token = getAuthToken();
+  const res = await fetch(`${BASE}${query}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
   return handleResp(res);
 }
 
 export async function getClass(id: string) {
-  const res = await fetch(`${BASE}/${encodeURIComponent(id)}`, { credentials: 'include' });
+  const token = getAuthToken();
+  const res = await fetch(`${BASE}/${encodeURIComponent(id)}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
   return handleResp(res);
 }
 
 export async function createClass(payload: any) {
+  const token = getAuthToken();
   const res = await fetch(BASE, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
   return handleResp(res);
 }
 
 export async function updateClass(id: string, payload: any) {
+  const token = getAuthToken();
   const res = await fetch(`${BASE}/${encodeURIComponent(id)}`, {
     method: 'PUT',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
   return handleResp(res);
 }
 
 export async function patchClass(id: string, payload: any) {
+  const token = getAuthToken();
   const res = await fetch(`${BASE}/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
   return handleResp(res);
 }
 
 export async function deleteClass(id: string) {
+  const token = getAuthToken();
   const res = await fetch(`${BASE}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   return handleResp(res);
 }
