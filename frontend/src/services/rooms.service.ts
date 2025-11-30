@@ -1,7 +1,8 @@
 export type RoomStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
 
+// Interface atualizada para corresponder ao room.entity.ts do backend
 export interface Room {
-  id: string;
+  _id: string; // Alterado de 'id' para '_id'
   number: string;
   building: string;
   category: string;
@@ -11,6 +12,16 @@ export interface Room {
   status: RoomStatus;
   createdAt?: string;
   updatedAt?: string;
+  // Mobílias são opcionais pois o backend pode não retorná-las ainda
+  furnitures?: Furniture[]; 
+}
+
+// Representação básica de Mobília baseada no schema
+export interface Furniture {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
 }
 
 export interface CreateRoomDto {
@@ -72,13 +83,14 @@ async function apiRequest<T>(
     const responseText = await response.text();
 
     if (!response.ok) {
-      let errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
+      let errorMessage = 'Erro no servidor.';
       try {
         const errorData = JSON.parse(responseText);
-        if (errorData.detail) errorMessage = errorData.detail;
-        else if (errorData.message) errorMessage = errorData.message;
+        // Tenta extrair mensagem de erro de vários formatos comuns
+        errorMessage = errorData.detail || errorData.message || errorMessage;
       } catch {
-        // Falha no parse, usa mensagem padrão
+        // Se falhar o parse, mantém mensagem genérica ou usa o texto cru se for curto
+        if (responseText && responseText.length < 100) errorMessage = responseText;
       }
       throw new Error(errorMessage);
     }
@@ -93,9 +105,10 @@ async function apiRequest<T>(
 
     try {
       const parsedResponse = JSON.parse(responseText);
-      // O BFF pode retornar dados encapsulados em 'data' ou diretamente
-      if (parsedResponse && parsedResponse.data !== undefined) {
-        return parsedResponse.data as T;
+      // Alguns endpoints do BFF podem encapsular em 'data', outros retornam direto
+      if (parsedResponse && parsedResponse.data !== undefined && !Array.isArray(parsedResponse)) {
+          // Nota: Verificamos !Array.isArray porque listas as vezes vem direto
+          return parsedResponse.data as T;
       }
       return parsedResponse as T;
     } catch {
@@ -103,7 +116,7 @@ async function apiRequest<T>(
     }
   } catch (error) {
     if (error instanceof Error) throw error;
-    throw new Error('Erro desconhecido ao fazer requisição');
+    throw new Error('Erro desconhecido na requisição');
   }
 }
 
@@ -142,7 +155,7 @@ export async function createRoom(data: CreateRoomDto): Promise<Room> {
 
 export async function updateRoom(id: string, data: Partial<CreateRoomDto>): Promise<Room> {
   return apiRequest<Room>(`/rooms/${id}`, {
-    method: 'PUT', // BFF usa PUT para update completo ou PATCH para parcial, ajustável conforme necessidade
+    method: 'PUT', // BFF define PUT para update completo
     body: JSON.stringify(data),
   });
 }

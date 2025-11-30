@@ -9,7 +9,7 @@ import {
   RoomStatus
 } from '../../services/rooms.service';
 
-// Componentes UI
+// UI Components
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { 
@@ -41,13 +41,10 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Loader2, Building, Search } from 'lucide-react';
 
 export function RoomsScreen() {
-  // --- Estados ---
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Filtros simples
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estado do formulário
@@ -62,13 +59,12 @@ export function RoomsScreen() {
     status: 'ACTIVE'
   });
 
-  // --- Carregamento de Dados ---
   const fetchRooms = async () => {
     try {
       setIsLoading(true);
-      // Busca inicial. Em produção, implementar paginação real via params
       const response = await getRooms({ limit: 100 });
-      setRooms(response.items || []);
+      // Proteção contra resposta vazia ou formato inesperado
+      setRooms(Array.isArray(response) ? response : response.items || []);
     } catch (error) {
       console.error(error);
       toast.error('Não foi possível carregar a lista de salas.');
@@ -80,8 +76,6 @@ export function RoomsScreen() {
   useEffect(() => {
     fetchRooms();
   }, []);
-
-  // --- Handlers ---
 
   const handleOpenDialog = (room?: Room) => {
     if (room) {
@@ -115,7 +109,7 @@ export function RoomsScreen() {
     setIsSaving(true);
     
     try {
-      // Ajuste de tipos antes de enviar
+      // Conversão explícita para garantir envio de Int para o backend
       const payload: CreateRoomDto = {
         ...formData,
         capacity: Number(formData.capacity),
@@ -123,7 +117,8 @@ export function RoomsScreen() {
       };
 
       if (editingRoom) {
-        await updateRoom(editingRoom.id, payload);
+        // Importante: Usa _id aqui
+        await updateRoom(editingRoom._id, payload);
         toast.success('Sala atualizada com sucesso!');
       } else {
         await createRoom(payload);
@@ -131,7 +126,7 @@ export function RoomsScreen() {
       }
       
       setIsDialogOpen(false);
-      fetchRooms(); // Recarrega a lista
+      fetchRooms();
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar sala.');
@@ -153,18 +148,14 @@ export function RoomsScreen() {
     }
   };
 
-  // Filtragem local simples para feedback imediato
   const filteredRooms = rooms.filter(room => 
     room.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     room.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
     room.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // --- Renderização ---
   return (
     <div className="p-4 md:p-6 w-full space-y-6">
-      
-      {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Salas</h2>
@@ -177,7 +168,6 @@ export function RoomsScreen() {
         </Button>
       </div>
 
-      {/* Conteúdo Principal */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
@@ -186,16 +176,14 @@ export function RoomsScreen() {
               Visualize todos os espaços cadastrados.
             </CardDescription>
           </div>
-          <div className="flex items-center space-x-2 w-full md:w-auto">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar sala..."
-                className="pl-8 w-[200px] md:w-[300px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+          <div className="relative w-full md:w-auto">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, prédio..."
+              className="pl-8 w-full md:w-[300px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -210,7 +198,7 @@ export function RoomsScreen() {
                 <Building className="h-12 w-12 opacity-20" />
               </div>
               <p>Nenhuma sala encontrada.</p>
-              {searchTerm && <p className="text-sm">Tente limpar o filtro de busca.</p>}
+              {searchTerm && <p className="text-sm">Tente ajustar o filtro de busca.</p>}
             </div>
           ) : (
             <div className="rounded-md border">
@@ -228,7 +216,8 @@ export function RoomsScreen() {
                 </TableHeader>
                 <TableBody>
                   {filteredRooms.map((room) => (
-                    <TableRow key={room.id}>
+                    // Importante: Key usa _id
+                    <TableRow key={room._id}>
                       <TableCell className="font-medium">{room.number}</TableCell>
                       <TableCell>{room.building}</TableCell>
                       <TableCell>{room.category}</TableCell>
@@ -251,7 +240,8 @@ export function RoomsScreen() {
                             variant="ghost" 
                             size="icon" 
                             className="text-destructive hover:text-destructive hover:bg-destructive/10" 
-                            onClick={() => handleDelete(room.id)}
+                            // Importante: Passa _id para exclusão
+                            onClick={() => handleDelete(room._id)}
                             title="Excluir"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -267,7 +257,6 @@ export function RoomsScreen() {
         </CardContent>
       </Card>
 
-      {/* Modal de Criação/Edição */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -363,7 +352,7 @@ export function RoomsScreen() {
                 id="description" 
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Detalhes opcionais sobre equipamentos, ar-condicionado, etc." 
+                placeholder="Detalhes opcionais sobre equipamentos..." 
                 maxLength={255}
               />
             </div>
@@ -384,7 +373,6 @@ export function RoomsScreen() {
   );
 }
 
-// Componente auxiliar simples para renderizar o badge de status
 function StatusBadge({ status }: { status: RoomStatus }) {
   const styles = {
     ACTIVE: 'bg-green-100 text-green-700 border-green-200',
