@@ -27,6 +27,7 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
+  deletePhoneNumber,
   type Student,
   type StudentCreateRequest,
   type StudentUpdateRequest,
@@ -45,6 +46,8 @@ export function StudentsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isDeletePhoneDialogOpen, setIsDeletePhoneDialogOpen] = useState(false);
+  const [selectedPhoneIndex, setSelectedPhoneIndex] = useState<number | null>(null);
 
   const loadStudents = useCallback(async () => {
     try {
@@ -129,6 +132,30 @@ export function StudentsScreen() {
     setIsModalOpen(true);
   };
 
+  const handleDeletePhone = (student: Student, phoneIndex: number) => {
+    setSelectedStudent(student);
+    setSelectedPhoneIndex(phoneIndex);
+    setIsDeletePhoneDialogOpen(true);
+  };
+
+  const confirmDeletePhone = async () => {
+    if (!selectedStudent || selectedPhoneIndex === null) return;
+    try {
+      setIsSubmitting(true);
+      // Usar o índice como ID para o endpoint
+      await deletePhoneNumber(selectedStudent.id, String(selectedPhoneIndex));
+      toast.success('Número de telefone removido com sucesso');
+      setIsDeletePhoneDialogOpen(false);
+      setSelectedPhoneIndex(null);
+      loadStudents();
+    } catch (error) {
+      console.error('Erro ao remover número de telefone:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao remover número de telefone');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / size) || 1;
 
   return (
@@ -184,16 +211,36 @@ export function StudentsScreen() {
                       <TableHead>Nome</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Currículo</TableHead>
+                      <TableHead>Telefones</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map((student) => (
+                    {students.map((student: Student) => (
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.enrollment}</TableCell>
                         <TableCell>{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
                         <TableCell>{student.courseCurriculum}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {student.phoneNumbers && student.phoneNumbers.length > 0 ? (
+                              student.phoneNumbers.map((phone: any, index: number) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleDeletePhone(student, index)}
+                                  className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm hover:bg-blue-200 cursor-pointer transition-colors"
+                                  title="Clique para remover"
+                                >
+                                  <span>({phone.ddd}) {String(phone.number).replace(/(\d{4})(\d{4})/, '$1-$2')}</span>
+                                  <span className="text-xs">✕</span>
+                                </button>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Sem telefone</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(student)}>
@@ -230,17 +277,35 @@ export function StudentsScreen() {
         </CardContent>
       </Card>
 
-      {/* Delete confirmation dialog */}
+      {/* Delete student confirmation dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão de estudante</AlertDialogTitle>
             <AlertDialogDescription>Tem certeza que deseja excluir este estudante?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} disabled={isSubmitting}>
               {isSubmitting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete phone confirmation dialog */}
+      <AlertDialog open={isDeletePhoneDialogOpen} onOpenChange={setIsDeletePhoneDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover número de telefone</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o número {selectedStudent && selectedPhoneIndex !== null && selectedStudent.phoneNumbers?.[selectedPhoneIndex] ? `(${selectedStudent.phoneNumbers[selectedPhoneIndex].ddd}) ${selectedStudent.phoneNumbers[selectedPhoneIndex].number}` : ''}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeletePhone} disabled={isSubmitting}>
+              {isSubmitting ? 'Removendo...' : 'Remover'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

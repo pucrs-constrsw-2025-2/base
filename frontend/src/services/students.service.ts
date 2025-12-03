@@ -1,7 +1,7 @@
 export interface PhoneNumber {
-  ddd: number;
-  number: number;
-  description?: string;
+  Ddd: number;
+  Number: number;
+  Description?: string;
 }
 
 export interface Student {

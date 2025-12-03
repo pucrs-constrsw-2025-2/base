@@ -93,9 +93,9 @@ export function StudentsModal({
   const addPhoneNumber = () => {
     if (phoneDdd.trim() && phoneNumber.trim()) {
       const newPhone: PhoneNumber = {
-        ddd: parseInt(phoneDdd),
-        number: parseInt(phoneNumber),
-        description: phoneDescription.trim() || undefined,
+        Ddd: parseInt(phoneDdd),
+        Number: parseInt(phoneNumber),
+        Description: phoneDescription.trim() || undefined,
       };
       setPhoneNumbers([...phoneNumbers, newPhone]);
       setPhoneDdd('');
@@ -267,21 +267,21 @@ export function StudentsModal({
                 <Input
                   placeholder="DDD"
                   value={phoneDdd}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneDdd(e.target.value)}
+                  onChange={(e: any) => setPhoneDdd(e.target.value)}
                   disabled={isLoading}
                   maxLength={2}
                 />
                 <Input
                   placeholder="Número"
                   value={phoneNumber}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
+                  onChange={(e: any) => setPhoneNumber(e.target.value)}
                   disabled={isLoading}
                   maxLength={8}
                 />
                 <Input
                   placeholder="Descrição (opcional)"
                   value={phoneDescription}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneDescription(e.target.value)}
+                  onChange={(e: any) => setPhoneDescription(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
