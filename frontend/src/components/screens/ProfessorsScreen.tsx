@@ -698,7 +698,7 @@ export function ProfessorsScreen() {
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleteLoading}
-              className="bg-red-500 hover:bg-red-600 focus:ring-red-500"
+              className="!bg-red-600 !text-white hover:!bg-red-700 focus:ring-red-500"
             >
               {deleteLoading && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
