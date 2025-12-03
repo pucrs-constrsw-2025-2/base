@@ -1,14 +1,37 @@
+export type RoomStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
+
+// Interface atualizada para corresponder ao room.entity.ts do backend
 export interface Room {
-  id: string;
+  _id: string; // Alterado de 'id' para '_id'
   number: string;
   building: string;
   category: string;
   capacity: number;
   floor: number;
   description?: string;
-  status: string;
+  status: RoomStatus;
   createdAt?: string;
   updatedAt?: string;
+  // Mobílias são opcionais pois o backend pode não retorná-las ainda
+  furnitures?: Furniture[]; 
+}
+
+// Representação básica de Mobília baseada no schema
+export interface Furniture {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+}
+
+export interface CreateRoomDto {
+  number: string;
+  building: string;
+  category: string;
+  capacity: number;
+  floor: number;
+  description?: string;
+  status?: RoomStatus;
 }
 
 export interface RoomListResponse {
@@ -101,7 +124,8 @@ async function apiRequest<T>(
           errorMessage = errorData;
         }
       } catch {
-        // Se não conseguir parsear, usar a mensagem padrão
+        // Se falhar o parse, mantém mensagem genérica ou usa o texto cru se for curto
+        if (responseText && responseText.length < 100) errorMessage = responseText;
       }
       console.error("API Error:", {
         status: response.status,
