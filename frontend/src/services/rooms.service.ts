@@ -110,6 +110,19 @@ async function apiRequest<T>(
   }
 }
 
+// Normalizar room para garantir compatibilidade com id/_id
+function normalizeRoom(room: any): Room {
+  if (!room) return room;
+  
+  // Normalizar ID: aceitar tanto _id quanto id
+  const normalized: Room = {
+    ...room,
+    id: room.id || room._id || '',
+  };
+  
+  return normalized;
+}
+
 export async function getRooms(params?: {
   page?: number;
   limit?: number;
@@ -127,10 +140,18 @@ export async function getRooms(params?: {
   if (params?.number) queryParams.append('number', params.number);
 
   const queryString = queryParams.toString();
-  return apiRequest<RoomListResponse>(`/rooms${queryString ? `?${queryString}` : ''}`);
+  const response = await apiRequest<RoomListResponse>(`/rooms${queryString ? `?${queryString}` : ''}`);
+  
+  // Normalizar rooms na lista
+  if (response && response.items) {
+    response.items = response.items.map(normalizeRoom);
+  }
+  
+  return response;
 }
 
 export async function getRoomById(id: string): Promise<Room> {
-  return apiRequest<Room>(`/rooms/${id}`);
+  const room = await apiRequest<Room>(`/rooms/${id}`);
+  return normalizeRoom(room);
 }
 

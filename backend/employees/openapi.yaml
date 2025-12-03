@@ -88,6 +88,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
       responses:
         '200':
           description: Dados do funcionário
@@ -113,6 +115,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
       requestBody:
         required: true
         content:
@@ -146,6 +150,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
       requestBody:
         required: true
         content:
@@ -179,6 +185,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
       responses:
         '204':
           description: Funcionário deletado
@@ -201,6 +209,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
         - name: page
           in: query
           schema:
@@ -252,6 +262,8 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
       requestBody:
         required: true
         content:
@@ -286,11 +298,15 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
         - name: taskId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID da tarefa (UUID)
       responses:
         '200':
           description: Dados da tarefa
@@ -316,11 +332,15 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
         - name: taskId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID da tarefa (UUID)
       requestBody:
         required: true
         content:
@@ -354,11 +374,15 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
         - name: taskId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID da tarefa (UUID)
       requestBody:
         required: true
         content:
@@ -392,11 +416,15 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID do funcionário (UUID)
         - name: taskId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
+          description: ID da tarefa (UUID)
       responses:
         '204':
           description: Tarefa deletada
@@ -508,6 +536,8 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          description: ID único do funcionário (UUID)
         contract_number:
           type: integer
           format: int64
@@ -585,6 +615,12 @@ components:
       properties:
         id:
           type: string
+          format: uuid
+          description: ID único da tarefa (UUID)
+        employee_id:
+          type: string
+          format: uuid
+          description: ID do funcionário proprietário da tarefa (UUID)
         description:
           type: string
         start_date:
