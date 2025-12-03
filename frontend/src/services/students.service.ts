@@ -5,11 +5,11 @@ export interface PhoneNumber {
 }
 
 export interface Student {
-  _id: string;
+  id: string;
   name: string;
   enrollment: string;
   email: string;
-  course_curriculum: string;
+  courseCurriculum: string;
   phoneNumbers?: PhoneNumber[];
   classes?: string[];
   createdAt?: string;
@@ -17,12 +17,11 @@ export interface Student {
 }
 
 export interface StudentListResponse {
-  items?: Student[];
-  data?: {
-    items: Student[];
-    meta?: any;
-  };
+  data: Student[];
   meta?: {
+    timestamp?: string;
+    requestId?: string;
+    version?: string;
     page?: number;
     limit?: number;
     total?: number;
@@ -34,7 +33,7 @@ export interface StudentCreateRequest {
   name: string;
   enrollment: string;
   email: string;
-  course_curriculum: string;
+  courseCurriculum: string;
   phoneNumbers?: PhoneNumber[];
   classes?: string[];
 }
@@ -43,19 +42,31 @@ export interface StudentUpdateRequest {
   name?: string;
   enrollment?: string;
   email?: string;
-  course_curriculum?: string;
+  courseCurriculum?: string;
   phoneNumbers?: PhoneNumber[];
   classes?: string[];
 }
 
 function getAuthToken(): string | null {
   const savedTokens = localStorage.getItem('auth_tokens');
-  if (!savedTokens) return null;
+  if (!savedTokens) {
+    console.error('❌ Token não encontrado no localStorage. Chave: "auth_tokens"');
+    console.log('📋 Chaves disponíveis no localStorage:', Object.keys(localStorage));
+    return null;
+  }
 
   try {
     const tokens = JSON.parse(savedTokens);
-    return tokens.access_token || null;
-  } catch {
+    const token = tokens.access_token || null;
+    if (!token) {
+      console.error('❌ access_token não encontrado no objeto de tokens');
+      console.log('📋 Estrutura dos tokens:', Object.keys(tokens));
+    } else {
+      console.log('✅ Token encontrado e recuperado com sucesso');
+    }
+    return token;
+  } catch (error) {
+    console.error('❌ Erro ao parsear tokens:', error);
     return null;
   }
 }
@@ -69,7 +80,7 @@ async function apiRequest<T>(
     throw new Error('Token de autenticação não encontrado');
   }
 
-  const baseUrl = (import.meta.env.VITE_BFF_URL as string) || 'http://localhost:8080';
+  const baseUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080';
   const url = `${baseUrl}/api/v1${endpoint}`;
 
   const headers: HeadersInit = {
@@ -77,6 +88,12 @@ async function apiRequest<T>(
     Authorization: `Bearer ${token}`,
     ...(options.headers as HeadersInit),
   };
+
+  console.log('📤 Enviando requisição para:', url);
+  console.log('🔐 Headers sendo enviados:', {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token ? token.substring(0, 10) + '...' : 'NÃO ENCONTRADO'}`,
+  });
 
   try {
     const response = await fetch(url, {
@@ -114,8 +131,6 @@ async function apiRequest<T>(
 
     try {
       const parsed = JSON.parse(responseText);
-      // BFF pode encapsular em { data: ... }
-      if (parsed && parsed.data !== undefined) return parsed.data as T;
       return parsed as T;
     } catch (parseError) {
       console.error('Erro ao parsear resposta JSON:', parseError, responseText);
@@ -150,16 +165,36 @@ export async function getStudentById(id: string): Promise<Student> {
 }
 
 export async function createStudent(data: StudentCreateRequest): Promise<Student> {
+  // Transformar os dados para o padrão esperado pela API (PascalCase)
+  const apiData = {
+    Name: data.name,
+    Enrollment: data.enrollment,
+    Email: data.email,
+    CourseCurriculum: data.courseCurriculum,
+    Classes: data.classes || [],
+    PhoneNumbers: data.phoneNumbers || [],
+  };
+  
   return apiRequest<Student>('/students', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(apiData),
   });
 }
 
 export async function updateStudent(id: string, data: StudentUpdateRequest): Promise<Student> {
+  // Transformar os dados para o padrão esperado pela API (PascalCase)
+  const apiData: Record<string, any> = {};
+  
+  if (data.name !== undefined) apiData.Name = data.name;
+  if (data.enrollment !== undefined) apiData.Enrollment = data.enrollment;
+  if (data.email !== undefined) apiData.Email = data.email;
+  if (data.courseCurriculum !== undefined) apiData.CourseCurriculum = data.courseCurriculum;
+  if (data.classes !== undefined) apiData.Classes = data.classes;
+  apiData.PhoneNumbers = data.phoneNumbers || [];
+  
   return apiRequest<Student>(`/students/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify(apiData),
   });
 }
 

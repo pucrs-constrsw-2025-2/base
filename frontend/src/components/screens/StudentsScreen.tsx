@@ -51,14 +51,13 @@ export function StudentsScreen() {
       setLoading(true);
       const response = await getStudents({ page, size, name: searchTerm || undefined });
 
-      // BFF pode retornar { items: [], meta } ou { data: { items, meta } }
-      const items = (response.items as Student[]) || (response.data?.items as Student[]) || [];
-      const meta = response.meta || response.data?.meta;
-      setStudents(items || []);
-      if (meta) {
-        setTotal(meta.total || 0);
-      } else if (Array.isArray(items)) {
-        setTotal(items.length);
+      // API retorna { data: [], meta: {...} }
+      setStudents(response.data || []);
+      console.log(response.data)
+      if (response.meta) {
+        setTotal(response.meta.total || response.data?.length || 0);
+      } else {
+        setTotal(response.data?.length || 0);
       }
     } catch (error) {
       console.error('Erro ao carregar estudantes:', error);
@@ -86,7 +85,7 @@ export function StudentsScreen() {
     if (!selectedStudent) return;
     try {
       setIsSubmitting(true);
-      await deleteStudent(selectedStudent._id);
+      await deleteStudent(selectedStudent.id);
       toast.success('Estudante excluído com sucesso');
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
@@ -103,7 +102,7 @@ export function StudentsScreen() {
     try {
       setIsSubmitting(true);
       if (editingStudent) {
-        await updateStudent(editingStudent._id, data as StudentUpdateRequest);
+        await updateStudent(editingStudent.id, data as StudentUpdateRequest);
         toast.success('Estudante atualizado com sucesso');
       } else {
         await createStudent(data as StudentCreateRequest);
@@ -190,11 +189,11 @@ export function StudentsScreen() {
                   </TableHeader>
                   <TableBody>
                     {students.map((student) => (
-                      <TableRow key={student._id}>
+                      <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.enrollment}</TableCell>
                         <TableCell>{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
-                        <TableCell>{student.course_curriculum}</TableCell>
+                        <TableCell>{student.courseCurriculum}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(student)}>
