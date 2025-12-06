@@ -29,7 +29,7 @@ export function CategoryCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Folder className="w-6 h-6 text-primary" />
+              <Folder className="w-7 h-7 text-primary" />
             </div>
             <div>
               <CardTitle className="text-lg">{category.name}</CardTitle>

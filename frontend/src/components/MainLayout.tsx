@@ -69,7 +69,7 @@ export function MainLayout({ children, currentUser, onLogout, onNavigate }: Main
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background w-full">
+      <div className="flex w-full h-screen bg-background">
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex">
           <SidebarHeader className="p-4 border-b">
