@@ -11,6 +11,7 @@ import { FeatureDialog } from '../dialogs/FeatureDialog';
 import { DeleteConfirmDialog } from '../dialogs/DeleteConfirmDialog';
 import { Feature, Category, CreateFeatureDto, UpdateFeatureDto } from '../../../types/resources';
 import { toast } from 'sonner';
+import resourcesApiService from '../../../services/api/resources-api.service';
 
 const valueTypeLabels: Record<string, string> = {
   string: 'Texto',
@@ -24,47 +25,8 @@ interface FeaturesTabProps {
 }
 
 export function FeaturesTab({ initialCategoryFilter }: FeaturesTabProps = {}) {
-  // Mock data
-  const [categories] = useState<Category[]>([
-    { id: '1', name: 'Notebooks' },
-    { id: '2', name: 'Projetores' },
-    { id: '3', name: 'Impressoras' },
-  ]);
-
-  const [features, setFeatures] = useState<Feature[]>([
-    {
-      id: '1',
-      name: 'Memória RAM',
-      categoryId: '1',
-      categoryName: 'Notebooks',
-      description: 'Quantidade de memória RAM',
-      valueType: 'string',
-    },
-    {
-      id: '2',
-      name: 'Processador',
-      categoryId: '1',
-      categoryName: 'Notebooks',
-      description: 'Modelo do processador',
-      valueType: 'string',
-    },
-    {
-      id: '3',
-      name: 'Luminosidade',
-      categoryId: '2',
-      categoryName: 'Projetores',
-      description: 'Luminosidade em lumens',
-      valueType: 'number',
-    },
-    {
-      id: '4',
-      name: 'WiFi Integrado',
-      categoryId: '2',
-      categoryName: 'Projetores',
-      description: 'Possui WiFi integrado',
-      valueType: 'boolean',
-    },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -72,6 +34,36 @@ export function FeaturesTab({ initialCategoryFilter }: FeaturesTabProps = {}) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | undefined>();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setInitialLoading(true);
+      const [categoriesData, featuresData] = await Promise.all([
+        resourcesApiService.categories.list(),
+        resourcesApiService.features.list(),
+      ]);
+
+      setCategories(categoriesData);
+      
+      // Popular categoryName nas features
+      const featuresWithCategoryName = featuresData.map((feature) => ({
+        ...feature,
+        categoryName: categoriesData.find((c) => c.id === feature.categoryId)?.name,
+      }));
+      
+      setFeatures(featuresWithCategoryName);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao carregar dados');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // Aplicar filtro inicial se fornecido
   useEffect(() => {
@@ -105,36 +97,30 @@ export function FeaturesTab({ initialCategoryFilter }: FeaturesTabProps = {}) {
   const handleSubmit = async (data: CreateFeatureDto | UpdateFeatureDto) => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       if (selectedFeature) {
+        // Update
+        const updated = await resourcesApiService.features.patch(selectedFeature.id, data);
+        const categoryName = categories.find((c) => c.id === updated.categoryId)?.name;
+        
         setFeatures(
-          features.map((feat) => {
-            if (feat.id === selectedFeature.id) {
-              const categoryName =
-                categories.find((c) => c.id === (data as any).categoryId)?.name ||
-                feat.categoryName;
-              return { ...feat, ...data, categoryName };
-            }
-            return feat;
-          })
+          features.map((feat) =>
+            feat.id === selectedFeature.id ? { ...updated, categoryName } : feat
+          )
         );
         toast.success('Feature atualizada com sucesso!');
       } else {
-        const categoryName = categories.find((c) => c.id === (data as any).categoryId)?.name;
-        const newFeature: Feature = {
-          id: Date.now().toString(),
-          ...(data as CreateFeatureDto),
-          categoryName,
-        };
-        setFeatures([...features, newFeature]);
+        // Create
+        const created = await resourcesApiService.features.create(data as CreateFeatureDto);
+        const categoryName = categories.find((c) => c.id === created.categoryId)?.name;
+        
+        setFeatures([...features, { ...created, categoryName }]);
         toast.success('Feature criada com sucesso!');
       }
 
       setDialogOpen(false);
       setSelectedFeature(undefined);
-    } catch (error) {
-      toast.error('Erro ao salvar feature');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar feature');
     } finally {
       setLoading(false);
     }
@@ -145,18 +131,28 @@ export function FeaturesTab({ initialCategoryFilter }: FeaturesTabProps = {}) {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      await resourcesApiService.features.delete(selectedFeature.id);
       setFeatures(features.filter((feat) => feat.id !== selectedFeature.id));
       toast.success('Feature excluída com sucesso!');
       setDeleteDialogOpen(false);
       setSelectedFeature(undefined);
-    } catch (error) {
-      toast.error('Erro ao excluir feature');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir feature');
     } finally {
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando features...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

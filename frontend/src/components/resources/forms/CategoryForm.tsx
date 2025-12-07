@@ -16,7 +16,6 @@ interface CategoryFormProps {
 export function CategoryForm({ category, onSubmit, onCancel, loading }: CategoryFormProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
-    description: category?.description || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,18 +68,6 @@ export function CategoryForm({ category, onSubmit, onCancel, loading }: Category
           disabled={loading}
         />
         {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Descrição da categoria"
-          rows={3}
-          disabled={loading}
-        />
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

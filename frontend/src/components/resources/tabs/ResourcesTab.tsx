@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../ui/button';
 import { Plus, Search, Filter, Monitor } from 'lucide-react';
 import { Input } from '../../ui/input';
@@ -6,66 +6,76 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ResourceCard } from '../views/ResourceCard';
 import { ResourceDialog } from '../dialogs/ResourceDialog';
 import { DeleteConfirmDialog } from '../dialogs/DeleteConfirmDialog';
-import { ResourceDetailView } from '../views/ResourceDetailView';
-import { Resource, Category, CreateResourceDto, UpdateResourceDto, ResourceStatus } from '../../../types/resources';
+import { FeatureValueDialog } from '../dialogs/FeatureValueDialog';
+import { ResourceDetailView, ResourceDetailViewRef } from '../views/ResourceDetailView';
+import { Resource, Category, CreateResourceDto, UpdateResourceDto, ResourceStatus, Feature, FeatureValue, CreateFeatureValueDto } from '../../../types/resources';
 import { toast } from 'sonner';
+import resourcesApiService from '../../../services/api/resources-api.service';
 
 interface ResourcesTabProps {
   initialCategoryFilter?: string;
 }
 
 export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) {
-  // Mock data - será substituído por dados reais da API
-  const [categories] = useState<Category[]>([
-    { id: '1', name: 'Notebooks' },
-    { id: '2', name: 'Projetores' },
-    { id: '3', name: 'Impressoras' },
-  ]);
-
-  const [resources, setResources] = useState<Resource[]>([
-    {
-      id: '1',
-      name: 'Notebook Dell Inspiron 15',
-      categoryId: '1',
-      categoryName: 'Notebooks',
-      description: 'Intel i5, 8GB RAM, 256GB SSD',
-      status: 'available',
-    },
-    {
-      id: '2',
-      name: 'Notebook Lenovo ThinkPad',
-      categoryId: '1',
-      categoryName: 'Notebooks',
-      description: 'Intel i7, 16GB RAM, 512GB SSD',
-      status: 'in-use',
-    },
-    {
-      id: '3',
-      name: 'Projetor Epson PowerLite',
-      categoryId: '2',
-      categoryName: 'Projetores',
-      description: '3500 lumens, Full HD',
-      status: 'available',
-    },
-    {
-      id: '4',
-      name: 'Impressora HP LaserJet',
-      categoryId: '3',
-      categoryName: 'Impressoras',
-      description: 'Monocromática, duplex automático',
-      status: 'maintenance',
-    },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [featureValues, setFeatureValues] = useState<FeatureValue[]>([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [featureValueDialogOpen, setFeatureValueDialogOpen] = useState(false);
+  const [deleteFeatureValueDialogOpen, setDeleteFeatureValueDialogOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | undefined>();
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<Resource | undefined>();
+  const [selectedFeatureValue, setSelectedFeatureValue] = useState<FeatureValue | undefined>();
   const [showDetailView, setShowDetailView] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const detailViewRef = useRef<ResourceDetailViewRef>(null);
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setInitialLoading(true);
+      const [categoriesData, resourcesData, featuresData] = await Promise.all([
+        resourcesApiService.categories.list(),
+        resourcesApiService.resources.list(),
+        resourcesApiService.features.list(),
+      ]);
+
+      console.log('📦 Categorias carregadas:', categoriesData);
+      console.log('📦 Recursos carregados:', resourcesData);
+
+      setCategories(categoriesData);
+      setFeatures(featuresData);
+      
+      // Popular categoryName nos recursos
+      const resourcesWithCategoryName = resourcesData.map((resource) => {
+        const category = categoriesData.find((c) => c.id === resource.categoryId);
+        console.log(`🔍 Recurso ${resource.name} - categoryId: ${resource.categoryId} -> categoria: ${category?.name}`);
+        return {
+          ...resource,
+          categoryName: category?.name,
+        };
+      });
+      
+      console.log('📦 Recursos com categoria:', resourcesWithCategoryName);
+      setResources(resourcesWithCategoryName);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao carregar dados');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // Aplicar filtro inicial se fornecido
   useEffect(() => {
@@ -98,47 +108,49 @@ export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) 
     setDeleteDialogOpen(true);
   };
 
-  const handleView = (resource: Resource) => {
-    setSelectedResourceForDetail(resource);
+  const handleView = async (resource: Resource) => {
+    // Garantir que o categoryName esteja populado
+    const resourceWithCategory = {
+      ...resource,
+      categoryName: resource.categoryName || categories.find((c) => c.id === resource.categoryId)?.name,
+    };
+    
+    console.log('👁️ Visualizando recurso:', resourceWithCategory);
+    
+    setSelectedResourceForDetail(resourceWithCategory);
     setShowDetailView(true);
   };
 
   const handleSubmit = async (data: CreateResourceDto | UpdateResourceDto) => {
     setLoading(true);
     try {
-      // TODO: Chamar API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       if (selectedResource) {
         // Update
+        const updated = await resourcesApiService.resources.patch(selectedResource.id, data);
+        const categoryName = categories.find((c) => c.id === updated.categoryId)?.name;
+        
         setResources(
-          resources.map((res) => {
-            if (res.id === selectedResource.id) {
-              const categoryName =
-                categories.find((c) => c.id === (data as any).categoryId)?.name ||
-                res.categoryName;
-              return { ...res, ...data, categoryName };
-            }
-            return res;
-          })
+          resources.map((res) =>
+            res.id === selectedResource.id ? { ...updated, categoryName } : res
+          )
         );
         toast.success('Recurso atualizado com sucesso!');
       } else {
         // Create
-        const categoryName = categories.find((c) => c.id === (data as any).categoryId)?.name;
-        const newResource: Resource = {
-          id: Date.now().toString(),
-          ...(data as CreateResourceDto),
-          categoryName,
-        };
-        setResources([...resources, newResource]);
+        const created = await resourcesApiService.resources.create(data as CreateResourceDto);
+        const categoryName = categories.find((c) => c.id === created.categoryId)?.name;
+        
+        console.log('✅ Recurso criado:', created);
+        console.log('🏷️ Categoria encontrada:', categoryName);
+        
+        setResources([...resources, { ...created, categoryName }]);
         toast.success('Recurso criado com sucesso!');
       }
 
       setDialogOpen(false);
       setSelectedResource(undefined);
-    } catch (error) {
-      toast.error('Erro ao salvar recurso');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar recurso');
     } finally {
       setLoading(false);
     }
@@ -149,19 +161,96 @@ export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) 
 
     setLoading(true);
     try {
-      // TODO: Chamar API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      await resourcesApiService.resources.delete(selectedResource.id);
       setResources(resources.filter((res) => res.id !== selectedResource.id));
       toast.success('Recurso excluído com sucesso!');
       setDeleteDialogOpen(false);
       setSelectedResource(undefined);
-    } catch (error) {
-      toast.error('Erro ao excluir recurso');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir recurso');
     } finally {
       setLoading(false);
     }
   };
+
+  // Feature Values handlers
+  const handleAddFeatureValue = () => {
+    setSelectedFeatureValue(undefined);
+    setFeatureValueDialogOpen(true);
+  };
+
+  const handleEditFeatureValue = (featureValue: FeatureValue) => {
+    setSelectedFeatureValue(featureValue);
+    setFeatureValueDialogOpen(true);
+  };
+
+  const handleDeleteFeatureValue = (featureValue: FeatureValue) => {
+    setSelectedFeatureValue(featureValue);
+    setDeleteFeatureValueDialogOpen(true);
+  };
+
+  const handleFeatureValueSubmit = async (data: CreateFeatureValueDto) => {
+    if (!selectedResourceForDetail) return;
+
+    setLoading(true);
+    try {
+      if (selectedFeatureValue) {
+        // Update - usar método patch simples
+        await resourcesApiService.featureValues.patch(selectedFeatureValue.id, data);
+        toast.success('Característica atualizada com sucesso!');
+      } else {
+        // Create - usar método create com resourceId incluído
+        const dataWithResourceId = {
+          ...data,
+          resourceId: selectedResourceForDetail.id,
+        };
+        await resourcesApiService.featureValues.create(dataWithResourceId);
+        toast.success('Característica adicionada com sucesso!');
+      }
+      
+      // Recarregar feature values no detalhe
+      await detailViewRef.current?.reloadFeatureValues();
+      
+      setFeatureValueDialogOpen(false);
+      setSelectedFeatureValue(undefined);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar característica');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmDeleteFeatureValue = async () => {
+    if (!selectedResourceForDetail || !selectedFeatureValue) return;
+
+    setLoading(true);
+    try {
+      // Usar método delete simples
+      await resourcesApiService.featureValues.delete(selectedFeatureValue.id);
+      toast.success('Característica removida com sucesso!');
+      
+      // Recarregar feature values no detalhe
+      await detailViewRef.current?.reloadFeatureValues();
+      
+      setDeleteFeatureValueDialogOpen(false);
+      setSelectedFeatureValue(undefined);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao remover característica');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando recursos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -224,9 +313,9 @@ export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) 
       {/* List */}
       {showDetailView && selectedResourceForDetail ? (
         <ResourceDetailView
+          ref={detailViewRef}
           resource={selectedResourceForDetail}
-          featureValues={[]}
-          features={[]}
+          features={features}
           onEdit={() => {
             setShowDetailView(false);
             handleEdit(selectedResourceForDetail);
@@ -235,10 +324,11 @@ export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) 
             setShowDetailView(false);
             handleDelete(selectedResourceForDetail);
           }}
-          onAddFeatureValue={() => toast.info('Feature Values em desenvolvimento')}
-          onEditFeatureValue={() => {}}
-          onDeleteFeatureValue={() => {}}
+          onAddFeatureValue={handleAddFeatureValue}
+          onEditFeatureValue={handleEditFeatureValue}
+          onDeleteFeatureValue={handleDeleteFeatureValue}
           onBack={() => setShowDetailView(false)}
+          onFeatureValuesChange={setFeatureValues}
         />
       ) : filteredResources.length === 0 ? (
         <div className="text-center py-12">
@@ -291,6 +381,26 @@ export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) 
         description="Tem certeza que deseja excluir este recurso? Esta ação não pode ser desfeita."
         itemName={selectedResource?.name}
         onConfirm={handleConfirmDelete}
+        loading={loading}
+      />
+
+      <FeatureValueDialog
+        open={featureValueDialogOpen}
+        onOpenChange={setFeatureValueDialogOpen}
+        featureValue={selectedFeatureValue}
+        features={features}
+        resourceId={selectedResourceForDetail?.id}
+        onSubmit={handleFeatureValueSubmit}
+        loading={loading}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteFeatureValueDialogOpen}
+        onOpenChange={setDeleteFeatureValueDialogOpen}
+        title="Remover Característica"
+        description="Tem certeza que deseja remover esta característica do recurso?"
+        itemName={features.find(f => f.id === selectedFeatureValue?.featureId)?.name}
+        onConfirm={handleConfirmDeleteFeatureValue}
         loading={loading}
       />
     </div>

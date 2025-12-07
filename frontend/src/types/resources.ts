@@ -1,8 +1,6 @@
 // Types e Interfaces para o módulo Resources
 
-export type ValueType = 'string' | 'number' | 'boolean' | 'date';
-
-export type ResourceStatus = 'available' | 'in-use' | 'maintenance' | 'unavailable';
+export type ValueType = 'STRING' | 'NUMBER' | 'BOOLEAN';
 
 export interface Category {
   id: string;
@@ -17,8 +15,8 @@ export interface Resource {
   name: string;
   categoryId: string;
   categoryName?: string; // Populado no frontend
-  description?: string;
-  status: ResourceStatus;
+  quantity: number;
+  status: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -28,8 +26,7 @@ export interface Feature {
   name: string;
   categoryId: string;
   categoryName?: string; // Populado no frontend
-  description?: string;
-  valueType: ValueType;
+  type: ValueType;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -40,7 +37,9 @@ export interface FeatureValue {
   featureName?: string; // Populado no frontend
   resourceId: string;
   resourceName?: string; // Populado no frontend
-  value: string | number | boolean | Date;
+  valueString?: string;
+  valueNumber?: number;
+  valueBoolean?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -48,50 +47,50 @@ export interface FeatureValue {
 // DTOs para criação/atualização
 export interface CreateCategoryDto {
   name: string;
-  description?: string;
 }
 
 export interface UpdateCategoryDto {
   name?: string;
-  description?: string;
 }
 
 export interface CreateResourceDto {
   name: string;
   categoryId: string;
-  description?: string;
-  status: ResourceStatus;
+  quantity: number;
+  status: boolean;
 }
 
 export interface UpdateResourceDto {
   name?: string;
   categoryId?: string;
-  description?: string;
-  status?: ResourceStatus;
+  quantity?: number;
+  status?: boolean;
 }
 
 export interface CreateFeatureDto {
   name: string;
   categoryId: string;
-  description?: string;
-  valueType: ValueType;
+  type: ValueType;
 }
 
 export interface UpdateFeatureDto {
   name?: string;
   categoryId?: string;
-  description?: string;
-  valueType?: ValueType;
+  type?: ValueType;
 }
 
 export interface CreateFeatureValueDto {
   featureId: string;
   resourceId: string;
-  value: string | number | boolean | Date;
+  valueString?: string;
+  valueNumber?: number;
+  valueBoolean?: boolean;
 }
 
 export interface UpdateFeatureValueDto {
-  value?: string | number | boolean | Date;
+  valueString?: string;
+  valueNumber?: number;
+  valueBoolean?: boolean;
 }
 
 // Estado da aplicação

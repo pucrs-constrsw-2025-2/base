@@ -1,30 +1,34 @@
 import { Badge } from '../../ui/badge';
 import { Tag } from 'lucide-react';
-import { FeatureValue, ValueType } from '../../../types/resources';
+import { FeatureValue, Feature } from '../../../types/resources';
 
 interface FeatureValueBadgeProps {
   featureValue: FeatureValue;
-  valueType: ValueType;
+  feature: Feature;
 }
 
-export function FeatureValueBadge({ featureValue, valueType }: FeatureValueBadgeProps) {
-  const formatValue = (value: string | number | boolean | Date, type: ValueType): string => {
+export function FeatureValueBadge({ featureValue, feature }: FeatureValueBadgeProps) {
+  const getValue = (): string | number | boolean => {
+    if (featureValue.valueString !== undefined && featureValue.valueString !== null) {
+      return featureValue.valueString;
+    }
+    if (featureValue.valueNumber !== undefined && featureValue.valueNumber !== null) {
+      return featureValue.valueNumber;
+    }
+    if (featureValue.valueBoolean !== undefined && featureValue.valueBoolean !== null) {
+      return featureValue.valueBoolean;
+    }
+    return '';
+  };
+
+  const formatValue = (value: string | number | boolean, type: string): string => {
     try {
-      switch (type) {
-        case 'boolean':
+      switch (type.toUpperCase()) {
+        case 'BOOLEAN':
           return value ? 'Sim' : 'Não';
-        case 'date':
-          try {
-            const date = new Date(value);
-            if (isNaN(date.getTime())) {
-              return String(value);
-            }
-            return date.toLocaleDateString('pt-BR');
-          } catch {
-            return String(value);
-          }
-        case 'number':
+        case 'NUMBER':
           return value.toString();
+        case 'STRING':
         default:
           return String(value);
       }
@@ -34,17 +38,19 @@ export function FeatureValueBadge({ featureValue, valueType }: FeatureValueBadge
     }
   };
 
+  const value = getValue();
+
   return (
     <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
       <Tag className="w-4 h-4 text-muted-foreground" />
       <div className="flex-1">
-        <p className="text-sm font-medium">{featureValue.featureName || 'Feature'}</p>
+        <p className="text-sm font-medium">{feature.name}</p>
         <p className="text-xs text-muted-foreground">
-          {formatValue(featureValue.value, valueType)}
+          {formatValue(value, feature.type)}
         </p>
       </div>
       <Badge variant="secondary" className="text-xs">
-        {valueType}
+        {feature.type}
       </Badge>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import {
@@ -11,44 +11,55 @@ import {
   XCircle,
   Wrench,
 } from 'lucide-react';
+import { Category, Resource, Feature } from '../../../types/resources';
+import { toast } from 'sonner';
+import resourcesApiService from '../../../services/api/resources-api.service';
 
 export function OverviewTab() {
-  // Dados mockados locais - será substituído por dados reais da API
-  const mockCategories = [
-    { id: '1', name: 'Notebooks' },
-    { id: '2', name: 'Projetores' },
-    { id: '3', name: 'Impressoras' },
-  ];
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockResources = [
-    { id: '1', categoryId: '1', status: 'available' },
-    { id: '2', categoryId: '1', status: 'in-use' },
-    { id: '3', categoryId: '2', status: 'available' },
-    { id: '4', categoryId: '2', status: 'maintenance' },
-    { id: '5', categoryId: '3', status: 'unavailable' },
-  ];
+  // Carregar dados
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const mockFeatures = [
-    { id: '1', categoryId: '1' },
-    { id: '2', categoryId: '1' },
-    { id: '3', categoryId: '2' },
-  ];
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [categoriesData, resourcesData, featuresData] = await Promise.all([
+        resourcesApiService.categories.list(),
+        resourcesApiService.resources.list(),
+        resourcesApiService.features.list(),
+      ]);
+      
+      setCategories(categoriesData);
+      setResources(resourcesData);
+      setFeatures(featuresData);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNavigate = (tab: string) => {
     const event = new CustomEvent('navigateFromOverview', { detail: { tab } });
     window.dispatchEvent(event);
   };
 
-  // Calcular estatísticas reais a partir dos dados mockados
+  // Calcular estatísticas reais a partir dos dados da API
   const stats = useMemo(() => {
-    const totalCategories = mockCategories.length;
-    const totalResources = mockResources.length;
-    const totalFeatures = mockFeatures.length;
+    const totalCategories = categories.length;
+    const totalResources = resources.length;
+    const totalFeatures = features.length;
     
-    // Calcular taxa de utilização (recursos em uso / total)
-    const resourcesInUse = mockResources.filter(r => r.status === 'in-use').length;
+    // Calcular taxa de utilização (recursos ativos / total)
+    const activeResources = resources.filter(r => r.status === true).length;
     const utilizationRate = totalResources > 0 
-      ? Math.round((resourcesInUse / totalResources) * 100) 
+      ? Math.round((activeResources / totalResources) * 100) 
       : 0;
 
     return [
@@ -81,67 +92,70 @@ export function OverviewTab() {
         value: `${utilizationRate}%`,
         icon: TrendingUp,
         color: 'bg-orange-500',
-        trend: `${resourcesInUse} em uso`,
+        trend: `${activeResources} em uso`,
         tab: 'resources',
       },
     ];
-  }, []);
+  }, [categories, resources, features]);
 
   const statusData = useMemo(() => {
-    const available = mockResources.filter(r => r.status === 'available').length;
-    const inUse = mockResources.filter(r => r.status === 'in-use').length;
-    const maintenance = mockResources.filter(r => r.status === 'maintenance').length;
-    const unavailable = mockResources.filter(r => r.status === 'unavailable').length;
+    const active = resources.filter(r => r.status === true).length;
+    const inactive = resources.filter(r => r.status === false).length;
 
     return [
       {
         status: 'Disponível',
-        count: available,
+        count: active,
         icon: CheckCircle,
         color: 'bg-green-600 text-white',
       },
       {
         status: 'Em Uso',
-        count: inUse,
+        count: 0,
         icon: AlertCircle,
         color: 'bg-blue-600 text-white',
       },
       {
         status: 'Manutenção',
-        count: maintenance,
+        count: 0,
         icon: Wrench,
         color: 'bg-orange-600 text-white',
       },
       {
         status: 'Indisponível',
-        count: unavailable,
+        count: inactive,
         icon: XCircle,
         color: 'bg-red-600 text-white',
       },
     ];
-  }, []);
+  }, [resources]);
 
   const recentResources = useMemo(() => {
-    // Pegar os últimos recursos (simulando ordenação por data)
-    return mockResources
-      .slice(-4)
-      .reverse()
+    // Pegar os últimos 4 recursos ordenados por data de criação
+    return resources
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, 4)
       .map(resource => {
-        const category = mockCategories.find(c => c.id === resource.categoryId);
+        const category = categories.find(c => c.id === resource.categoryId);
         return {
           name: resource.name,
           category: category?.name || 'Sem categoria',
-          status: resource.status,
-          addedAt: 'Recentemente', // Mock temporal
+          status: resource.status ? 'Ativo' : 'Inativo',
+          statusBool: resource.status,
+          addedAt: resource.createdAt 
+            ? new Date(resource.createdAt).toLocaleDateString('pt-BR')
+            : 'Data não disponível',
         };
       });
-  }, []);
+  }, [resources, categories]);
 
   const statusColors: Record<string, string> = {
-    available: 'bg-green-600 text-white',
-    'in-use': 'bg-blue-600 text-white',
-    maintenance: 'bg-orange-600 text-white',
-    unavailable: 'bg-red-600 text-white',
+    Ativo: 'bg-green-600 text-white',
+    Inativo: 'bg-red-600 text-white',
   };
 
   const statusLabels: Record<string, string> = {
@@ -150,6 +164,17 @@ export function OverviewTab() {
     maintenance: 'Manutenção',
     unavailable: 'Indisponível',
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando visão geral...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -197,7 +222,7 @@ export function OverviewTab() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {statusData.map((item, index) => {
-              const totalResources = mockResources.length;
+              const totalResources = resources.length;
               const percentage = totalResources > 0 
                 ? ((item.count / totalResources) * 100).toFixed(0) 
                 : '0';

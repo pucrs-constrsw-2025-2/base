@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
-import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
 import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Resource, CreateResourceDto, UpdateResourceDto, Category, ResourceStatus } from '../../../types/resources';
+import { Resource, CreateResourceDto, UpdateResourceDto, Category } from '../../../types/resources';
 
 interface ResourceFormProps {
   resource?: Resource;
@@ -15,19 +13,17 @@ interface ResourceFormProps {
   loading?: boolean;
 }
 
-const statusOptions: { value: ResourceStatus; label: string }[] = [
-  { value: 'available', label: 'Disponível' },
-  { value: 'in-use', label: 'Em Uso' },
-  { value: 'maintenance', label: 'Manutenção' },
-  { value: 'unavailable', label: 'Indisponível' },
-];
-
 export function ResourceForm({ resource, categories, onSubmit, onCancel, loading }: ResourceFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    categoryId: string | null;
+    quantity: number;
+    status: boolean;
+  }>({
     name: resource?.name || '',
-    categoryId: resource?.categoryId || '',
-    description: resource?.description || '',
-    status: resource?.status || 'available' as ResourceStatus,
+    categoryId: resource?.categoryId || null,
+    quantity: resource?.quantity || 1,
+    status: resource?.status ?? true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,8 +41,9 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
       newErrors.categoryId = 'Categoria é obrigatória';
     }
 
-    // Status não é validado como obrigatório pois o backend não o suporta
-    // É mantido no frontend apenas para UX, mas não enviado para API
+    if (formData.quantity < 0) {
+      newErrors.quantity = 'Quantidade deve ser maior ou igual a 0';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -55,7 +52,13 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit(formData);
+      const submitData = {
+        name: formData.name,
+        categoryId: formData.categoryId || '',
+        quantity: formData.quantity,
+        status: formData.status,
+      };
+      onSubmit(submitData);
     }
   };
 
@@ -79,60 +82,54 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
         <Label htmlFor="categoryId">
           Categoria <span className="text-destructive">*</span>
         </Label>
-        <Select
-          value={formData.categoryId}
-          onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+        <select
+          id="categoryId"
+          value={formData.categoryId ?? ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
           disabled={loading}
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-input-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <SelectTrigger id="categoryId">
-            <SelectValue placeholder="Selecione uma categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Selecione uma categoria</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
         {errors.categoryId && <p className="text-sm text-destructive">{errors.categoryId}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="status">
-          Status <span className="text-muted-foreground text-xs">(apenas exibição)</span>
+        <Label htmlFor="quantity">
+          Quantidade <span className="text-destructive">*</span>
         </Label>
-        <Select
-          value={formData.status}
-          onValueChange={(value) => setFormData({ ...formData, status: value as ResourceStatus })}
+        <Input
+          id="quantity"
+          type="number"
+          min="0"
+          value={formData.quantity}
+          onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+          placeholder="Ex: 5"
           disabled={loading}
-        >
-          <SelectTrigger id="status">
-            <SelectValue placeholder="Selecione o status" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          O status é gerenciado automaticamente pelo sistema
-        </p>
+        />
+        {errors.quantity && <p className="text-sm text-destructive">{errors.quantity}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Descrição do recurso"
-          rows={3}
-          disabled={loading}
-        />
+        <Label htmlFor="status">Status</Label>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="status"
+            checked={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
+            disabled={loading}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <Label htmlFor="status" className="font-normal cursor-pointer">
+            {formData.status ? 'Ativo' : 'Inativo'}
+          </Label>
+        </div>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

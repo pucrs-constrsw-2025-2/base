@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
-import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -16,18 +15,16 @@ interface FeatureFormProps {
 }
 
 const valueTypeOptions: { value: ValueType; label: string }[] = [
-  { value: 'string', label: 'Texto' },
-  { value: 'number', label: 'Número' },
-  { value: 'boolean', label: 'Sim/Não' },
-  { value: 'date', label: 'Data' },
+  { value: 'STRING', label: 'Texto' },
+  { value: 'NUMBER', label: 'Número' },
+  { value: 'BOOLEAN', label: 'Sim/Não' },
 ];
 
 export function FeatureForm({ feature, categories, onSubmit, onCancel, loading }: FeatureFormProps) {
   const [formData, setFormData] = useState({
     name: feature?.name || '',
     categoryId: feature?.categoryId || '',
-    description: feature?.description || '',
-    valueType: feature?.valueType || 'string' as ValueType,
+    type: feature?.type || 'STRING' as ValueType,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,8 +42,8 @@ export function FeatureForm({ feature, categories, onSubmit, onCancel, loading }
       newErrors.categoryId = 'Categoria é obrigatória';
     }
 
-    if (!formData.valueType) {
-      newErrors.valueType = 'Tipo de valor é obrigatório';
+    if (!formData.type) {
+      newErrors.type = 'Tipo de valor é obrigatório';
     }
 
     setErrors(newErrors);
@@ -100,15 +97,15 @@ export function FeatureForm({ feature, categories, onSubmit, onCancel, loading }
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="valueType">
+        <Label htmlFor="type">
           Tipo de Valor <span className="text-destructive">*</span>
         </Label>
         <Select
-          value={formData.valueType}
-          onValueChange={(value) => setFormData({ ...formData, valueType: value as ValueType })}
+          value={formData.type}
+          onValueChange={(value) => setFormData({ ...formData, type: value as ValueType })}
           disabled={loading}
         >
-          <SelectTrigger id="valueType">
+          <SelectTrigger id="type">
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
           <SelectContent>
@@ -119,19 +116,7 @@ export function FeatureForm({ feature, categories, onSubmit, onCancel, loading }
             ))}
           </SelectContent>
         </Select>
-        {errors.valueType && <p className="text-sm text-destructive">{errors.valueType}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Descrição da característica"
-          rows={3}
-          disabled={loading}
-        />
+        {errors.type && <p className="text-sm text-destructive">{errors.type}</p>}
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

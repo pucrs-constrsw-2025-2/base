@@ -30,13 +30,15 @@ export function FeatureValueForm({
     featureValue?.featureId || preselectedFeatureId || ''
   );
   const [value, setValue] = useState<string | number | boolean>(
-    featureValue?.value !== undefined ? featureValue.value : ''
+    featureValue?.valueString !== undefined ? featureValue.valueString :
+    featureValue?.valueNumber !== undefined ? featureValue.valueNumber :
+    featureValue?.valueBoolean !== undefined ? featureValue.valueBoolean : ''
   );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedFeature = features.find((f) => f.id === selectedFeatureId);
-  const valueType: ValueType = selectedFeature?.valueType || 'string';
+  const valueType: ValueType = selectedFeature?.type || 'STRING';
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -45,11 +47,11 @@ export function FeatureValueForm({
       newErrors.feature = 'Feature é obrigatória';
     }
 
-    if (valueType === 'number' && isNaN(Number(value))) {
+    if (valueType === 'NUMBER' && isNaN(Number(value))) {
       newErrors.value = 'Valor deve ser um número';
     }
 
-    if (valueType === 'string' && !String(value).trim()) {
+    if (valueType === 'STRING' && !String(value).trim()) {
       newErrors.value = 'Valor é obrigatório';
     }
 
@@ -62,20 +64,26 @@ export function FeatureValueForm({
     if (validate()) {
       const submitData: any = {
         featureId: selectedFeatureId,
-        value: valueType === 'number' ? Number(value) : value,
       };
 
-      if (preselectedResourceId) {
-        submitData.resourceId = preselectedResourceId;
+      // Adicionar o campo correto baseado no tipo
+      if (valueType === 'STRING') {
+        submitData.valueString = String(value);
+      } else if (valueType === 'NUMBER') {
+        submitData.valueNumber = Number(value);
+      } else if (valueType === 'BOOLEAN') {
+        submitData.valueBoolean = Boolean(value);
       }
 
+      // Não enviar resourceId - será adicionado pelo método createForResource
+      console.log('FeatureValue submitData:', submitData);
       onSubmit(submitData);
     }
   };
 
   const renderValueInput = () => {
     switch (valueType) {
-      case 'boolean':
+      case 'BOOLEAN':
         return (
           <div className="flex flex-col space-y-3">
             <div className="flex items-center justify-between rounded-lg border p-4">
@@ -95,7 +103,7 @@ export function FeatureValueForm({
             </div>
           </div>
         );
-      case 'number':
+      case 'NUMBER':
         return (
           <Input
             type="number"
@@ -105,16 +113,7 @@ export function FeatureValueForm({
             disabled={loading}
           />
         );
-      case 'date':
-        return (
-          <Input
-            type="date"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            disabled={loading}
-          />
-        );
-      default:
+      default: // STRING
         return (
           <Input
             type="text"
