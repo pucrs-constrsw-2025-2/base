@@ -36,7 +36,9 @@ export function DeleteConfirmDialog({
           <AlertDialogDescription>
             {description}
             {itemName && (
-              <span className="block mt-2 font-semibold text-foreground">"{itemName}"</span>
+              <span className="block mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md font-semibold text-destructive">
+                {itemName}
+              </span>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>

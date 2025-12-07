@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Monitor } from 'lucide-react';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { ResourceCard } from '../views/ResourceCard';
 import { ResourceDialog } from '../dialogs/ResourceDialog';
 import { DeleteConfirmDialog } from '../dialogs/DeleteConfirmDialog';
-import { Resource, Category, CreateResourceDto, UpdateResourceDto } from '../../../types/resources';
+import { ResourceDetailView } from '../views/ResourceDetailView';
+import { Resource, Category, CreateResourceDto, UpdateResourceDto, ResourceStatus } from '../../../types/resources';
 import { toast } from 'sonner';
 
-export function ResourcesTab() {
+interface ResourcesTabProps {
+  initialCategoryFilter?: string;
+}
+
+export function ResourcesTab({ initialCategoryFilter }: ResourcesTabProps = {}) {
   // Mock data - será substituído por dados reais da API
   const [categories] = useState<Category[]>([
     { id: '1', name: 'Notebooks' },
@@ -54,16 +59,28 @@ export function ResourcesTab() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | undefined>();
+  const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<Resource | undefined>();
+  const [showDetailView, setShowDetailView] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Aplicar filtro inicial se fornecido
+  useEffect(() => {
+    if (initialCategoryFilter) {
+      setSelectedCategoryFilter(initialCategoryFilter);
+    }
+  }, [initialCategoryFilter]);
 
   const filteredResources = resources.filter((resource) => {
     const matchesSearch = resource.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       selectedCategoryFilter === 'all' || resource.categoryId === selectedCategoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesStatus =
+      selectedStatusFilter === 'all' || resource.status === selectedStatusFilter;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const handleCreate = () => {
@@ -82,8 +99,8 @@ export function ResourcesTab() {
   };
 
   const handleView = (resource: Resource) => {
-    toast.info(`Visualizar detalhes de: ${resource.name}`);
-    // TODO: Navegar para tela de detalhes
+    setSelectedResourceForDetail(resource);
+    setShowDetailView(true);
   };
 
   const handleSubmit = async (data: CreateResourceDto | UpdateResourceDto) => {
@@ -149,7 +166,7 @@ export function ResourcesTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 items-center">
         <div>
           <h2 className="text-2xl font-semibold">Recursos</h2>
           <p className="text-muted-foreground">
@@ -165,19 +182,18 @@ export function ResourcesTab() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Buscar recursos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
-        <div className="w-full sm:w-64">
+        <div className="w-full sm:w-[200px]">
           <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
-            <SelectTrigger>
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filtrar por categoria" />
+            <SelectTrigger className="h-10">
+              <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as categorias</SelectItem>
@@ -189,17 +205,55 @@ export function ResourcesTab() {
             </SelectContent>
           </Select>
         </div>
+        <div className="w-full sm:w-[200px]">
+          <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
+            <SelectTrigger className="h-10">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="available">Disponível</SelectItem>
+              <SelectItem value="in-use">Em Uso</SelectItem>
+              <SelectItem value="maintenance">Manutenção</SelectItem>
+              <SelectItem value="unavailable">Indisponível</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* List */}
-      {filteredResources.length === 0 ? (
+      {showDetailView && selectedResourceForDetail ? (
+        <ResourceDetailView
+          resource={selectedResourceForDetail}
+          featureValues={[]}
+          features={[]}
+          onEdit={() => {
+            setShowDetailView(false);
+            handleEdit(selectedResourceForDetail);
+          }}
+          onDelete={() => {
+            setShowDetailView(false);
+            handleDelete(selectedResourceForDetail);
+          }}
+          onAddFeatureValue={() => toast.info('Feature Values em desenvolvimento')}
+          onEditFeatureValue={() => {}}
+          onDeleteFeatureValue={() => {}}
+          onBack={() => setShowDetailView(false)}
+        />
+      ) : filteredResources.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            {searchTerm || selectedCategoryFilter !== 'all'
+          <Monitor className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-lg font-semibold mb-2">
+            {searchTerm || selectedCategoryFilter !== 'all' || selectedStatusFilter !== 'all'
               ? 'Nenhum recurso encontrado'
               : 'Nenhum recurso cadastrado'}
           </p>
-          {!searchTerm && selectedCategoryFilter === 'all' && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {searchTerm || selectedCategoryFilter !== 'all' || selectedStatusFilter !== 'all'
+              ? 'Tente ajustar os filtros de busca'
+              : 'Comece criando seu primeiro recurso computacional'}
+          </p>
+          {!searchTerm && selectedCategoryFilter === 'all' && selectedStatusFilter === 'all' && (
             <Button variant="outline" onClick={handleCreate} className="mt-4">
               <Plus className="w-4 h-4 mr-2" />
               Criar primeiro recurso

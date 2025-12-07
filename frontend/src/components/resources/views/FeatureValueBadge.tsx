@@ -9,15 +9,28 @@ interface FeatureValueBadgeProps {
 
 export function FeatureValueBadge({ featureValue, valueType }: FeatureValueBadgeProps) {
   const formatValue = (value: string | number | boolean | Date, type: ValueType): string => {
-    switch (type) {
-      case 'boolean':
-        return value ? 'Sim' : 'Não';
-      case 'date':
-        return new Date(value).toLocaleDateString('pt-BR');
-      case 'number':
-        return value.toString();
-      default:
-        return String(value);
+    try {
+      switch (type) {
+        case 'boolean':
+          return value ? 'Sim' : 'Não';
+        case 'date':
+          try {
+            const date = new Date(value);
+            if (isNaN(date.getTime())) {
+              return String(value);
+            }
+            return date.toLocaleDateString('pt-BR');
+          } catch {
+            return String(value);
+          }
+        case 'number':
+          return value.toString();
+        default:
+          return String(value);
+      }
+    } catch (error) {
+      console.error('Error formatting value:', error);
+      return String(value);
     }
   };
 

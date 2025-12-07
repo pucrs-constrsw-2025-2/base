@@ -3,6 +3,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Feature, CreateFeatureDto, UpdateFeatureDto, Category, ValueType } from '../../../types/resources';
 
@@ -138,6 +139,7 @@ export function FeatureForm({ feature, categories, onSubmit, onCancel, loading }
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : feature ? 'Atualizar' : 'Criar'}
         </Button>
       </div>

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
 import { Plus, Search, Filter, Edit, Trash } from 'lucide-react';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
 import { FeatureDialog } from '../dialogs/FeatureDialog';
 import { DeleteConfirmDialog } from '../dialogs/DeleteConfirmDialog';
 import { Feature, Category, CreateFeatureDto, UpdateFeatureDto } from '../../../types/resources';
@@ -17,7 +19,11 @@ const valueTypeLabels: Record<string, string> = {
   date: 'Data',
 };
 
-export function FeaturesTab() {
+interface FeaturesTabProps {
+  initialCategoryFilter?: string;
+}
+
+export function FeaturesTab({ initialCategoryFilter }: FeaturesTabProps = {}) {
   // Mock data
   const [categories] = useState<Category[]>([
     { id: '1', name: 'Notebooks' },
@@ -66,6 +72,13 @@ export function FeaturesTab() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | undefined>();
   const [loading, setLoading] = useState(false);
+
+  // Aplicar filtro inicial se fornecido
+  useEffect(() => {
+    if (initialCategoryFilter) {
+      setSelectedCategoryFilter(initialCategoryFilter);
+    }
+  }, [initialCategoryFilter]);
 
   const filteredFeatures = features.filter((feature) => {
     const matchesSearch = feature.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -148,7 +161,7 @@ export function FeaturesTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 items-center">
         <div>
           <h2 className="text-2xl font-semibold">Features</h2>
           <p className="text-muted-foreground">
@@ -164,18 +177,17 @@ export function FeaturesTab() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Buscar features..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
         <div className="w-full sm:w-64">
           <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
-            <SelectTrigger>
-              <Filter className="w-4 h-4 mr-2" />
+            <SelectTrigger className="h-10">
               <SelectValue placeholder="Filtrar por categoria" />
             </SelectTrigger>
             <SelectContent>
@@ -206,47 +218,97 @@ export function FeaturesTab() {
           )}
         </div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Tipo de Valor</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFeatures.map((feature) => (
-                <TableRow key={feature.id}>
-                  <TableCell className="font-medium">{feature.name}</TableCell>
-                  <TableCell>{feature.categoryName}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{valueTypeLabels[feature.valueType]}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {feature.description || '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(feature)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(feature)}
-                      >
-                        <Trash className="w-4 h-4 text-destructive" />
-                      </Button>
+        <>
+          {/* Mobile View */}
+          <div className="lg:hidden space-y-4">
+            {filteredFeatures.map((feature) => (
+              <Card key={feature.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-base">{feature.name}</CardTitle>
+                      <CardDescription className="text-sm">{feature.categoryName}</CardDescription>
                     </div>
-                  </TableCell>
+                    <Badge variant="secondary">{valueTypeLabels[feature.valueType]}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {feature.description || 'Sem descrição'}
+                  </p>
+                  <div className="flex space-x-2">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(feature)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(feature)}>
+                      <Trash className="w-4 h-4 mr-2 text-destructive" />
+                      Excluir
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden lg:block border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Tipo de Valor</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredFeatures.map((feature) => (
+                  <TableRow key={feature.id}>
+                    <TableCell className="font-medium">{feature.name}</TableCell>
+                    <TableCell>{feature.categoryName}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{valueTypeLabels[feature.valueType]}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      {feature.description ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate block cursor-help">
+                                {feature.description}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">{feature.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(feature)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(feature)}
+                        >
+                          <Trash className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
 
       {/* Dialogs */}

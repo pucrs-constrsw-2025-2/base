@@ -3,6 +3,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Resource, CreateResourceDto, UpdateResourceDto, Category, ResourceStatus } from '../../../types/resources';
 
@@ -44,9 +45,8 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
       newErrors.categoryId = 'Categoria é obrigatória';
     }
 
-    if (!formData.status) {
-      newErrors.status = 'Status é obrigatório';
-    }
+    // Status não é validado como obrigatório pois o backend não o suporta
+    // É mantido no frontend apenas para UX, mas não enviado para API
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -100,7 +100,7 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
 
       <div className="space-y-2">
         <Label htmlFor="status">
-          Status <span className="text-destructive">*</span>
+          Status <span className="text-muted-foreground text-xs">(apenas exibição)</span>
         </Label>
         <Select
           value={formData.status}
@@ -118,7 +118,9 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
             ))}
           </SelectContent>
         </Select>
-        {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
+        <p className="text-xs text-muted-foreground">
+          O status é gerenciado automaticamente pelo sistema
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -138,6 +140,7 @@ export function ResourceForm({ resource, categories, onSubmit, onCancel, loading
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : resource ? 'Atualizar' : 'Criar'}
         </Button>
       </div>

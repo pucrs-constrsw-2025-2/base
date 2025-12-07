@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Button } from '../../ui/button';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Switch } from '../../ui/switch';
 import { CreateFeatureValueDto, UpdateFeatureValueDto, Feature, ValueType } from '../../../types/resources';
@@ -76,13 +77,22 @@ export function FeatureValueForm({
     switch (valueType) {
       case 'boolean':
         return (
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={Boolean(value)}
-              onCheckedChange={(checked) => setValue(checked)}
-              disabled={loading}
-            />
-            <Label>{value ? 'Sim' : 'Não'}</Label>
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">
+                  {value ? 'Ativado' : 'Desativado'}
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {value ? 'Clique para desativar' : 'Clique para ativar'}
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(value)}
+                onCheckedChange={(checked) => setValue(checked)}
+                disabled={loading}
+              />
+            </div>
           </div>
         );
       case 'number':
@@ -157,6 +167,7 @@ export function FeatureValueForm({
           Cancelar
         </Button>
         <Button type="submit" disabled={loading || !selectedFeature}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : featureValue ? 'Atualizar' : 'Adicionar'}
         </Button>
       </div>

@@ -3,6 +3,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
+import { Loader2 } from 'lucide-react';
 import { Category, CreateCategoryDto, UpdateCategoryDto } from '../../../types/resources';
 
 interface CategoryFormProps {
@@ -49,7 +50,21 @@ export function CategoryForm({ category, onSubmit, onCancel, loading }: Category
         <Input
           id="name"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, name: e.target.value });
+            // Limpar erro quando usuário digita
+            if (errors.name) {
+              setErrors({ ...errors, name: '' });
+            }
+          }}
+          onBlur={() => {
+            // Validar campo individual ao sair
+            if (!formData.name.trim()) {
+              setErrors({ ...errors, name: 'Nome é obrigatório' });
+            } else if (formData.name.length < 3) {
+              setErrors({ ...errors, name: 'Nome deve ter pelo menos 3 caracteres' });
+            }
+          }}
           placeholder="Ex: Notebooks, Projetores"
           disabled={loading}
         />
@@ -73,6 +88,7 @@ export function CategoryForm({ category, onSubmit, onCancel, loading }: Category
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : category ? 'Atualizar' : 'Criar'}
         </Button>
       </div>

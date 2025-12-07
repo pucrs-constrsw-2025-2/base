@@ -18,14 +18,12 @@ interface ResourceDetailViewProps {
   onBack: () => void;
 }
 
-const statusColors: Record<string, string> = {
-  available: 'bg-green-100 text-green-800',
-  'in-use': 'bg-blue-100 text-blue-800',
-  maintenance: 'bg-orange-100 text-orange-800',
-  unavailable: 'bg-red-100 text-red-800',
-};
-
-const statusLabels: Record<string, string> = {
+  const statusColors: Record<string, string> = {
+    available: 'bg-green-600 text-white',
+    'in-use': 'bg-blue-600 text-white',
+    maintenance: 'bg-orange-600 text-white',
+    unavailable: 'bg-red-600 text-white',
+  };const statusLabels: Record<string, string> = {
   available: 'Disponível',
   'in-use': 'Em Uso',
   maintenance: 'Manutenção',
