@@ -1,0 +1,642 @@
+openapi: 3.1.0
+info:
+  title: ConstrSW - Employees API
+  description: API para gerenciamento de funcionários e tarefas
+  version: 1.0.0
+servers:
+  - url: http://localhost:8181
+    description: Servidor de desenvolvimento (externo)
+  - url: http://employees:8080
+    description: Servidor interno (Docker)
+
+tags:
+  - name: Employees
+    description: Gerenciamento de funcionários
+  - name: Tasks
+    description: Gerenciamento de tarefas
+
+paths:
+  /api/v1/employees:
+    post:
+      tags:
+        - Employees
+      summary: Criar funcionário
+      operationId: createEmployee
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateRequest'
+      responses:
+        '201':
+          description: Funcionário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags:
+        - Employees
+      summary: Listar funcionários
+      operationId: getAllEmployees
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de funcionários
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/employees/{employeeId}:
+    get:
+      tags:
+        - Employees
+      summary: Buscar funcionário por ID
+      operationId: getEmployeeById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+      responses:
+        '200':
+          description: Dados do funcionário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Employees
+      summary: Atualizar funcionário (completo)
+      operationId: updateEmployee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdateRequest'
+      responses:
+        '200':
+          description: Funcionário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Employees
+      summary: Atualizar funcionário (parcial)
+      operationId: patchEmployee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdateRequest'
+      responses:
+        '200':
+          description: Funcionário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Employees
+      summary: Deletar funcionário
+      operationId: deleteEmployee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+      responses:
+        '204':
+          description: Funcionário deletado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/employees/{employeeId}/tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Listar tarefas de um funcionário
+      operationId: getEmployeeTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: description
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de tarefas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - Tasks
+      summary: Criar tarefa para um funcionário
+      operationId: createEmployeeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+      responses:
+        '201':
+          description: Tarefa criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/employees/{employeeId}/tasks/{taskId}:
+    get:
+      tags:
+        - Tasks
+      summary: Buscar tarefa específica
+      operationId: getEmployeeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da tarefa (UUID)
+      responses:
+        '200':
+          description: Dados da tarefa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Tasks
+      summary: Atualizar tarefa (completo)
+      operationId: updateEmployeeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da tarefa (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateRequest'
+      responses:
+        '200':
+          description: Tarefa atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Tasks
+      summary: Atualizar tarefa (parcial)
+      operationId: patchEmployeeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da tarefa (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateRequest'
+      responses:
+        '200':
+          description: Tarefa atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Deletar tarefa
+      operationId: deleteEmployeeTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do funcionário (UUID)
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da tarefa (UUID)
+      responses:
+        '204':
+          description: Tarefa deletada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Serviço está funcionando
+
+  /api/v1/metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Métricas Prometheus
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Métricas em formato Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Não autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    EmployeeCreateRequest:
+      type: object
+      required:
+        - contract_number
+        - name
+        - role
+      properties:
+        contract_number:
+          type: integer
+          format: int64
+        name:
+          type: string
+        role:
+          type: string
+        salary:
+          type: number
+          format: decimal
+        organizational_unit:
+          type: string
+        room:
+          type: object
+          properties:
+            id:
+              type: string
+
+    EmployeeUpdateRequest:
+      type: object
+      properties:
+        contract_number:
+          type: integer
+          format: int64
+        name:
+          type: string
+        role:
+          type: string
+        salary:
+          type: number
+          format: decimal
+        organizational_unit:
+          type: string
+        room:
+          type: object
+          properties:
+            id:
+              type: string
+
+    EmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único do funcionário (UUID)
+        contract_number:
+          type: integer
+          format: int64
+        name:
+          type: string
+        role:
+          type: string
+        salary:
+          type: number
+          format: decimal
+        organizational_unit:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        room:
+          type: object
+          properties:
+            id:
+              type: string
+
+    EmployeeListResponse:
+      type: object
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    TaskCreateRequest:
+      type: object
+      required:
+        - description
+        - start_date
+        - expected_end_date
+      properties:
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        expected_end_date:
+          type: string
+          format: date
+        actual_end_date:
+          type: string
+          format: date
+          nullable: true
+
+    TaskUpdateRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        expected_end_date:
+          type: string
+          format: date
+        actual_end_date:
+          type: string
+          format: date
+          nullable: true
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único da tarefa (UUID)
+        employee_id:
+          type: string
+          format: uuid
+          description: ID do funcionário proprietário da tarefa (UUID)
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        expected_end_date:
+          type: string
+          format: date
+        actual_end_date:
+          type: string
+          format: date
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+

@@ -54,8 +54,13 @@ public class EmployeeMapper {
                     .collect(Collectors.toList()));
         }
         
+        // Sempre incluir o campo room, mesmo se for null
+        // Isso garante que o frontend saiba se o employee tem ou não uma sala
         if (employee.getRoom() != null) {
             response.setRoom(toRoomReferenceDto(employee.getRoom()));
+        } else {
+            // Se room for null, definir explicitamente como null para garantir que o campo apareça no JSON
+            response.setRoom(null);
         }
         
         return response;

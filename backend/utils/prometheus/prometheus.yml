@@ -23,56 +23,56 @@ scrape_configs:
   - job_name: 'oauth'
     static_configs:
       - targets: ['oauth:8000']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Courses Service (FastAPI - OpenTelemetry)
   - job_name: 'courses'
     static_configs:
       - targets: ['courses:8080']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Professors Service (FastAPI - OpenTelemetry)
   - job_name: 'professors'
     static_configs:
       - targets: ['professors:8082']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Lessons Service (OpenTelemetry)
   - job_name: 'lessons'
     static_configs:
       - targets: ['lessons:9091']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Reservations Service (OpenTelemetry)
   - job_name: 'reservations'
     static_configs:
       - targets: ['reservations:9091']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Resources Service (OpenTelemetry)
   - job_name: 'resources'
     static_configs:
       - targets: ['resources:9091']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Rooms Service (OpenTelemetry)
   - job_name: 'rooms'
     static_configs:
       - targets: ['rooms:9091']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Students Service (.NET - OpenTelemetry)
   - job_name: 'students'
     static_configs:
       - targets: ['students:8080']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Employees Service (Spring Boot - Actuator Prometheus)
@@ -80,14 +80,14 @@ scrape_configs:
   - job_name: 'employees'
     static_configs:
       - targets: ['employees:8080']
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Classes Service (.NET - OpenTelemetry)
   - job_name: 'classes'
     static_configs:
       - targets: ['classes:8080']
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     scrape_interval: 10s
 
   # Keycloak (métricas expostas na porta de management)
@@ -118,16 +118,16 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
-        - http://oauth:8000/health
-        - http://courses:8080/health
-        - http://professors:8082/health
-        - http://lessons:3000/health
-        - http://reservations:8080/health
-        - http://resources:3000/health
-        - http://rooms:3000/health
-        - http://students:8080/health
+        - http://oauth:8000/api/v1/health
+        - http://courses:8080/api/v1/health
+        - http://professors:8082/api/v1/health
+        - http://lessons:3000/api/v1/health
+        - http://reservations:8080/api/v1/health
+        - http://resources:3000/api/v1/health
+        - http://rooms:3000/api/v1/health
+        - http://students:8080/api/v1/health
         - http://employees:8080/api/v1/health
-        - http://classes:8080/health
+        - http://classes:8080/api/v1/health
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

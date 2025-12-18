@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * Health check controller padronizado.
- * Expõe o endpoint /health na porta principal sem context-path,
+ * Expõe o endpoint /api/v1/health (context-path /api/v1 é aplicado automaticamente),
  * retornando formato compatível com Spring Boot Actuator.
  */
 @RestController

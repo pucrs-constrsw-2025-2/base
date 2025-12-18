@@ -21,7 +21,8 @@ class KeycloakRoleRepository(IRoleRepository):
             return self._client_uuid
 
         params = {"clientId": settings.KEYCLOAK_CLIENT_ID}
-        clients_list = await self.client.get("/clients", params=params)
+        # Usar token de admin para buscar informações do client
+        clients_list = await self.client.get_with_admin("/clients", params=params)
 
         if not clients_list:
             raise KeycloakAPIError(
@@ -60,7 +61,8 @@ class KeycloakRoleRepository(IRoleRepository):
         """Busca um client role pelo seu nome."""
         try:
             client_uuid = await self._get_client_uuid()
-            kc_role = await self.client.get(f"/clients/{client_uuid}/roles/{role_name}")
+            # Usar token de admin (endpoint requer permissões administrativas)
+            kc_role = await self.client.get_with_admin(f"/clients/{client_uuid}/roles/{role_name}")
             return self._to_domain(kc_role)
         except KeycloakAPIError as e:
             if e.status_code == 404:
@@ -70,7 +72,8 @@ class KeycloakRoleRepository(IRoleRepository):
     async def find_all(self, enabled: Optional[bool] = None) -> List[Role]:
         """Busca todos os client roles."""
         client_uuid = await self._get_client_uuid()
-        kc_roles_list = await self.client.get(f"/clients/{client_uuid}/roles")
+        # Usar token de admin (endpoint requer permissões administrativas)
+        kc_roles_list = await self.client.get_with_admin(f"/clients/{client_uuid}/roles")
 
         all_roles = [self._to_domain(role) for role in kc_roles_list]
 
@@ -83,8 +86,8 @@ class KeycloakRoleRepository(IRoleRepository):
         """Busca os client roles de um usuário no Keycloak."""
         try:
             client_uuid = await self._get_client_uuid()
-            # O endpoint agora aponta para os mappings de client
-            kc_roles = await self.client.get(
+            # Usar token de admin (endpoint requer permissões administrativas)
+            kc_roles = await self.client.get_with_admin(
                 f"/users/{user_id}/role-mappings/clients/{client_uuid}"
             )
 

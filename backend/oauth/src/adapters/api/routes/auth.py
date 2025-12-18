@@ -1,4 +1,6 @@
 # auth.py
+import base64
+import json
 from typing import Annotated, Any
 
 import httpx
@@ -104,6 +106,33 @@ async def validate_token(token: Annotated[str, Depends(oauth2_scheme)]):
                     detail="Token inválido ou expirado.",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
+
+            # Decodificar o payload do token JWT para obter roles
+            try:
+                # JWT tem 3 partes separadas por ponto: header.payload.signature
+                parts = token.split(".")
+                if len(parts) >= 2:
+                    # Decodificar o payload (segunda parte)
+                    payload_encoded = parts[1]
+                    # Adicionar padding se necessário
+                    padding = 4 - len(payload_encoded) % 4
+                    if padding != 4:
+                        payload_encoded += "=" * padding
+                    payload_bytes = base64.urlsafe_b64decode(payload_encoded)
+                    payload_json = json.loads(payload_bytes)
+                    
+                    # Adicionar informações do payload ao resultado
+                    if "realm_access" in payload_json:
+                        introspection_result["realm_access"] = payload_json["realm_access"]
+                    if "resource_access" in payload_json:
+                        introspection_result["resource_access"] = payload_json["resource_access"]
+                    if "preferred_username" in payload_json:
+                        introspection_result["preferred_username"] = payload_json["preferred_username"]
+                    if "sub" in payload_json:
+                        introspection_result["sub"] = payload_json["sub"]
+            except Exception:
+                # Se falhar ao decodificar, continuar com o resultado do introspect
+                pass
 
             return introspection_result
 

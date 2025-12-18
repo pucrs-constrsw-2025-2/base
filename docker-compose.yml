@@ -257,15 +257,19 @@ services:
       context: ./backend/oauth # Diretório que contém o Dockerfile da API
       dockerfile: Dockerfile
     image: constrsw/oauth
-    command: uvicorn src.main:app --host 0.0.0.0 --port ${OAUTH_INTERNAL_API_PORT} --reload
     environment:
       - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - OTEL_SERVICE_NAME=oauth
+      # Debug Configuration for Python
+      - PYTHON_DEBUG_ENABLED=${PYTHON_DEBUG_ENABLED:-true}
+      - PYTHON_DEBUG_WAIT=${PYTHON_DEBUG_WAIT:-false}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
     ports:
       - ${OAUTH_EXTERNAL_API_PORT}:${OAUTH_INTERNAL_API_PORT}
+      - ${OAUTH_EXTERNAL_DEBUG_PORT}:${OAUTH_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     networks:
       - constrsw
     volumes:
@@ -276,11 +280,23 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${OAUTH_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${OAUTH_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      if [ \"$$PYTHON_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$PYTHON_DEBUG_WAIT\" = \"true\" ]; then
+          python -m debugpy --listen 0.0.0.0:${OAUTH_INTERNAL_DEBUG_PORT} --wait-for-client -m uvicorn src.main:app --host 0.0.0.0 --port ${OAUTH_INTERNAL_API_PORT} --reload
+        else
+          python -m debugpy --listen 0.0.0.0:${OAUTH_INTERNAL_DEBUG_PORT} -m uvicorn src.main:app --host 0.0.0.0 --port ${OAUTH_INTERNAL_API_PORT} --reload
+        fi
+      else
+        uvicorn src.main:app --host 0.0.0.0 --port ${OAUTH_INTERNAL_API_PORT} --reload
+      fi
+      "
 
   # Employees API
   employees:
@@ -295,6 +311,7 @@ services:
       - MONGODB_USERNAME=${EMPLOYEES_MONGODB_USERNAME}
       - MONGODB_PASSWORD=${EMPLOYEES_MONGODB_PASSWORD}
       - MONGODB_DATABASE=${EMPLOYEES_MONGODB_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
@@ -302,10 +319,22 @@ services:
       # OpenTelemetry OTLP Exporter Configuration
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      # Debug Configuration
+      - JAVA_DEBUG_ENABLED=${JAVA_DEBUG_ENABLED:-true}
+      - JAVA_DEBUG_SUSPEND=${JAVA_DEBUG_SUSPEND:-n}
     networks:
       - constrsw
     ports:
       - ${EMPLOYEES_EXTERNAL_API_PORT}:${EMPLOYEES_INTERNAL_API_PORT}
+      - ${EMPLOYEES_EXTERNAL_DEBUG_PORT}:${EMPLOYEES_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
+    command: >
+      sh -c "
+      if [ \"$$JAVA_DEBUG_ENABLED\" = \"true\" ]; then
+        java -agentlib:jdwp=transport=dt_socket,server=y,suspend=$$JAVA_DEBUG_SUSPEND,address=*:${EMPLOYEES_INTERNAL_DEBUG_PORT} -jar app.jar
+      else
+        java -jar app.jar
+      fi
+      "
     depends_on:
       mongodb:
         condition: service_healthy
@@ -332,15 +361,29 @@ services:
       - MONGODB_USERNAME=${CLASSES_MONGODB_USERNAME}
       - MONGODB_PASSWORD=${CLASSES_MONGODB_PASSWORD}
       - MONGODB_DATABASE=${CLASSES_MONGODB_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
-      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OTEL_SERVICE_NAME=classes
+      # Debug Configuration for .NET
+      - DOTNET_DBG_ENABLE=${DOTNET_DBG_ENABLE:-1}
+      - DOTNET_DBG_PORT=${CLASSES_INTERNAL_DEBUG_PORT}
     networks:
       - constrsw
     ports:
       - ${CLASSES_EXTERNAL_API_PORT}:${CLASSES_INTERNAL_API_PORT}
+      - ${CLASSES_EXTERNAL_DEBUG_PORT}:${CLASSES_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
+    command: >
+      sh -c "
+      if [ \"$$DOTNET_DBG_ENABLE\" = \"1\" ]; then
+        export DOTNET_DBG_ENABLE=1
+        export DOTNET_DBG_PORT=$${CLASSES_INTERNAL_DEBUG_PORT}
+        dotnet ClasseMicroservice.API.dll
+      else
+        dotnet ClasseMicroservice.API.dll
+      fi
+      "
     depends_on:
       mongodb:
         condition: service_healthy
@@ -348,7 +391,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${CLASSES_INTERNAL_PROTOCOL}://${CLASSES_INTERNAL_HOST}:${CLASSES_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${CLASSES_INTERNAL_PROTOCOL}://${CLASSES_INTERNAL_HOST}:${CLASSES_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
@@ -367,6 +410,7 @@ services:
       - MONGODB_USER=${COURSES_MONGODB_USERNAME}
       - MONGODB_PASSWORD=${COURSES_MONGODB_PASSWORD}
       - MONGODB_DB=${COURSES_MONGODB_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
@@ -374,10 +418,26 @@ services:
       - MONGO_URI=mongodb://${COURSES_MONGODB_USERNAME}:${COURSES_MONGODB_PASSWORD}@${MONGODB_INTERNAL_HOST}:${MONGODB_INTERNAL_PORT}/${COURSES_MONGODB_DB}
       - DATABASE_NAME=${COURSES_MONGODB_DB}
       - OTEL_SERVICE_NAME=courses
+      # Debug Configuration for Python
+      - PYTHON_DEBUG_ENABLED=${PYTHON_DEBUG_ENABLED:-true}
+      - PYTHON_DEBUG_WAIT=${PYTHON_DEBUG_WAIT:-false}
     networks:
       - constrsw
     ports:
       - ${COURSES_EXTERNAL_API_PORT}:${COURSES_INTERNAL_API_PORT}
+      - ${COURSES_EXTERNAL_DEBUG_PORT}:${COURSES_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
+    command: >
+      sh -c "
+      if [ \"$$PYTHON_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$PYTHON_DEBUG_WAIT\" = \"true\" ]; then
+          python -m debugpy --listen 0.0.0.0:${COURSES_INTERNAL_DEBUG_PORT} --wait-for-client -m uvicorn main:app --host 0.0.0.0 --port 8080
+        else
+          python -m debugpy --listen 0.0.0.0:${COURSES_INTERNAL_DEBUG_PORT} -m uvicorn main:app --host 0.0.0.0 --port 8080
+        fi
+      else
+        uvicorn main:app --host 0.0.0.0 --port 8080
+      fi
+      "
     depends_on:
       mongodb:
         condition: service_healthy
@@ -385,7 +445,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${COURSES_INTERNAL_PROTOCOL}://${COURSES_INTERNAL_HOST}:${COURSES_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
@@ -405,12 +465,30 @@ services:
       - POSTGRESQL_USER=${LESSONS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${LESSONS_POSTGRESQL_PASSWORD}
       - DATABASE_URL=postgresql://${LESSONS_POSTGRESQL_USERNAME}:${LESSONS_POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${LESSONS_POSTGRESQL_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=lessons
+      # Debug Configuration for Node.js
+      - NODE_DEBUG_ENABLED=${NODE_DEBUG_ENABLED:-true}
+      - NODE_DEBUG_SUSPEND=${NODE_DEBUG_SUSPEND:-false}
     ports:
       - ${LESSONS_EXTERNAL_API_PORT}:${LESSONS_INTERNAL_API_PORT}
+      - ${LESSONS_EXTERNAL_DEBUG_PORT}:${LESSONS_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
+    command: >
+      sh -c "
+      npx prisma migrate deploy &&
+      if [ \"$$NODE_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$NODE_DEBUG_SUSPEND\" = \"true\" ]; then
+          exec node --inspect-brk=0.0.0.0:${LESSONS_INTERNAL_DEBUG_PORT} dist/main.js
+        else
+          exec node --inspect=0.0.0.0:${LESSONS_INTERNAL_DEBUG_PORT} dist/main.js
+        fi
+      else
+        exec node dist/main.js
+      fi
+      "
     networks:
       - constrsw
     depends_on:
@@ -420,7 +498,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${LESSONS_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${LESSONS_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
@@ -439,12 +517,29 @@ services:
       - PROFESSORS_POSTGRESQL_DB=${PROFESSORS_POSTGRESQL_DB}
       - POSTGRESQL_USERNAME=${PROFESSORS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${PROFESSORS_POSTGRESQL_PASSWORD}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=professors
+      # Debug Configuration for Python
+      - PYTHON_DEBUG_ENABLED=${PYTHON_DEBUG_ENABLED:-true}
+      - PYTHON_DEBUG_WAIT=${PYTHON_DEBUG_WAIT:-false}
     ports:
       - ${PROFESSORS_EXTERNAL_API_PORT}:${PROFESSORS_INTERNAL_API_PORT}
+      - ${PROFESSORS_EXTERNAL_DEBUG_PORT}:${PROFESSORS_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
+    command: >
+      sh -c "
+      if [ \"$$PYTHON_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$PYTHON_DEBUG_WAIT\" = \"true\" ]; then
+          python -m debugpy --listen 0.0.0.0:${PROFESSORS_INTERNAL_DEBUG_PORT} --wait-for-client -m uvicorn professors.main:app --host 0.0.0.0 --port 8082
+        else
+          python -m debugpy --listen 0.0.0.0:${PROFESSORS_INTERNAL_DEBUG_PORT} -m uvicorn professors.main:app --host 0.0.0.0 --port 8082
+        fi
+      else
+        python -m uvicorn professors.main:app --host 0.0.0.0 --port 8082
+      fi
+      "
     networks:
       - constrsw
     depends_on:
@@ -454,7 +549,7 @@ services:
         condition: service_healthy 
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${PROFESSORS_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${PROFESSORS_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
@@ -473,14 +568,19 @@ services:
       - POSTGRESQL_DB=${RESERVATIONS_POSTGRESQL_DB}
       - POSTGRESQL_USER=${RESERVATIONS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${RESERVATIONS_POSTGRESQL_PASSWORD}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=reservations
+      # Debug Configuration for Node.js
+      - NODE_DEBUG_ENABLED=${NODE_DEBUG_ENABLED:-true}
+      - NODE_DEBUG_SUSPEND=${NODE_DEBUG_SUSPEND:-false}
     networks:
       - constrsw
     ports:
       - ${RESERVATIONS_EXTERNAL_API_PORT}:${RESERVATIONS_INTERNAL_API_PORT}
+      - ${RESERVATIONS_EXTERNAL_DEBUG_PORT}:${RESERVATIONS_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     depends_on:
       postgresql:
         condition: service_healthy
@@ -488,11 +588,23 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${RESERVATIONS_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${RESERVATIONS_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      if [ \"$$NODE_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$NODE_DEBUG_SUSPEND\" = \"true\" ]; then
+          exec node --inspect-brk=0.0.0.0:${RESERVATIONS_INTERNAL_DEBUG_PORT} dist/main.js
+        else
+          exec node --inspect=0.0.0.0:${RESERVATIONS_INTERNAL_DEBUG_PORT} dist/main.js
+        fi
+      else
+        exec node dist/main.js
+      fi
+      "
       
   # Resources API
   resources:
@@ -507,14 +619,19 @@ services:
       - RESOURCES_MONGODB_USER=${RESOURCES_MONGODB_USERNAME}
       - RESOURCES_MONGODB_PASSWORD=${RESOURCES_MONGODB_PASSWORD}
       - RESOURCES_MONGODB_DB=${RESOURCES_MONGODB_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=resources
+      # Debug Configuration for Node.js
+      - NODE_DEBUG_ENABLED=${NODE_DEBUG_ENABLED:-true}
+      - NODE_DEBUG_SUSPEND=${NODE_DEBUG_SUSPEND:-false}
     networks:
       - constrsw
     ports:
       - ${RESOURCES_EXTERNAL_API_PORT}:${RESOURCES_INTERNAL_API_PORT}
+      - ${RESOURCES_EXTERNAL_DEBUG_PORT}:${RESOURCES_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     depends_on:
       mongodb:
         condition: service_healthy
@@ -522,11 +639,23 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${RESOURCES_INTERNAL_PROTOCOL}://${RESOURCES_INTERNAL_HOST}:${RESOURCES_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${RESOURCES_INTERNAL_PROTOCOL}://${RESOURCES_INTERNAL_HOST}:${RESOURCES_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      if [ \"$$NODE_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$NODE_DEBUG_SUSPEND\" = \"true\" ]; then
+          exec node --inspect-brk=0.0.0.0:${RESOURCES_INTERNAL_DEBUG_PORT} dist/main.js
+        else
+          exec node --inspect=0.0.0.0:${RESOURCES_INTERNAL_DEBUG_PORT} dist/main.js
+        fi
+      else
+        exec node dist/main.js
+      fi
+      "
 
   # Rooms API
   rooms:
@@ -542,16 +671,19 @@ services:
       - POSTGRESQL_USER=${ROOMS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${ROOMS_POSTGRESQL_PASSWORD}
       - DATABASE_URL=postgresql://${ROOMS_POSTGRESQL_USERNAME}:${ROOMS_POSTGRESQL_PASSWORD}@${POSTGRESQL_INTERNAL_HOST}:${POSTGRESQL_INTERNAL_PORT}/${ROOMS_POSTGRESQL_DB}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - OTEL_SERVICE_NAME=rooms
+      # Debug Configuration for Node.js
+      - NODE_DEBUG_ENABLED=${NODE_DEBUG_ENABLED:-true}
+      - NODE_DEBUG_SUSPEND=${NODE_DEBUG_SUSPEND:-false}
     networks:
       - constrsw
     ports:
       - ${ROOMS_EXTERNAL_API_PORT}:${ROOMS_INTERNAL_API_PORT}
-    command: >
-      sh -c "npx prisma db push && npm run start:prod"
+      - ${ROOMS_EXTERNAL_DEBUG_PORT}:${ROOMS_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     depends_on:
       postgresql:
         condition: service_healthy
@@ -559,11 +691,24 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${ROOMS_INTERNAL_PROTOCOL}://${ROOMS_INTERNAL_HOST}:${ROOMS_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${ROOMS_INTERNAL_PROTOCOL}://${ROOMS_INTERNAL_HOST}:${ROOMS_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      npx prisma db push &&
+      if [ \"$$NODE_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$NODE_DEBUG_SUSPEND\" = \"true\" ]; then
+          exec node --inspect-brk=0.0.0.0:${ROOMS_INTERNAL_DEBUG_PORT} dist/main.js
+        else
+          exec node --inspect=0.0.0.0:${ROOMS_INTERNAL_DEBUG_PORT} dist/main.js
+        fi
+      else
+        exec npm run start:prod
+      fi
+      "
 
   # Students API
   students:
@@ -578,16 +723,21 @@ services:
       - POSTGRESQL_DB=${STUDENTS_POSTGRESQL_DB}
       - POSTGRESQL_USER=${STUDENTS_POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${STUDENTS_POSTGRESQL_PASSWORD}
+      - ENABLE_SWAGGER=${ENABLE_SWAGGER}
       - OAUTH_INTERNAL_PROTOCOL=${OAUTH_INTERNAL_PROTOCOL}
       - OAUTH_INTERNAL_HOST=${OAUTH_INTERNAL_HOST}
       - OAUTH_INTERNAL_API_PORT=${OAUTH_INTERNAL_API_PORT}
       - ASPNETCORE_URLS=http://+:${STUDENTS_INTERNAL_API_PORT}
       - ConnectionStrings__DefaultConnection=Host=postgresql;Database=students_db;Username=${POSTGRESQL_USERNAME};Password=${POSTGRESQL_PASSWORD}
       - OTEL_SERVICE_NAME=students
+      # Debug Configuration for .NET
+      - DOTNET_DBG_ENABLE=${DOTNET_DBG_ENABLE:-1}
+      - DOTNET_DBG_PORT=${STUDENTS_INTERNAL_DEBUG_PORT}
     networks:
       - constrsw
     ports:
       - ${STUDENTS_EXTERNAL_API_PORT}:${STUDENTS_INTERNAL_API_PORT}
+      - ${STUDENTS_EXTERNAL_DEBUG_PORT}:${STUDENTS_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     depends_on:
       postgresql:
         condition: service_healthy
@@ -595,11 +745,21 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -f ${STUDENTS_INTERNAL_PROTOCOL}://${STUDENTS_INTERNAL_HOST}:${STUDENTS_INTERNAL_API_PORT}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f ${STUDENTS_INTERNAL_PROTOCOL}://${STUDENTS_INTERNAL_HOST}:${STUDENTS_INTERNAL_API_PORT}/api/v1/health || exit 1"]
       start_period: 40s
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      if [ \"$$DOTNET_DBG_ENABLE\" = \"1\" ]; then
+        export DOTNET_DBG_ENABLE=1
+        export DOTNET_DBG_PORT=$${STUDENTS_INTERNAL_DEBUG_PORT}
+        dotnet Students.Api.dll
+      else
+        dotnet Students.Api.dll
+      fi
+      "
 
   # BFF API
   bff:
@@ -681,10 +841,14 @@ services:
       - OTEL_SERVICE_NAME=bff
       - OTEL_SERVICE_VERSION=1.0.0
       - METRICS_PORT=9464
+      # Debug Configuration for Node.js
+      - NODE_DEBUG_ENABLED=${NODE_DEBUG_ENABLED:-true}
+      - NODE_DEBUG_SUSPEND=${NODE_DEBUG_SUSPEND:-false}
     networks:
       - constrsw
     ports:
       - ${BFF_EXTERNAL_API_PORT}:${BFF_INTERNAL_API_PORT}
+      - ${BFF_EXTERNAL_DEBUG_PORT}:${BFF_INTERNAL_DEBUG_PORT}  # Porta de debug remoto para depuração passo-a-passo
     depends_on:
       oauth:
         condition: service_healthy
@@ -713,6 +877,18 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    command: >
+      sh -c "
+      if [ \"$$NODE_DEBUG_ENABLED\" = \"true\" ]; then
+        if [ \"$$NODE_DEBUG_SUSPEND\" = \"true\" ]; then
+          exec node --inspect-brk=0.0.0.0:${BFF_INTERNAL_DEBUG_PORT} dist/main
+        else
+          exec node --inspect=0.0.0.0:${BFF_INTERNAL_DEBUG_PORT} dist/main
+        fi
+      else
+        exec node dist/main
+      fi
+      "
 
   # Frontend React
   frontend:
@@ -726,6 +902,8 @@ services:
       - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
       - VITE_KEYCLOAK_REALM=${VITE_KEYCLOAK_REALM}
       - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
+      - BFF_INTERNAL_HOST=${BFF_INTERNAL_HOST}
+      - BFF_INTERNAL_API_PORT=${BFF_INTERNAL_API_PORT}
     networks:
       - constrsw
     ports:

@@ -20,9 +20,9 @@ COPY poetry.lock* ./
 # Configura o Poetry para instalar dependências no ambiente do sistema
 RUN poetry config virtualenvs.create false
 
-# Tenta instalar. Se o lockfile estiver desatualizado, atualiza e instala novamente
-RUN poetry install --without dev --no-interaction --no-ansi --no-root || \
-    (poetry lock --no-interaction --no-ansi && poetry install --without dev --no-interaction --no-ansi --no-root)
+# Atualiza o lock file se necessário e instala as dependências
+RUN (poetry lock --no-interaction --no-ansi || true) && \
+    poetry install --without dev --no-interaction --no-ansi --no-root
 
 # Stage 2: Production - Cria a imagem final otimizada para produção
 FROM python:3.12-slim AS final
@@ -52,8 +52,9 @@ COPY ./src ./src
 # Define o usuário 'app' como o usuário que irá rodar a aplicação.
 USER app
 
-# Expõe a porta 80.
+# Expõe a porta da aplicação e a porta de debug
 EXPOSE 80
+EXPOSE 5678
 
 # Comando para iniciar o servidor Uvicorn e executar a aplicação FastAPI.
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

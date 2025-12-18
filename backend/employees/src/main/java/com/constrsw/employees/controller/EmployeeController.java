@@ -1,6 +1,7 @@
 package com.constrsw.employees.controller;
 
 import com.constrsw.employees.dto.*;
+import com.constrsw.employees.security.RequiresRole;
 import com.constrsw.employees.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ public class EmployeeController {
     private EmployeeService employeeService;
     
     @PostMapping
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeCreateRequest request) {
         EmployeeResponse response = employeeService.createEmployee(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -41,6 +43,7 @@ public class EmployeeController {
     }
     
     @PutMapping("/{id}")
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> updateEmployee(
             @PathVariable String id,
             @Valid @RequestBody EmployeeUpdateRequest request) {
@@ -49,6 +52,7 @@ public class EmployeeController {
     }
     
     @PatchMapping("/{id}")
+    @RequiresRole("administrator")
     public ResponseEntity<EmployeeResponse> patchEmployee(
             @PathVariable String id,
             @RequestBody EmployeeUpdateRequest request) {
@@ -57,6 +61,7 @@ public class EmployeeController {
     }
     
     @DeleteMapping("/{id}")
+    @RequiresRole("administrator")
     public ResponseEntity<Void> deleteEmployee(@PathVariable String id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();

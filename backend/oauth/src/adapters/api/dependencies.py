@@ -46,40 +46,97 @@ async def get_current_user(
     """
     try:
         jwks = await get_jwks()
+        # Decodificar sem validar audience primeiro para verificar se o client ID está no array
         payload = jwt.decode(
             token,
             jwks["keys"],  
             algorithms=[settings.KEYCLOAK_TOKEN_ALGORITHM],
-            audience=settings.KEYCLOAK_CLIENT_ID,
+            options={"verify_aud": False},  # Desabilitar validação de audience temporariamente
             issuer=f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}",
         )
+        
+        # Validar audience manualmente: pode ser string ou array
+        token_aud = payload.get("aud")
+        client_id = settings.KEYCLOAK_CLIENT_ID
+        
+        if isinstance(token_aud, list):
+            # Se audience é array, verificar se o client ID está na lista
+            # ou se "oauth" está na lista (client ID pode ser "oauth")
+            if client_id not in token_aud and "oauth" not in token_aud:
+                # Também verificar se o azp (authorized party) corresponde ao client ID
+                azp = payload.get("azp")
+                if azp != client_id and azp != "oauth":
+                    raise InvalidTokenError(
+                        description=f"Token audience inválido. Esperado: {client_id}, Recebido: {token_aud}"
+                    )
+        elif isinstance(token_aud, str):
+            # Se audience é string, deve corresponder exatamente
+            if token_aud != client_id and token_aud != "oauth":
+                azp = payload.get("azp")
+                if azp != client_id and azp != "oauth":
+                    raise InvalidTokenError(
+                        description=f"Token audience inválido. Esperado: {client_id}, Recebido: {token_aud}"
+                    )
+        else:
+            # Se não há audience, verificar azp
+            azp = payload.get("azp")
+            if azp != client_id and azp != "oauth":
+                raise InvalidTokenError(
+                    description="Token sem audience válido"
+                )
+        
+        # Adicionar o token ao payload para uso posterior
+        payload["_token"] = token
         return payload
     except JWTError as e:
         raise InvalidTokenError(description=f"Token inválido ou expirado: {e}") from e
 
 
-# --- Singletons para os clientes/repositórios ---
-
-
-keycloak_admin_client = KeycloakAdminClient()
-user_repository = KeycloakUserRepository(client=keycloak_admin_client)
-role_repository = KeycloakRoleRepository(client=keycloak_admin_client)
+async def get_user_token(
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> str:
+    """
+    Extrai o token JWT do usuário autenticado.
+    """
+    return current_user.get("_token", "")
 
 
 # --- Funções de Injeção de Dependência ---
-def get_user_repository() -> IUserRepository:
-    return user_repository
+def get_user_repository(
+    user_token: Annotated[str, Depends(get_user_token)],
+) -> IUserRepository:
+    """
+    Cria um repositório de usuários usando o token do usuário autenticado.
+    """
+    client = KeycloakAdminClient(user_token=user_token)
+    return KeycloakUserRepository(client=client)
 
 
-def get_role_repository() -> IRoleRepository:
-    return role_repository
+def get_role_repository(
+    user_token: Annotated[str, Depends(get_user_token)],
+) -> IRoleRepository:
+    """
+    Cria um repositório de roles usando o token do usuário autenticado.
+    """
+    client = KeycloakAdminClient(user_token=user_token)
+    return KeycloakRoleRepository(client=client)
 
 
-def get_user_service() -> UserService:
-    return UserService(user_repo=user_repository, role_repo=role_repository)
+def get_user_service(
+    user_repo: Annotated[IUserRepository, Depends(get_user_repository)],
+    role_repo: Annotated[IRoleRepository, Depends(get_role_repository)],
+) -> UserService:
+    """
+    Cria um serviço de usuários usando os repositórios com token do usuário.
+    """
+    return UserService(user_repo=user_repo, role_repo=role_repo)
 
 
-def get_role_service() -> RoleService:
-    return RoleService(
-        role_repository=role_repository, user_repository=user_repository
-    )
+def get_role_service(
+    role_repo: Annotated[IRoleRepository, Depends(get_role_repository)],
+    user_repo: Annotated[IUserRepository, Depends(get_user_repository)],
+) -> RoleService:
+    """
+    Cria um serviço de roles usando os repositórios com token do usuário.
+    """
+    return RoleService(role_repository=role_repo, user_repository=user_repo)

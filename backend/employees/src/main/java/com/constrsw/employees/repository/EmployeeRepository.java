@@ -16,7 +16,16 @@ public interface EmployeeRepository extends MongoRepository<Employee, String> {
     
     boolean existsByContractNumber(Long contractNumber);
     
-    @Query("{'$or': [{'contractNumber': {$regex: ?0, $options: 'i'}}, {'name': {$regex: ?0, $options: 'i'}}, {'organizationalUnit': {$regex: ?0, $options: 'i'}}]}")
+    /**
+     * Busca funcionários por número de contrato, nome ou unidade organizacional.
+     * Converte contractNumber (Long) para string para permitir busca parcial.
+     * A busca é case-insensitive em todos os campos.
+     */
+    @Query("{'$or': [" +
+           "{'$expr': {'$regexMatch': {'input': {'$toString': '$contractNumber'}, 'regex': ?0, 'options': 'i'}}}," +
+           "{'name': {$regex: ?0, $options: 'i'}}," +
+           "{'organizationalUnit': {$regex: ?0, $options: 'i'}}" +
+           "]}")
     Page<Employee> findByContractNumberOrNameOrOrganizationalUnit(String searchTerm, Pageable pageable);
     
     @Query("{'contractNumber': {$regex: ?0, $options: 'i'}}")
