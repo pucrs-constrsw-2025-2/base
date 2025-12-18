@@ -1,0 +1,123 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: us-east-1
+  AWS_PROFILE: constrsw2025-2
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  EKS_CLUSTER_NAME: constrsw-cluster
+  EKS_NAMESPACE: production
+
+jobs:
+  # Job para build e push de imagens Docker
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: bff
+            path: ./backend/bff
+          - service: oauth
+            path: ./backend/oauth
+          - service: employees
+            path: ./backend/employees
+          - service: classes
+            path: ./backend/classes/ClasseMicroservice
+          - service: courses
+            path: ./backend/courses
+          - service: lessons
+            path: ./backend/lessons
+          - service: professors
+            path: ./backend/professors
+          - service: reservations
+            path: ./backend/reservations
+          - service: resources
+            path: ./backend/resources
+          - service: rooms
+            path: ./backend/rooms
+          - service: students
+            path: ./backend/students
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REPOSITORY: constrsw/${{ matrix.service }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ${{ matrix.path }}
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  # Job para deploy no EKS
+  deploy-to-eks:
+    name: Deploy to EKS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EKS
+        run: |
+          # Aplicar manifests Kubernetes
+          # Nota: Você precisará criar os manifests em infra/k8s/
+          kubectl apply -f infra/k8s/ --namespace=${{ env.EKS_NAMESPACE }}
+          
+          # Aguardar rollout
+          kubectl rollout status deployment/bff -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/oauth -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/employees -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/classes -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/courses -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/lessons -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/professors -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/reservations -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/resources -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/rooms -n ${{ env.EKS_NAMESPACE }}
+          kubectl rollout status deployment/students -n ${{ env.EKS_NAMESPACE }}
+

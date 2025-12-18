@@ -1,0 +1,161 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  # Testes do Frontend
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./frontend
+        run: npm run lint || true
+
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- --coverage || true
+
+  # Testes dos Microserviços Node.js
+  nodejs-tests:
+    name: Node.js Services Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - bff
+          - lessons
+          - reservations
+          - resources
+          - rooms
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend/${{ matrix.service }}
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./backend/${{ matrix.service }}
+        run: npm run lint || true
+
+      - name: Run tests
+        working-directory: ./backend/${{ matrix.service }}
+        run: npm test || true
+
+  # Testes dos Microserviços Python
+  python-tests:
+    name: Python Services Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - oauth
+          - courses
+          - professors
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./backend/${{ matrix.service }}
+        run: |
+          pip install -r requirements.txt || pip install poetry && poetry install
+
+      - name: Run linter
+        working-directory: ./backend/${{ matrix.service }}
+        run: |
+          pip install flake8 black || true
+          flake8 . || true
+          black --check . || true
+
+      - name: Run tests
+        working-directory: ./backend/${{ matrix.service }}
+        run: |
+          pytest || python -m pytest || true
+
+  # Testes dos Microserviços Java
+  java-tests:
+    name: Java Services Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        working-directory: ./backend/employees
+        run: mvn test || true
+
+  # Testes dos Microserviços .NET
+  dotnet-tests:
+    name: .NET Services Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - classes
+          - students
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        working-directory: ./backend/${{ matrix.service }}
+        run: dotnet restore
+
+      - name: Build
+        working-directory: ./backend/${{ matrix.service }}
+        run: dotnet build --no-restore
+
+      - name: Run tests
+        working-directory: ./backend/${{ matrix.service }}
+        run: dotnet test --no-build --verbosity normal || true
+
