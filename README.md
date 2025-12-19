@@ -7,10 +7,11 @@ Sistema de Gestão de Recursos Computacionais desenvolvido para a disciplina de 
 O Closed CRAS é um sistema completo para gerenciamento de recursos computacionais de uma universidade, incluindo:
 
 - **Frontend**: Interface web desenvolvida em React + TypeScript
-- **Backend**: API REST com autenticação OAuth2/Keycloak
-- **Banco de Dados**: PostgreSQL
+- **Backend**: Microsserviços como API REST com autenticação OAuth2/Keycloak + API REST BFF (Backend For Frontend)
+- **Banco de Dados**: PostgreSQL e MongoDB
+- **Autenticação**: Keycloak (OAuth2/OpenID Connect)
 - **Análise de Código**: SonarQube
-- **Autenticação**: Keycloak
+- **Observabilidade**: OpenTelemetry + Prometheus
 
 ## 🚀 Tecnologias Utilizadas
 
@@ -21,18 +22,19 @@ O Closed CRAS é um sistema completo para gerenciamento de recursos computaciona
 - React Hook Form + Sonner
 
 ### Backend
-- Java Spring Boot
-- PostgreSQL
-- Keycloak (OAuth2/OpenID Connect)
-- SonarQube
+- Java 21 + Spring Boot 3.x
+- Python + FastAPI
+- NodeJS (TypeScript) + NestJS 10.x e 11.x
+- C# + .NET Core 8.x
 
 ## 🛠️ Instalação e Execução
 
 ### Pré-requisitos
 
-- Docker e Docker Compose
-- Node.js 18+ (para desenvolvimento local do frontend)
-- Java 17+ (para desenvolvimento local do backend)
+- Ambiente dev.local
+  - Docker e Docker Compose
+- Ambientes dev.cloud, hml e prd
+  - AWS EKS
 
 ### Execução com Docker (Recomendado)
 
@@ -67,7 +69,7 @@ docker-compose up -d
 - **Frontend**: http://localhost:3000
 - **Keycloak**: http://localhost:8001
 - **SonarQube**: http://localhost:9000
-- **PostgreSQL**: localhost:5432
+- **Prometheus**: http://localhost:9090
 
 ### Desenvolvimento Local
 
