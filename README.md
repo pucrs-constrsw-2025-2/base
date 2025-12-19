@@ -109,6 +109,7 @@ constrsw-2025-2/
 
 ## 📚 Documentação
 
+- [Arquitetura do Sistema](./ARQUITETURA.md) - Diagrama completo da arquitetura da solução
 - [Frontend README](./frontend/README.md) - Documentação detalhada do frontend
 - [Autenticação](./frontend/AUTHENTICATION.md) - Estratégias de autenticação
 - [Postman Collections](./ConstrSW.postman_collection.json) - API endpoints

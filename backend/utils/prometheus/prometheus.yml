@@ -44,28 +44,28 @@ scrape_configs:
   - job_name: 'lessons'
     static_configs:
       - targets: ['lessons:9091']
-    metrics_path: '/api/v1/metrics'
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
   # Reservations Service (OpenTelemetry)
   - job_name: 'reservations'
     static_configs:
       - targets: ['reservations:9091']
-    metrics_path: '/api/v1/metrics'
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
   # Resources Service (OpenTelemetry)
   - job_name: 'resources'
     static_configs:
       - targets: ['resources:9091']
-    metrics_path: '/api/v1/metrics'
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
   # Rooms Service (OpenTelemetry)
   - job_name: 'rooms'
     static_configs:
       - targets: ['rooms:9091']
-    metrics_path: '/api/v1/metrics'
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
   # Students Service (.NET - OpenTelemetry)
