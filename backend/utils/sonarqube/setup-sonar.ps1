@@ -5,7 +5,9 @@
 param(
     [string]$SonarUrl = "http://localhost:9000",
     [string]$AdminUser = "admin",
-    [string]$AdminPassword = "a12345678",
+    # Senha padrão do usuário admin em uma instalação nova é "admin".
+    # Se você já alterou a senha via UI, chame o script com: -AdminPassword "minhaSenha"
+    [string]$AdminPassword = "admin",
     [string]$NewUser = "constrsw",
     [string]$NewPassword = "a12345678",
     [string]$NewEmail = "constrsw@example.com",
@@ -59,7 +61,8 @@ function New-SonarUser {
     
     try {
         $credential = New-Object System.Management.Automation.PSCredential($adminUser, (ConvertTo-SecureString $adminPassword -AsPlainText -Force))
-        $response = Invoke-RestMethod -Uri "$SonarUrl/api/users/create" -Method Post -Body $body -ContentType "application/x-www-form-urlencoded" -Credential $credential
+        # Em PowerShell 7+, é necessário permitir envio de credenciais em HTTP (ambiente local)
+        $response = Invoke-RestMethod -Uri "$SonarUrl/api/users/create" -Method Post -Body $body -ContentType "application/x-www-form-urlencoded" -Credential $credential -AllowUnencryptedAuthentication
         Write-Success "Usuário '$user' criado com sucesso!"
         return $true
     } catch {
@@ -96,7 +99,9 @@ function New-SonarToken {
     Write-Info "Gerando token '$tokenName' para usuário '$user'..."
     
     try {
-        $response = Invoke-RestMethod -Uri "$SonarUrl/api/user_tokens/generate" -Method Post -Body "name=$tokenName" -ContentType "application/x-www-form-urlencoded" -Credential (New-Object System.Management.Automation.PSCredential($user, (ConvertTo-SecureString $password -AsPlainText -Force)))
+        $credential = New-Object System.Management.Automation.PSCredential($user, (ConvertTo-SecureString $password -AsPlainText -Force))
+        # Em PowerShell 7+, é necessário permitir envio de credenciais em HTTP (ambiente local)
+        $response = Invoke-RestMethod -Uri "$SonarUrl/api/user_tokens/generate" -Method Post -Body "name=$tokenName" -ContentType "application/x-www-form-urlencoded" -Credential $credential -AllowUnencryptedAuthentication
         Write-Success "Token gerado com sucesso!"
         return $response.token
     } catch {
