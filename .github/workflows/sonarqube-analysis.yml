@@ -1,0 +1,162 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches: [ main, develop, grupo7 ]
+  pull_request:
+    branches: [ main, develop, grupo7 ]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to analyze (leave empty for all)'
+        required: false
+        type: choice
+        options:
+          - all
+          - employees
+          - lessons
+          - rooms
+          - reservations
+          - resources
+          - bff
+          - oauth
+          - professors
+          - courses
+          - students
+          - classes
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service:
+          - name: employees
+            path: backend/employees
+            language: java
+            test-command: mvn clean test jacoco:report
+            coverage-path: target/site/jacoco/jacoco.xml
+            projectKey: constrsw-employees
+          - name: lessons
+            path: backend/lessons
+            language: typescript
+            test-command: npm ci && npm run test:cov
+            coverage-path: coverage/lcov.info
+            projectKey: constrsw-lessons
+          - name: rooms
+            path: backend/rooms
+            language: typescript
+            test-command: npm ci && npm run test:cov
+            coverage-path: coverage/lcov.info
+            projectKey: constrsw-rooms
+          - name: reservations
+            path: backend/reservations
+            language: typescript
+            test-command: npm ci && npm run test:cov
+            coverage-path: coverage/lcov.info
+            projectKey: constrsw-reservations
+          - name: resources
+            path: backend/resources
+            language: typescript
+            test-command: npm ci && npm run test:cov
+            coverage-path: coverage/lcov.info
+            projectKey: constrsw-resources
+          - name: bff
+            path: backend/bff
+            language: typescript
+            test-command: npm ci && npm run test:cov
+            coverage-path: coverage/lcov.info
+            projectKey: constrsw-bff
+          - name: oauth
+            path: backend/oauth
+            language: python
+            test-command: poetry install && poetry run task test
+            coverage-path: coverage.xml
+            projectKey: constrsw-oauth
+          - name: professors
+            path: backend/professors
+            language: python
+            test-command: poetry install && poetry run pytest --cov=professors --cov-report=xml
+            coverage-path: coverage.xml
+            projectKey: constrsw-professors
+          - name: courses
+            path: backend/courses
+            language: python
+            test-command: pip install -r requirements.txt && pytest --cov=src --cov-report=xml
+            coverage-path: coverage.xml
+            projectKey: constrsw-courses
+          - name: students
+            path: backend/students
+            language: dotnet
+            test-command: dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+            coverage-path: coverage/coverage.cobertura.xml
+            projectKey: constrsw-students
+          - name: classes
+            path: backend/classes/ClasseMicroservice
+            language: dotnet
+            test-command: dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+            coverage-path: coverage/coverage.cobertura.xml
+            projectKey: constrsw-classes
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+    
+    - name: Set up JDK 21 (for Java services)
+      if: matrix.service.language == 'java'
+      uses: actions/setup-java@v4
+      with:
+        java-distribution: 'temurin'
+        java-version: '21'
+    
+    - name: Set up Node.js (for TypeScript services)
+      if: matrix.service.language == 'typescript'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: ${{ matrix.service.path }}/package-lock.json
+    
+    - name: Set up Python (for Python services)
+      if: matrix.service.language == 'python'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Set up .NET (for .NET services)
+      if: matrix.service.language == 'dotnet'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Install dependencies and run tests
+      working-directory: ${{ matrix.service.path }}
+      run: ${{ matrix.service.test-command }}
+      continue-on-error: true
+    
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      with:
+        projectBaseDir: ${{ matrix.service.path }}
+        args: >
+          -Dsonar.projectKey=${{ matrix.service.projectKey }}
+          -Dsonar.projectName=ConstrSW ${{ matrix.service.name }} Service
+          -Dsonar.sources=src
+          -Dsonar.tests=src,test
+          -Dsonar.sourceEncoding=UTF-8
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      continue-on-error: true
+    
+    - name: SonarQube Quality Gate Check
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      continue-on-error: true
